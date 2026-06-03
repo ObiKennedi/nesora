@@ -1,0 +1,172 @@
+// ─── Navbar ─────────────────────────────────────────────────────────────────
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-sticky);
+    height: var(--header-height);
+    background-color: var(--color-bg);
+    border-bottom: var(--border-width) solid var(--color-border);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-8);
+
+    img {
+        height: 36px;
+        width: auto;
+        object-fit: contain;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    nav {
+        display: flex;
+        align-items: center;
+        gap: var(--space-8);
+
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: var(--space-6);
+
+            li a {
+                font-family: var(--font-body);
+                font-size: var(--font-size-sm);
+                font-weight: var(--font-weight-medium);
+                letter-spacing: var(--letter-spacing-wide);
+                color: var(--color-text-secondary);
+                text-decoration: none;
+                text-transform: uppercase;
+                position: relative;
+                transition: color var(--transition-base);
+
+                &::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -3px;
+                    left: 0;
+                    width: 0;
+                    height: 1.5px;
+                    background-color: var(--color-primary);
+                    transition: width var(--transition-base);
+                }
+
+                &:hover {
+                    color: var(--color-text-primary);
+
+                    &::after {
+                        width: 100%;
+                    }
+                }
+            }
+        }
+    }
+
+    // ─── Get Started Button ─────────────────────────────────────────────────
+    .header-redirect {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        text-decoration: none;
+        color: var(--color-text-inverse);
+        background-color: var(--color-dark);
+        padding: var(--space-3) var(--space-6);
+        border-radius: var(--radius-sm);
+        border: 1.5px solid var(--color-dark);
+        transition:
+            background-color var(--transition-base),
+            color var(--transition-base);
+
+        &:hover {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+    }
+
+    // ─── Mobile Toggle ──────────────────────────────────────────────────────
+    .mobile-nav {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: var(--space-2);
+        color: var(--color-text-primary);
+        transition: color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-primary);
+        }
+
+        svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+    }
+}
+
+// ─── Mobile ──────────────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+    header {
+        padding: 0 var(--space-5);
+
+        .mobile-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        nav {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-bg);
+            border-top: var(--border-width) solid var(--color-border);
+
+            flex-direction: column;
+            justify-content: center;
+            gap: var(--space-10);
+
+            // closed state
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-12px);
+            transition:
+                opacity var(--transition-base),
+                transform var(--transition-base);
+
+            &.open {
+                opacity: 1;
+                pointer-events: all;
+                transform: translateY(0);
+            }
+
+            ul {
+                flex-direction: column;
+                gap: var(--space-6);
+                text-align: center;
+
+                li a {
+                    font-size: var(--font-size-md);
+                }
+            }
+
+            .header-redirect {
+                width: 200px;
+                text-align: center;
+            }
+        }
+    }
+}
