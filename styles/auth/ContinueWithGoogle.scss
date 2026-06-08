@@ -1,0 +1,63 @@
+// styles/auth/ContinueWithGoogle.scss
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background-color: var(--color-border);
+    }
+
+    span {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
+}
+
+// ── Button ────────────────────────────────────────────────────────────────────
+
+.continue-with-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3) var(--space-5);
+    cursor: pointer;
+    transition:
+        background-color var(--transition-base),
+        border-color var(--transition-base),
+        box-shadow var(--transition-base);
+
+    svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+
+    &:hover {
+        background-color: var(--color-bg);
+        border-color: #dadce0;
+        box-shadow: var(--shadow-sm);
+    }
+
+    &:active {
+        background-color: var(--color-bg-alt);
+    }
+}

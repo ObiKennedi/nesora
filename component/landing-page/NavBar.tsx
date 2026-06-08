@@ -45,7 +45,7 @@ const Navbar = () => {
     const router = useRouter()
 
     return (
-        <header>
+        <header className="nav-header">
             <img
                 src="/logo.png"
                 alt="logo"

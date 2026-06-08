@@ -1,0 +1,208 @@
+// styles/auth/AuthLayout.scss
+
+.auth-page {
+    min-height: 100svh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background-color: var(--color-bg);
+    overflow: hidden;
+}
+
+// ─── Left Panel ───────────────────────────────────────────────────────────────
+
+.auth-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    background-color: var(--color-dark);
+    min-height: 100svh;
+
+    // ── Logo ──────────────────────────────────────────────────────────────────
+    &__logo {
+        position: absolute;
+        top: var(--space-8);
+        left: var(--space-8);
+        z-index: 10;
+        display: inline-block;
+
+        img {
+            height: 28px;
+            width: auto;
+            object-fit: contain;
+        }
+    }
+
+    // ── Slides ────────────────────────────────────────────────────────────────
+    &__slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 600ms ease;
+        pointer-events: none;
+
+        &--active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        &--fading {
+            opacity: 0;
+        }
+    }
+
+    &__img {
+        object-fit: cover;
+        object-position: center top;
+    }
+
+    // ── Gradient overlay ──────────────────────────────────────────────────────
+    &__overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(to bottom,
+                rgba(26, 26, 26, 0.25) 0%,
+                rgba(26, 26, 26, 0.10) 40%,
+                rgba(26, 26, 26, 0.65) 100%);
+    }
+
+    // ── Caption ───────────────────────────────────────────────────────────────
+    &__caption {
+        position: absolute;
+        bottom: var(--space-16);
+        left: var(--space-8);
+        right: var(--space-8);
+        z-index: 10;
+        transition: opacity 500ms ease, transform 500ms ease;
+        opacity: 1;
+        transform: translateY(0);
+
+        &--fading {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        p {
+            font-family: var(--font-display);
+            font-size: clamp(var(--font-size-lg), 2vw, var(--font-size-xl));
+            font-weight: var(--font-weight-bold);
+            line-height: var(--line-height-snug);
+            color: var(--color-surface);
+            margin: 0;
+            letter-spacing: var(--letter-spacing-tight);
+            max-width: 320px;
+
+            // Terracotta underline on first word feel
+            &::before {
+                content: '';
+                display: block;
+                width: 32px;
+                height: 2px;
+                background-color: var(--color-primary);
+                border-radius: var(--radius-full);
+                margin-bottom: var(--space-3);
+            }
+        }
+    }
+
+    // ── Slide dots ────────────────────────────────────────────────────────────
+    &__dots {
+        position: absolute;
+        bottom: var(--space-8);
+        left: var(--space-8);
+        z-index: 10;
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    &__dot {
+        width: 20px;
+        height: 3px;
+        border-radius: var(--radius-full);
+        background-color: rgba(255, 255, 255, 0.3);
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition:
+            background-color var(--transition-base),
+            width var(--transition-base);
+
+        &--active {
+            width: 32px;
+            background-color: var(--color-primary);
+        }
+
+        &:hover:not(&--active) {
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+    }
+}
+
+// ─── Right: Form Panel ────────────────────────────────────────────────────────
+
+.auth-form-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12) var(--space-10);
+    overflow-y: auto;
+    background-color: var(--color-surface);
+
+    // Scroll without scrollbar
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    // The CardWrapper sits inside here — constrain it
+    .card-wrapper {
+        width: 100%;
+        max-width: 420px;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        background: transparent;
+    }
+}
+
+// ─── Tablet ───────────────────────────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+    .auth-page {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-panel {
+        display: none;
+    }
+
+    .auth-form-panel {
+        min-height: 100svh;
+        padding: var(--space-8) var(--space-6);
+        background-color: var(--color-bg);
+
+        // Restore card styles when panel is gone
+        .card-wrapper {
+            background-color: var(--color-surface);
+            border: var(--border-width) solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            box-shadow: var(--shadow-md);
+        }
+    }
+}
+
+// ─── Mobile ───────────────────────────────────────────────────────────────────
+
+@media (max-width: 480px) {
+    .auth-form-panel {
+        padding: var(--space-6) var(--space-5);
+        align-items: flex-start;
+        padding-top: var(--space-12);
+
+        .card-wrapper {
+            padding: var(--space-6);
+        }
+    }
+}

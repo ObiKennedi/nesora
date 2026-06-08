@@ -1,0 +1,406 @@
+// styles/auth/AuthForm.scss
+
+// ─── Form ────────────────────────────────────────────────────────────────────
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    &__row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+    }
+}
+
+// ─── Field ───────────────────────────────────────────────────────────────────
+
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    // ── Label row (label + forgot link side by side) ──────────────────────────
+    &__label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    label {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+    }
+
+    &__forgot {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: opacity var(--transition-fast);
+
+        &:hover {
+            opacity: 0.75;
+        }
+    }
+
+    // ── Input wrapper (input + toggle button) ─────────────────────────────────
+    &__input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        input {
+            padding-right: var(--space-10) !important;
+        }
+    }
+
+    &__toggle {
+        position: absolute;
+        right: var(--space-4);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        transition: color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
+    }
+
+    // ── Input ─────────────────────────────────────────────────────────────────
+    input {
+        width: 100%;
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        background-color: var(--color-bg);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: var(--space-3) var(--space-4);
+        outline: none;
+        transition:
+            border-color var(--transition-base),
+            box-shadow var(--transition-base),
+            background-color var(--transition-base);
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(194, 98, 42, 0.12);
+            background-color: var(--color-surface);
+        }
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        &.input--error {
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.10);
+
+            &:focus {
+                border-color: #e53e3e;
+                box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+            }
+        }
+    }
+
+    // ── Error message ─────────────────────────────────────────────────────────
+    &__error {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: #e53e3e;
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+}
+
+// ─── Password Strength ───────────────────────────────────────────────────────
+
+.auth-strength {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
+
+    &__bars {
+        display: flex;
+        gap: var(--space-1);
+        flex: 1;
+    }
+
+    &__bar {
+        flex: 1;
+        height: 3px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-border);
+        transition: background-color var(--transition-base);
+
+        &--weak {
+            background-color: #e53e3e;
+        }
+
+        &--fair {
+            background-color: #dd6b20;
+        }
+
+        &--good {
+            background-color: #d69e2e;
+        }
+
+        &--strong {
+            background-color: #38a169;
+        }
+    }
+
+    &__label {
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        width: 40px;
+        text-align: right;
+
+        &--weak {
+            color: #e53e3e;
+        }
+
+        &--fair {
+            color: #dd6b20;
+        }
+
+        &--good {
+            color: #d69e2e;
+        }
+
+        &--strong {
+            color: #38a169;
+        }
+    }
+}
+
+// ─── Feedback Banner ─────────────────────────────────────────────────────────
+
+.auth-feedback {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+
+    &--success {
+        background-color: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    &--error {
+        background-color: #fff5f5;
+        color: #c53030;
+        border: 1px solid #fed7d7;
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
+// ─── Submit Button ────────────────────────────────────────────────────────────
+
+.auth-submit {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+    color: var(--color-surface);
+    background-color: var(--color-dark);
+    border: 1.5px solid var(--color-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4);
+    cursor: pointer;
+    margin-top: var(--space-2);
+    transition:
+        background-color var(--transition-base),
+        border-color var(--transition-base),
+        transform var(--transition-fast);
+
+    &:hover:not(:disabled) {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        transform: translateY(-1px);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .spin {
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+.redirect-button {
+    background: transparent;
+    border: none;
+    padding: 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: var(--space-2);
+    transition:
+        background-color var(--transition-base),
+        border-color var(--transition-base),
+        transform var(--transition-fast);
+
+    &:hover:not(:disabled) {
+        color: var(--color-primary);
+    }
+}
+
+// ─── Mobile ──────────────────────────────────────────────────────────────────
+
+@media (max-width: 480px) {
+    .auth-form__row {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Add to styles/auth/AuthForm.scss
+
+// ─── Verify / State cards ────────────────────────────────────────────────────
+
+.verify-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &__card {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--space-3);
+        padding: var(--space-8) var(--space-6);
+        border-radius: var(--radius-md);
+        border: var(--border-width) solid var(--color-border);
+
+        &--loading {
+            background-color: var(--color-bg);
+            border-color: var(--color-border);
+        }
+
+        &--success {
+            background-color: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        &--error {
+            background-color: #fff5f5;
+            border-color: #fed7d7;
+        }
+    }
+
+    &__icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--space-1);
+
+        &--spin {
+            background-color: var(--color-bg-alt);
+            color: var(--color-text-muted);
+
+            svg {
+                animation: spin 1s linear infinite;
+            }
+        }
+
+        &--success {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        &--error {
+            background-color: #fee2e2;
+            color: #c53030;
+        }
+    }
+
+    &__title {
+        font-family: var(--font-body);
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        margin: 0;
+    }
+
+    &__body {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-relaxed);
+        color: var(--color-text-secondary);
+        margin: 0;
+        max-width: 320px;
+    }
+
+    &__hint {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        margin: 0;
+    }
+
+    &__link {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-primary);
+        text-decoration: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        transition: opacity var(--transition-fast);
+
+        &:hover {
+            opacity: 0.75;
+        }
+    }
+}

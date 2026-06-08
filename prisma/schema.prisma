@@ -1,0 +1,469 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OnboardingType {
+  FAN
+  CREATOR
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum IdType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVERS_LICENSE
+  VOTERS_CARD
+}
+
+enum UserWalletTransactionType {
+  DEPOSIT
+  GIFT_PURCHASE
+  SUBSCRIPTION_PAYMENT
+  REFUND
+}
+
+enum CreatorWalletTransactionType {
+  GIFT_RECEIVED
+  SUBSCRIPTION_RECEIVED
+  WITHDRAWAL
+  REFUND
+}
+
+enum PointTransactionType {
+  PURCHASE
+  NEW_CREATOR_BONUS
+  FOLLOWER_MILESTONE
+  SUBSCRIBER_REWARD
+  STREAM_USAGE
+  ADMIN_GRANT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum StreamStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+// ─── Core Accounts ────────────────────────────────────────────────────────────
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  username       String          @unique
+  firstName      String
+  lastName       String
+  image          String?
+  password       String?
+  role           Role            @default(USER)
+  onboardingType OnboardingType?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified DateTime?
+
+  // Relations
+  wallet        UserWallet?
+  creator       Creator?
+  follows       Follow[]
+  subscriptions Subscription[]
+  sentMessages  Message[]         @relation("MessageSender")
+  giftsSent     GiftTransaction[] @relation("GiftSender")
+  accounts      Account[]
+
+  @@map("users")
+}
+
+// Add to schema.prisma
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String   @unique
+  token   String   @unique
+  expires DateTime
+
+  @@map("password_reset_tokens")
+}
+
+model Creator {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  displayName String
+  bio         String?
+
+  isVerified         Boolean            @default(false)
+  verificationStatus VerificationStatus @default(PENDING)
+
+  followersCount   Int @default(0)
+  subscribersCount Int @default(0)
+
+  pointsBalance Int @default(0)
+
+  subscriptionEnabled Boolean  @default(false)
+  subscriptionPrice   Decimal? @db.Decimal(10, 2)
+
+  subscriberDMsEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verification      CreatorVerification?
+  wallet            CreatorWallet?
+  streams           LiveStream[]
+  followers         Follow[]
+  subscribers       Subscription[]
+  pointTransactions PointTransaction[]
+  withdrawals       Withdrawal[]
+  giftTransactions  GiftTransaction[]    @relation("GiftRecipient")
+  conversations     Conversation[]
+
+  @@map("creators")
+}
+
+model CreatorVerification {
+  id        String @id @default(cuid())
+  creatorId String @unique
+
+  dateOfBirth DateTime
+
+  idType   IdType
+  idNumber String
+
+  idFrontImage String
+  idBackImage  String
+
+  bvnOrTaxId String?
+
+  status VerificationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("creator_verifications")
+}
+
+// ─── Wallet System ────────────────────────────────────────────────────────────
+
+model UserWallet {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  balance Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions UserWalletTransaction[]
+
+  @@map("user_wallets")
+}
+
+model UserWalletTransaction {
+  id       String @id @default(cuid())
+  walletId String
+
+  amount Decimal                   @db.Decimal(12, 2)
+  type   UserWalletTransactionType
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  wallet UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@map("user_wallet_transactions")
+}
+
+model CreatorWallet {
+  id        String @id @default(cuid())
+  creatorId String @unique
+
+  balance Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator      Creator                    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  transactions CreatorWalletTransaction[]
+
+  @@map("creator_wallets")
+}
+
+model CreatorWalletTransaction {
+  id       String @id @default(cuid())
+  walletId String
+
+  amount Decimal                      @db.Decimal(12, 2)
+  type   CreatorWalletTransactionType
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  wallet CreatorWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@map("creator_wallet_transactions")
+}
+
+// ─── Creator Economy ─────────────────────────────────────────────────────────
+
+model Gift {
+  id String @id @default(cuid())
+
+  name  String
+  value Decimal @db.Decimal(10, 2)
+
+  imageUrl String?
+
+  isActive Boolean @default(true)
+
+  // Relations
+  transactions GiftTransaction[]
+
+  @@map("gifts")
+}
+
+model GiftTransaction {
+  id String @id @default(cuid())
+
+  senderId  String
+  creatorId String
+  giftId    String
+
+  quantity Int
+  amount   Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  sender  User    @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  creator Creator @relation("GiftRecipient", fields: [creatorId], references: [id], onDelete: Cascade)
+  gift    Gift    @relation(fields: [giftId], references: [id])
+
+  @@map("gift_transactions")
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  userId    String
+  creatorId String
+
+  amountPaid Decimal @db.Decimal(10, 2)
+
+  startedAt DateTime
+  expiresAt DateTime
+
+  status SubscriptionStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, creatorId])
+  @@map("subscriptions")
+}
+
+model Follow {
+  id String @id @default(cuid())
+
+  userId    String
+  creatorId String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, creatorId])
+  @@map("follows")
+}
+
+// ─── Points System ────────────────────────────────────────────────────────────
+
+model PointTransaction {
+  id String @id @default(cuid())
+
+  creatorId String
+
+  points Int
+  type   PointTransactionType
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("point_transactions")
+}
+
+// ─── Streaming ────────────────────────────────────────────────────────────────
+
+model LiveStream {
+  id String @id @default(cuid())
+
+  creatorId String
+
+  title       String
+  description String?
+
+  isSubscriberOnly Boolean @default(false)
+
+  status StreamStatus @default(SCHEDULED)
+
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  usage   StreamUsage[]
+
+  @@map("live_streams")
+}
+
+model StreamUsage {
+  id String @id @default(cuid())
+
+  streamId String
+
+  pointsUsed Int
+
+  startedAt DateTime
+  endedAt   DateTime?
+
+  // Relations
+  stream LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  @@map("stream_usages")
+}
+
+// ─── Creator Withdrawals ──────────────────────────────────────────────────────
+
+model Withdrawal {
+  id String @id @default(cuid())
+
+  creatorId String
+
+  grossAmount Decimal @db.Decimal(12, 2)
+  platformFee Decimal @db.Decimal(12, 2)
+  netAmount   Decimal @db.Decimal(12, 2)
+
+  status WithdrawalStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("withdrawals")
+}
+
+// ─── Subscriber DMs ───────────────────────────────────────────────────────────
+
+model Conversation {
+  id String @id @default(cuid())
+
+  creatorId    String
+  subscriberId String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator  Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([creatorId, subscriberId])
+  @@map("conversations")
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  conversationId String
+
+  senderId String
+
+  content String
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
