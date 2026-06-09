@@ -1,0 +1,229 @@
+// styles/creator/dashboard/PerformanceSnapshot.scss
+
+.perf-snapshot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+
+    &__metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-3);
+    }
+}
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+.perf-metric {
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    transition: box-shadow var(--transition-base), transform var(--transition-base);
+
+    &:hover {
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-1px);
+    }
+
+    &__value {
+        font-family: var(--font-display);
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+        margin: 0;
+        line-height: 1;
+        letter-spacing: var(--letter-spacing-tight);
+    }
+
+    &__label {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-secondary);
+        margin: 0;
+
+        span {
+            color: var(--color-text-muted);
+            font-weight: var(--font-weight-regular);
+        }
+    }
+
+    // ── Left border accent per color ──────────────────────────────────────────
+    &--primary {
+        border-left: 3px solid var(--color-primary);
+    }
+
+    &--green {
+        border-left: 3px solid #16a34a;
+    }
+
+    &--blue {
+        border-left: 3px solid #2563eb;
+    }
+
+    &--amber {
+        border-left: 3px solid #d97706;
+    }
+}
+
+// ─── Panel ───────────────────────────────────────────────────────────────────
+
+.perf-panel {
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+
+    &__head {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-4) var(--space-5);
+        border-bottom: var(--border-width) solid var(--color-border);
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+
+        svg {
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        border-bottom: var(--border-width) solid var(--color-border);
+        transition: background-color var(--transition-fast);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &:hover {
+            background-color: var(--color-bg);
+        }
+    }
+
+    &__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        flex-shrink: 0;
+    }
+
+    &__rank {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-bg-alt);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-muted);
+        flex-shrink: 0;
+    }
+
+    &__info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-dark);
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        span {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+    }
+
+    &__stat {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+        flex-shrink: 0;
+    }
+
+    &__type {
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        padding: 2px var(--space-2);
+        border-radius: var(--radius-full);
+        width: fit-content;
+
+        &--video {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        &--exclusive {
+            background-color: #ede9fe;
+            color: #7c3aed;
+        }
+
+        &--live {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        &--stream {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+    }
+
+    &__empty {
+        padding: var(--space-8) var(--space-5);
+        text-align: center;
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+    }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+    .perf-snapshot__metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .perf-snapshot__metrics {
+        grid-template-columns: 1fr 1fr;
+    }
+}

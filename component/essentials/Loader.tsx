@@ -66,7 +66,7 @@ export const Loader = ({
                     <div className="nsr-loader__pulse" />
 
                     <div className="nsr-loader__logo-wrap">
-                        <img src="/logo-light.png" alt="NESORA" className="nsr-loader__logo" />
+                        <img src="/logo.png" alt="NESORA" className="nsr-loader__logo" />
                         <div className="nsr-loader__glow" />
                     </div>
                 </div>

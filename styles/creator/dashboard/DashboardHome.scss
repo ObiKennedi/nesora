@@ -1,0 +1,64 @@
+// styles/creator/dashboard/DashboardHome.scss
+
+.dashboard-home {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    max-width: 1400px;
+    width: 100%;
+
+    &__lower {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: var(--space-6);
+        align-items: start;
+    }
+
+    &__main {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-8);
+        min-width: 0;
+    }
+
+    &__aside {
+        position: sticky;
+        top: calc(var(--header-height) + var(--space-6));
+        min-width: 0;
+    }
+}
+
+// ─── Shared section title ─────────────────────────────────────────────────────
+
+.dashboard-section-title {
+    font-family: var(--font-body);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+    margin: 0 0 var(--space-4);
+    letter-spacing: var(--letter-spacing-normal);
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 1100px) {
+    .dashboard-home {
+        &__lower {
+            grid-template-columns: 1fr;
+        }
+
+        &__aside {
+            position: static;
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-home {
+        gap: var(--space-6);
+
+        &__lower {
+            gap: var(--space-5);
+        }
+    }
+}

@@ -1,0 +1,141 @@
+// styles/creator/dashboard/QuickActions.scss
+
+.quick-actions {
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-3);
+    }
+}
+
+.quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-3);
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--color-border);
+    background-color: var(--color-surface);
+    text-decoration: none;
+    transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-base),
+        border-color var(--transition-base),
+        background-color var(--transition-base);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    &__icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color var(--transition-base);
+    }
+
+    &__label {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+        text-align: center;
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+    }
+
+    // ── Color variants ────────────────────────────────────────────────────────
+    &--primary {
+        &:hover {
+            border-color: rgba(194, 98, 42, 0.3);
+        }
+
+        .quick-action__icon {
+            background-color: rgba(194, 98, 42, 0.10);
+            color: var(--color-primary);
+        }
+    }
+
+    &--red {
+        &:hover {
+            border-color: #fecaca;
+        }
+
+        .quick-action__icon {
+            background-color: #fee2e2;
+            color: #c53030;
+        }
+    }
+
+    &--blue {
+        &:hover {
+            border-color: #bfdbfe;
+        }
+
+        .quick-action__icon {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+    }
+
+    &--amber {
+        &:hover {
+            border-color: #fde68a;
+        }
+
+        .quick-action__icon {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+    }
+
+    &--green {
+        &:hover {
+            border-color: #bbf7d0;
+        }
+
+        .quick-action__icon {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+    }
+
+    &--purple {
+        &:hover {
+            border-color: #ddd6fe;
+        }
+
+        .quick-action__icon {
+            background-color: #ede9fe;
+            color: #6d28d9;
+        }
+    }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 640px) {
+    .quick-actions__grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-2);
+    }
+
+    .quick-action {
+        padding: var(--space-4) var(--space-2);
+
+        &__icon {
+            width: 36px;
+            height: 36px;
+        }
+
+        &__label {
+            font-size: 9px;
+        }
+    }
+}

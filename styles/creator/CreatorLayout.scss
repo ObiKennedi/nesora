@@ -1,0 +1,499 @@
+// styles/creator/CreatorLayout.scss
+
+// ─── Shell ───────────────────────────────────────────────────────────────────
+
+.creator-shell {
+    display: flex;
+    min-height: 100svh;
+    background-color: var(--color-bg);
+}
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
+
+.creator-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background-color: var(--color-dark);
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    z-index: var(--z-sticky);
+    transition: transform var(--transition-base);
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    // ── Logo ────────────────────────────────────────────────────────────────
+    &__logo {
+        padding: var(--space-5) var(--space-5) var(--space-4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        flex-shrink: 0;
+
+        img {
+            object-fit: contain;
+        }
+    }
+
+    &__close {
+        display: none;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        padding: var(--space-1);
+
+        &:hover {
+            color: var(--color-surface);
+        }
+    }
+
+    // ── Mini profile ────────────────────────────────────────────────────────
+    &__profile {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        flex-shrink: 0;
+    }
+
+    &__avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        span {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-surface);
+            text-transform: uppercase;
+        }
+    }
+
+    &__meta {
+        overflow: hidden;
+    }
+
+    &__name {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-surface);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__handle {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.35);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // ── Nav ─────────────────────────────────────────────────────────────────
+    &__nav {
+        flex: 1;
+        padding: var(--space-4) var(--space-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    // ── Sign out ────────────────────────────────────────────────────────────
+    &__signout {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        background: none;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        cursor: pointer;
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: rgba(255, 255, 255, 0.35);
+        transition: color var(--transition-base);
+        flex-shrink: 0;
+
+        &:hover {
+            color: #e53e3e;
+        }
+    }
+}
+
+// ─── Sidebar Nav Items ────────────────────────────────────────────────────────
+
+.snav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+        color: var(--color-surface);
+    }
+
+    &--active {
+        background-color: rgba(194, 98, 42, 0.15);
+        color: var(--color-primary);
+
+        .snav-item__icon {
+            color: var(--color-primary);
+        }
+    }
+
+    &--group {
+        justify-content: flex-start;
+
+        &-active {
+            color: var(--color-surface);
+        }
+    }
+
+    &__icon {
+        flex-shrink: 0;
+        color: inherit;
+        display: flex;
+        align-items: center;
+    }
+
+    &__label {
+        flex: 1;
+        text-align: left;
+    }
+
+    &__chevron {
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        transition: transform var(--transition-base);
+
+        &--open {
+            transform: rotate(180deg);
+        }
+    }
+}
+
+.snav-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.snav-children {
+    display: flex;
+    flex-direction: column;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-slow);
+
+    &--open {
+        max-height: 200px;
+    }
+}
+
+.snav-child {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-9);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+
+    svg {
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--color-surface);
+    }
+
+    &--active {
+        color: var(--color-primary);
+
+        svg {
+            color: var(--color-primary);
+        }
+    }
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+.creator-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.creator-header {
+    height: var(--header-height);
+    background-color: var(--color-surface);
+    border-bottom: var(--border-width) solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-6);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-raised);
+    flex-shrink: 0;
+
+    &__left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    &__menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: var(--space-2);
+        color: var(--color-text-secondary);
+        border-radius: var(--radius-sm);
+        transition: background-color var(--transition-fast);
+
+        &:hover {
+            background-color: var(--color-bg-alt);
+        }
+    }
+
+    &__title {
+        font-family: var(--font-body);
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        margin: 0;
+    }
+
+    &__right {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    &__icon-btn {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        background: none;
+        border: var(--border-width) solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--color-text-secondary);
+        transition:
+            background-color var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover {
+            background-color: var(--color-bg-alt);
+            color: var(--color-dark);
+        }
+    }
+
+    &__badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 16px;
+        height: 16px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+        font-family: var(--font-body);
+        font-size: 9px;
+        font-weight: var(--font-weight-bold);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--color-surface);
+    }
+
+    &__avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        span {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-surface);
+            text-transform: uppercase;
+        }
+    }
+}
+
+// ─── Page Content ─────────────────────────────────────────────────────────────
+
+.creator-content {
+    flex: 1;
+    padding: var(--space-6);
+    overflow-y: auto;
+}
+
+// ─── Mobile backdrop ─────────────────────────────────────────────────────────
+
+.creator-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-sticky) - 1);
+    backdrop-filter: blur(2px);
+}
+
+// ─── Footer Nav (mobile only) ────────────────────────────────────────────────
+
+.creator-footnav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-sticky);
+    background-color: var(--color-surface);
+    border-top: var(--border-width) solid var(--color-border);
+    padding: var(--space-2) 0;
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
+
+    &__item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: var(--space-2) var(--space-1);
+        text-decoration: none;
+        color: var(--color-text-muted);
+        transition: color var(--transition-fast);
+
+        span {
+            font-family: var(--font-body);
+            font-size: 10px;
+            font-weight: var(--font-weight-medium);
+            letter-spacing: var(--letter-spacing-wide);
+        }
+
+        &--active {
+            color: var(--color-primary);
+        }
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
+    }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+    .creator-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        z-index: var(--z-modal);
+
+        &--open {
+            transform: translateX(0);
+            box-shadow: var(--shadow-xl);
+        }
+
+        &__close {
+            display: flex;
+        }
+    }
+
+    .creator-header__menu-btn {
+        display: flex;
+    }
+
+    .creator-footnav {
+        display: flex;
+    }
+
+    .creator-content {
+        padding: var(--space-4);
+        padding-bottom: calc(70px + var(--space-4));
+    }
+}
+
+@media (max-width: 480px) {
+    .creator-content {
+        padding: var(--space-3);
+        padding-bottom: calc(70px + var(--space-3));
+    }
+}

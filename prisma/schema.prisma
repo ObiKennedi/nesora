@@ -71,6 +71,19 @@ enum WithdrawalStatus {
   PAID
 }
 
+enum NotificationType {
+  NEW_FOLLOWER
+  NEW_SUBSCRIBER
+  NEW_MESSAGE
+  GIFT_RECEIVED
+  TIP_RECEIVED
+  LIVE_STARTING
+  SUBSCRIPTION_EXPIRING
+  PAYOUT_PROCESSED
+  VERIFICATION_UPDATE
+  SYSTEM
+}
+
 // ─── Core Accounts ────────────────────────────────────────────────────────────
 
 model User {
@@ -97,6 +110,7 @@ model User {
   sentMessages  Message[]         @relation("MessageSender")
   giftsSent     GiftTransaction[] @relation("GiftSender")
   accounts      Account[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -269,6 +283,21 @@ model CreatorWalletTransaction {
   wallet CreatorWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@map("creator_wallet_transactions")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  href      String? // optional deep link
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 // ─── Creator Economy ─────────────────────────────────────────────────────────
