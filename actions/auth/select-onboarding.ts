@@ -41,9 +41,8 @@ export async function selectOnboardingAction(type: OnboardingType) {
             data: { pointsBalance: { increment: 500 } },
         })
 
-        redirect("/onboarding/verify")
+        redirect("/onboarding/creator/handle")
     }
 
-    // Fan — go straight to dashboard
-    redirect("/dashboard")
+    redirect("/onboarding/fan/categories")
 }

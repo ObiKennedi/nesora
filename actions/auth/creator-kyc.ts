@@ -56,5 +56,5 @@ export async function skipKYCAction() {
     if (!session?.user?.id) redirect("/login")
 
     // Creator stays unverified — just redirect to dashboard
-    redirect("/dashboard")
+    redirect("/creator/dashboard")
 }

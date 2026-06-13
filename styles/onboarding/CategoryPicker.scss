@@ -1,0 +1,174 @@
+// styles/onboarding/CategoryPicker.scss
+
+.category-picker {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+
+    // ── Header ──────────────────────────────────────────────────────────────
+    &__header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: clamp(var(--font-size-xl), 3vw, var(--font-size-2xl));
+            font-weight: var(--font-weight-bold);
+            letter-spacing: var(--letter-spacing-tight);
+            color: var(--color-dark);
+            margin: 0;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            line-height: var(--line-height-relaxed);
+            color: var(--color-text-secondary);
+            margin: 0;
+            max-width: 520px;
+        }
+    }
+
+    &__eyebrow {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-widest);
+        text-transform: uppercase;
+        color: var(--color-primary);
+    }
+
+    // ── Grid ────────────────────────────────────────────────────────────────
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: var(--space-3);
+    }
+
+    // ── Footer ──────────────────────────────────────────────────────────────
+    &__footer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    &__hint {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        margin: 0;
+        text-align: center;
+    }
+
+    &__error {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: #dc2626;
+        margin: 0;
+        text-align: center;
+        font-weight: var(--font-weight-medium);
+    }
+}
+
+// ─── Category Tile ───────────────────────────────────────────────────────────
+
+.category-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-2);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition:
+        border-color var(--transition-base),
+        background-color var(--transition-base),
+        transform var(--transition-fast),
+        box-shadow var(--transition-base);
+
+    &:hover:not(:disabled):not(.category-tile--disabled) {
+        border-color: rgba(194, 98, 42, 0.4);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    &--selected {
+        border-color: var(--color-primary);
+        background-color: rgba(194, 98, 42, 0.06);
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 3px rgba(194, 98, 42, 0.10);
+
+        .category-tile__label {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+    }
+
+    &--disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    &__emoji {
+        font-size: 1.6rem;
+        line-height: 1;
+    }
+
+    &__label {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-secondary);
+        text-align: center;
+        transition: color var(--transition-base);
+    }
+
+    &__check {
+        position: absolute;
+        top: var(--space-2);
+        right: var(--space-2);
+        width: 16px;
+        height: 16px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: white;
+        font-size: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: var(--font-weight-bold);
+    }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+    .category-picker__grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .category-picker__grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 0.7s linear infinite;
+}

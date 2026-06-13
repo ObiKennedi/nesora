@@ -86,6 +86,183 @@ enum NotificationType {
 
 // ─── Core Accounts ────────────────────────────────────────────────────────────
 
+// Add to schema.prisma
+
+enum Category {
+  MUSIC
+  DANCE
+  COMEDY
+  FASHION
+  BEAUTY
+  FITNESS
+  FOOD
+  TRAVEL
+  GAMING
+  TECH
+  ART
+  PHOTOGRAPHY
+  FILM
+  EDUCATION
+  LIFESTYLE
+  SPORTS
+  BUSINESS
+  WELLNESS
+  PODCAST
+  OTHER
+}
+
+// Add to schema.prisma
+
+enum PostType {
+  TEXT
+  PHOTO
+  VIDEO
+  AUDIO
+  POLL
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+enum PostVisibility {
+  PUBLIC
+  SUBSCRIBERS_ONLY
+}
+
+model Post {
+  id        String @id @default(cuid())
+  creatorId String
+
+  type       PostType
+  status     PostStatus     @default(DRAFT)
+  visibility PostVisibility @default(PUBLIC)
+
+  // ── Content fields ────────────────────────────────────────────────────────
+  body         String? // text content / caption
+  mediaUrls    String[] // photos, videos, audio — Cloudinary URLs
+  thumbnailUrl String? // video thumbnail
+
+  // ── Scheduling ────────────────────────────────────────────────────────────
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  // ── Stats (denormalized for performance) ──────────────────────────────────
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator  Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  poll     Poll?
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@map("posts")
+}
+
+model Poll {
+  id     String @id @default(cuid())
+  postId String @unique
+
+  question  String
+  expiresAt DateTime?
+
+  // Relations
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+
+  text      String
+  voteCount Int    @default(0)
+
+  // Relations
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id           String @id @default(cuid())
+  pollOptionId String
+  userId       String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  option PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([pollOptionId, userId])
+  @@map("poll_votes")
+}
+
+model PostLike {
+  id     String @id @default(cuid())
+  postId String
+  userId String
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id       String  @id @default(cuid())
+  postId   String
+  userId   String
+  parentId String? // for replies
+
+  body String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  replies PostComment[] @relation("CommentReplies")
+  parent  PostComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+
+  @@map("post_comments")
+}
+
+model UserCategoryInterest {
+  id       String   @id @default(cuid())
+  userId   String
+  category Category
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@map("user_category_interests")
+}
+
+model CreatorCategory {
+  id        String   @id @default(cuid())
+  creatorId String
+  category  Category
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, category])
+  @@map("creator_categories")
+}
+
 model User {
   id             String          @id @default(cuid())
   name           String
@@ -103,14 +280,15 @@ model User {
   emailVerified DateTime?
 
   // Relations
-  wallet        UserWallet?
-  creator       Creator?
-  follows       Follow[]
-  subscriptions Subscription[]
-  sentMessages  Message[]         @relation("MessageSender")
-  giftsSent     GiftTransaction[] @relation("GiftSender")
-  accounts      Account[]
-  notifications Notification[]
+  wallet            UserWallet?
+  creator           Creator?
+  follows           Follow[]
+  subscriptions     Subscription[]
+  sentMessages      Message[]              @relation("MessageSender")
+  giftsSent         GiftTransaction[]      @relation("GiftSender")
+  accounts          Account[]
+  notifications     Notification[]
+  categoryInterests UserCategoryInterest[]
 
   @@map("users")
 }
@@ -161,6 +339,7 @@ model Creator {
 
   displayName String
   bio         String?
+  handle      String? @unique
 
   isVerified         Boolean            @default(false)
   verificationStatus VerificationStatus @default(PENDING)
@@ -189,6 +368,8 @@ model Creator {
   withdrawals       Withdrawal[]
   giftTransactions  GiftTransaction[]    @relation("GiftRecipient")
   conversations     Conversation[]
+  creatorCategories CreatorCategory[]
+  posts             Post[]
 
   @@map("creators")
 }
