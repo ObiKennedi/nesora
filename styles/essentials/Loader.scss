@@ -1,12 +1,9 @@
-// ─── Loader ──────────────────────────────────────────────────────────────────
-
 .nsr-loader {
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
 
-    // ── Fullscreen mode ─────────────────────────────────────────────────────
     &--fullscreen {
         position: fixed;
         inset: 0;
@@ -14,14 +11,12 @@
         background-color: var(--color-dark);
     }
 
-    // ── Inline mode (fits its container) ────────────────────────────────────
     &--inline {
         position: relative;
         width: 100%;
         min-height: 320px;
         background-color: transparent;
 
-        // Scale down the emblem for inline use
         .nsr-loader__emblem {
             width: 72px;
             height: 72px;
@@ -36,8 +31,6 @@
         }
     }
 }
-
-// ─── Grain ───────────────────────────────────────────────────────────────────
 
 .nsr-loader__grain {
     position: absolute;
@@ -72,8 +65,6 @@
     }
 }
 
-// ─── Bloom ───────────────────────────────────────────────────────────────────
-
 .nsr-loader__bloom {
     position: absolute;
     top: 50%;
@@ -100,8 +91,6 @@
         opacity: 1;
     }
 }
-
-// ─── Corner Brackets ─────────────────────────────────────────────────────────
 
 .nsr-loader__corner {
     position: absolute;
@@ -154,8 +143,6 @@
     }
 }
 
-// ─── Center ──────────────────────────────────────────────────────────────────
-
 .nsr-loader__center {
     position: relative;
     z-index: 1;
@@ -165,8 +152,6 @@
     gap: var(--space-5);
 }
 
-// ─── Emblem ──────────────────────────────────────────────────────────────────
-
 .nsr-loader__emblem {
     position: relative;
     width: 120px;
@@ -175,8 +160,6 @@
     align-items: center;
     justify-content: center;
 }
-
-// ─── Rings ───────────────────────────────────────────────────────────────────
 
 .nsr-loader__ring {
     position: absolute;
@@ -206,8 +189,6 @@
     }
 }
 
-// ─── Pulse ───────────────────────────────────────────────────────────────────
-
 .nsr-loader__pulse {
     position: absolute;
     inset: 10px;
@@ -232,8 +213,6 @@
         opacity: 0;
     }
 }
-
-// ─── Logo ────────────────────────────────────────────────────────────────────
 
 .nsr-loader__logo-wrap {
     position: relative;
@@ -285,8 +264,6 @@
     }
 }
 
-// ─── Message ─────────────────────────────────────────────────────────────────
-
 .nsr-loader__message {
     font-family: var(--font-body);
     font-size: var(--font-size-sm);
@@ -296,8 +273,6 @@
     margin: 0;
     text-align: center;
 }
-
-// ─── Tagline ─────────────────────────────────────────────────────────────────
 
 .nsr-loader__tagline {
     position: absolute;
@@ -315,14 +290,16 @@
     animation: tagline-breathe 3.5s ease-in-out infinite;
 }
 
-@keyframes tagline-breathe {
+@keyframes logo-breathe {
 
     0%,
     100% {
-        opacity: 0.18;
+        opacity: 0.8;
+        transform: scale(0.96);
     }
 
     50% {
-        opacity: 0.45;
+        opacity: 1;
+        transform: scale(1.04);
     }
 }
