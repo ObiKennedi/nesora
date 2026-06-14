@@ -4,18 +4,39 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import { unstable_cache } from "next/cache"
+
+// ── Cached fetcher ────────────────────────────────────────────────────────────
+
+const fetchNotifications = unstable_cache(
+    async (userId: string) => {
+        return prisma.notification.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" },
+            take: 30,
+            select: {
+                id: true,
+                type: true,
+                title: true,
+                body: true,
+                read: true,
+                href: true,
+                createdAt: true,
+            },
+        })
+    },
+    ["notifications"],
+    {
+        revalidate: 30,        // cache for 30 seconds
+        tags: ["notifications"],
+    }
+)
 
 export async function getNotifications() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const notifications = await prisma.notification.findMany({
-        where: { userId: session.user.id },
-        orderBy: { createdAt: "desc" },
-        take: 30,
-    })
-
-    return notifications
+    return fetchNotifications(session.user.id)
 }
 
 export async function markAllRead() {
@@ -26,6 +47,10 @@ export async function markAllRead() {
         where: { userId: session.user.id, read: false },
         data: { read: true },
     })
+
+    // Bust the cache
+    const { revalidateTag } = await import("next/cache")
+    revalidateTag("notifications")
 }
 
 export async function markOneRead(id: string) {
@@ -36,4 +61,7 @@ export async function markOneRead(id: string) {
         where: { id, userId: session.user.id },
         data: { read: true },
     })
+
+    const { revalidateTag } = await import("next/cache")
+    revalidateTag("notifications")
 }

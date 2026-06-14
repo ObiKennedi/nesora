@@ -1,9 +1,18 @@
 // components/creator/layout/NotificationsBell.tsx
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import {
+    useEffect, useRef,
+    useState, useTransition,
+    useCallback,
+} from "react"
 import { Bell, X, Check, CheckCheck } from "lucide-react"
-import { getNotifications, markAllRead, markOneRead } from "@/actions/creator/notifications"
+import {
+    getNotifications,
+    markAllRead,
+    markOneRead,
+} from "@/actions/creator/notifications"
+import "@/styles/creator/layout/NotificationsBell.scss"
 
 type Notification = {
     id: string
@@ -28,28 +37,45 @@ const typeColors: Record<string, string> = {
     SYSTEM: "primary",
 }
 
+const POLL_INTERVAL = 60_000 // 60s — not 60s on every render, just a background tick
+
 export const NotificationsBell = () => {
+
     const [open, setOpen] = useState(false)
     const [items, setItems] = useState<Notification[]>([])
+    const [mounted, setMounted] = useState(false)
     const [isPending, startTransition] = useTransition()
     const panelRef = useRef<HTMLDivElement>(null)
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     const unread = items.filter((n) => !n.read).length
 
-    // Fetch on mount + every 60s
-    useEffect(() => {
-        const load = () => {
-            startTransition(async () => {
+    // ── Fetch — non-blocking, doesn't hold up navigation ─────────────────────
+    const load = useCallback(() => {
+        // Fire and forget — don't await in the interval
+        startTransition(async () => {
+            try {
                 const data = await getNotifications()
                 setItems(data)
-            })
-        }
-        load()
-        const interval = setInterval(load, 60_000)
-        return () => clearInterval(interval)
+            } catch {
+                // Silently fail — don't crash the layout
+            }
+        })
     }, [])
 
-    // Close on outside click
+    // ── Mount: fetch once, then start polling ─────────────────────────────────
+    useEffect(() => {
+        setMounted(true)
+        load()
+
+        intervalRef.current = setInterval(load, POLL_INTERVAL)
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current)
+        }
+    }, [load])
+
+    // ── Outside click ─────────────────────────────────────────────────────────
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -68,11 +94,12 @@ export const NotificationsBell = () => {
     }
 
     const handleMarkOne = (id: string) => {
+        // Optimistic update first — no waiting
+        setItems((prev) =>
+            prev.map((n) => n.id === id ? { ...n, read: true } : n)
+        )
         startTransition(async () => {
             await markOneRead(id)
-            setItems((prev) =>
-                prev.map((n) => n.id === id ? { ...n, read: true } : n)
-            )
         })
     }
 
@@ -87,11 +114,20 @@ export const NotificationsBell = () => {
         return `${days}d ago`
     }
 
+    // Don't render the badge count until mounted to avoid hydration mismatch
+    if (!mounted) {
+        return (
+            <button className="creator-header__icon-btn" aria-label="Notifications">
+                <Bell size={18} />
+            </button>
+        )
+    }
+
     return (
         <div className="notif-bell" ref={panelRef}>
             <button
                 className="creator-header__icon-btn"
-                aria-label="Notifications"
+                aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ""}`}
                 onClick={() => setOpen((v) => !v)}
             >
                 <Bell size={18} />
@@ -104,6 +140,7 @@ export const NotificationsBell = () => {
 
             {open && (
                 <div className="notif-panel">
+
                     {/* Header */}
                     <div className="notif-panel__head">
                         <span>Notifications</span>
@@ -121,6 +158,7 @@ export const NotificationsBell = () => {
                             <button
                                 className="notif-panel__close"
                                 onClick={() => setOpen(false)}
+                                aria-label="Close notifications"
                             >
                                 <X size={14} />
                             </button>
@@ -140,8 +178,11 @@ export const NotificationsBell = () => {
                                     key={n.id}
                                     className={`notif-item ${!n.read ? "notif-item--unread" : ""}`}
                                     onClick={() => !n.read && handleMarkOne(n.id)}
+                                    role={!n.read ? "button" : undefined}
+                                    tabIndex={!n.read ? 0 : undefined}
                                 >
                                     <div className={`notif-item__dot notif-item__dot--${typeColors[n.type] ?? "primary"}`} />
+
                                     <div className="notif-item__body">
                                         <p className="notif-item__title">{n.title}</p>
                                         <p className="notif-item__text">{n.body}</p>
@@ -149,6 +190,7 @@ export const NotificationsBell = () => {
                                             {formatTime(n.createdAt)}
                                         </span>
                                     </div>
+
                                     {!n.read && (
                                         <button
                                             className="notif-item__check"
@@ -165,6 +207,7 @@ export const NotificationsBell = () => {
                             ))
                         )}
                     </div>
+
                 </div>
             )}
         </div>

@@ -20,18 +20,40 @@ const POST_TYPES = [
     { type: "POLL" as PostType, label: "Poll", icon: <BarChart2 size={16} /> },
 ]
 
-const uploadToCloudinary = async (file: File, folder: string): Promise<string> => {
+// components/creator/feed/CreatePostModal.tsx
+
+// ── Updated upload helper ─────────────────────────────────────────────────────
+
+const resourceTypeMap: Record<string, "image" | "video" | "raw"> = {
+    PHOTO: "image",
+    VIDEO: "video",
+    AUDIO: "raw",    // audio files go through raw
+    TEXT: "image",
+    POLL: "image",
+}
+
+const uploadToCloudinary = async (
+    file: File,
+    folder: string,
+    resourceType: "image" | "video" | "raw" = "image"
+): Promise<string> => {
     const form = new FormData()
     form.append("file", file)
     form.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!)
     form.append("folder", `nesora/${folder}`)
 
     const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
         { method: "POST", body: form }
     )
+
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message ?? "Upload failed")
+
+    if (!res.ok) {
+        console.error("Cloudinary error:", data)
+        throw new Error(data.error?.message ?? "Upload failed")
+    }
+
     return data.secure_url as string
 }
 
@@ -78,15 +100,21 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
         if (!files.length) return
 
         setUploading(true)
+        setFeedback(null)
+
         try {
+            const resourceType = resourceTypeMap[activeType]
             const urls = await Promise.all(
-                files.map((f) => uploadToCloudinary(f, folderMap[activeType]))
+                files.map((f) => uploadToCloudinary(f, folderMap[activeType], resourceType))
             )
             setMediaUrls((prev) => [...prev, ...urls])
-        } catch {
-            setFeedback("Upload failed. Please try again.")
+        } catch (err) {
+            console.error(err)
+            setFeedback("Upload failed. Check your Cloudinary preset settings.")
         } finally {
             setUploading(false)
+            // Reset input so the same file can be re-selected
+            if (fileRef.current) fileRef.current.value = ""
         }
     }
 

@@ -3,67 +3,35 @@
 import { useEffect } from "react"
 import AOS from "aos"
 import "aos/dist/aos.css"
+import { RedirectButton } from "../essentials/LinkButton"
 import "@/styles/landing-page/AboutSection.scss"
 
-const aboutRows = [
+const aboutItems = [
     {
         id: 1,
+        number: "1.",
         title: "Who We Are",
         body: "Nesora is a creator-first platform built to connect talent with opportunity — a growing community where creators, fans, and industry professionals come together to discover new talent and foster a culture of creativity.",
-        image: "/landing-page/about-1.jpg",
-        alt: "Creators at work",
-        layout: "image-left", // image left, text right
     },
     {
         id: 2,
+        number: "2.",
         title: "What We Do",
         body: "We provide a platform where creators showcase their work, engage with their audience, and build thriving communities around their passions — making it easier to share content and create interactions beyond traditional social media.",
-        image: "/landing-page/about-2.jpg",
-        alt: "Community",
-        layout: "image-right", // text left, image right
     },
     {
         id: 3,
+        number: "3.",
         title: "How We Help",
         body: "We help creators grow through visibility, engagement tools, and a supportive community that values their work. For fans, we create closer connections with the creators they admire — removing barriers between talent and opportunity.",
-        image: "/landing-page/about-3.jpg",
-        alt: "Creativity",
-        layout: "image-left",
     },
     {
         id: 4,
+        number: "4.",
         title: "Our Vision",
         body: "To build the world's most empowering ecosystem for creators and their communities — where talent is not limited by geography, connections, or resources, and creativity can flourish without boundaries.",
-        image: "/landing-page/about-4.jpg",
-        alt: "Vision",
-        layout: "image-right",
     },
 ]
-
-const BrandMark = () => (
-    <svg
-        className="about-brandmark"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-    >
-        <path
-            d="M4 28 L16 4 L28 28"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-        />
-        <path
-            d="M8 20 L24 20"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
-    </svg>
-)
 
 export const AboutSection = () => {
 
@@ -78,33 +46,81 @@ export const AboutSection = () => {
     return (
         <section className="about-section" id="about">
             <div className="about-inner">
-                {aboutRows.map((row, index) => (
-                    <div
-                        key={row.id}
-                        className={`about-row about-row--${row.layout}`}
-                    >
-                        {/* Image */}
-                        <div
-                            className="about-row__image"
-                            data-aos={row.layout === "image-left" ? "fade-up" : "fade-down"}
-                            data-aos-delay={index * 80}
-                        >
-                            <img src={row.image} alt={row.alt} />
-                        </div>
 
-                        {/* Text */}
-                        <div
-                            className="about-row__text"
-                            data-aos={row.layout === "image-left" ? "fade-down" : "fade-up"}
-                            data-aos-delay={index * 80 + 100}
+                {/* ── Header Row ── */}
+                <div className="about-header">
+                    <div
+                        className="about-header__left"
+                        data-aos="fade-up"
+                        data-aos-delay="0"
+                    >
+                        <h2>About Us</h2>
+                        <p>
+                            At Nesora, we take pride in our values —
+                            service, integrity, and excellence.
+                        </p>
+                    </div>
+
+                    <div
+                        className="about-header__right"
+                        data-aos="fade-up"
+                        data-aos-delay="150"
+                    >
+                        <RedirectButton
+                            className="about-learn-more"
+                            path="#features"
                         >
-                            <h2 className="about-row__title">{row.title}</h2>
-                            <div className="about-row__divider" aria-hidden="true" />
-                            <p className="about-row__body">{row.body}</p>
-                            <BrandMark />
+                            Learn More
+                        </RedirectButton>
+                    </div>
+                </div>
+
+                {/* ── Body: Grid + Images ── */}
+                <div className="about-body">
+
+                    {/* Items Grid */}
+                    <div className="about-grid">
+                        {aboutItems.map((item, index) => (
+                            <div
+                                className="about-card"
+                                key={item.id}
+                                data-aos="fade-up"
+                                data-aos-delay={index * 100}
+                            >
+                                <span className="about-card__number">
+                                    {item.number}
+                                </span>
+                                <h3 className="about-card__title">
+                                    {item.title}
+                                </h3>
+                                <p className="about-card__body">
+                                    {item.body}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Image Mosaic */}
+                    <div
+                        className="about-mosaic"
+                        data-aos="fade-down"
+                        data-aos-delay="200"
+                    >
+                        <div className="mosaic-img mosaic-img--tall">
+                            <img src="/landing-page/about1.jpg" alt="Creators at work" />
+                        </div>
+                        <div className="mosaic-img mosaic-img--short">
+                            <img src="/landing-page/about2.jpg" alt="Community" />
+                        </div>
+                        <div className="mosaic-img mosaic-img--short">
+                            <img src="/landing-page/about3.jpg" alt="Creativity" />
+                        </div>
+                        <div className="mosaic-img mosaic-img--short">
+                            <img src="/landing-page/about4.jpg" alt="Vision" />
                         </div>
                     </div>
-                ))}
+
+                </div>
             </div>
         </section>
     )
