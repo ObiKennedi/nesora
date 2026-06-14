@@ -563,7 +563,7 @@
             transform var(--transition-fast);
 
         &:hover:not(:disabled) {
-            background-color: darken(#c2622a, 8%);
+            background-color: #a8521f;
             transform: translateY(-1px);
         }
 

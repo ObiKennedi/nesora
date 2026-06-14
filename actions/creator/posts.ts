@@ -223,3 +223,55 @@ export async function publishDraftAction(postId: string) {
 
     return { success: true }
 }
+
+// actions/creator/posts.ts — add these two
+
+// ── Reschedule a post ─────────────────────────────────────────────────────────
+export async function reschedulePostAction(postId: string, scheduledAt: string) {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const parsed = z.string().datetime().safeParse(scheduledAt)
+    if (!parsed.success) return { error: "Invalid date." }
+
+    if (new Date(scheduledAt) <= new Date()) {
+        return { error: "Scheduled time must be in the future." }
+    }
+
+    const creator = await getCreatorOrThrow(session.user.id)
+
+    const post = await prisma.post.findFirst({
+        where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },
+    })
+    if (!post) return { error: "Scheduled post not found." }
+
+    await prisma.post.update({
+        where: { id: postId },
+        data: { scheduledAt: new Date(scheduledAt) },
+    })
+
+    return { success: true }
+}
+
+// ── Cancel schedule → revert to draft ────────────────────────────────────────
+export async function cancelScheduleAction(postId: string) {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const creator = await getCreatorOrThrow(session.user.id)
+
+    const post = await prisma.post.findFirst({
+        where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },
+    })
+    if (!post) return { error: "Scheduled post not found." }
+
+    await prisma.post.update({
+        where: { id: postId },
+        data: {
+            status: "DRAFT",
+            scheduledAt: null,
+        },
+    })
+
+    return { success: true }
+}
