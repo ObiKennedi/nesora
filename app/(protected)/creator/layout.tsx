@@ -7,6 +7,8 @@ import { CreatorSidebar } from "@/component/creator/layout/CreatorSidebar"
 import { CreatorHeader } from "@/component/creator/layout/CreatorHeader"
 import { CreatorFootNav } from "@/component/creator/layout/CreatorFootNav"
 import { getPageTitle } from "@/component/creator/layout/nav-config"
+import { Suspense } from "react"
+import { Loader } from "@/component/essentials/Loader"
 import "@/styles/creator/CreatorLayout.scss"
 
 export default function CreatorLayout({
@@ -40,7 +42,9 @@ export default function CreatorLayout({
                     onMenuOpen={() => setMenuOpen(true)}
                 />
                 <main className="creator-content">
-                    {children}
+                    <Suspense fallback={<Loader />}>
+                        {children}
+                    </Suspense>
                 </main>
             </div>
 
