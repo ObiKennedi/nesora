@@ -4,9 +4,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { unstable_cache } from "next/cache"
-
-// ── Cached fetcher ────────────────────────────────────────────────────────────
+import { unstable_cache, revalidateTag } from "next/cache"  // ← top-level import
 
 const fetchNotifications = unstable_cache(
     async (userId: string) => {
@@ -27,7 +25,7 @@ const fetchNotifications = unstable_cache(
     },
     ["notifications"],
     {
-        revalidate: 30,        // cache for 30 seconds
+        revalidate: 30,
         tags: ["notifications"],
     }
 )
@@ -35,7 +33,6 @@ const fetchNotifications = unstable_cache(
 export async function getNotifications() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
-
     return fetchNotifications(session.user.id)
 }
 
@@ -48,9 +45,7 @@ export async function markAllRead() {
         data: { read: true },
     })
 
-    // Bust the cache
-    const { revalidateTag } = await import("next/cache")
-    revalidateTag("notifications")
+    revalidateTag("notifications", {})  // ← no dynamic import needed
 }
 
 export async function markOneRead(id: string) {
@@ -62,6 +57,5 @@ export async function markOneRead(id: string) {
         data: { read: true },
     })
 
-    const { revalidateTag } = await import("next/cache")
-    revalidateTag("notifications")
+    revalidateTag("notifications", {})  // ← no dynamic import needed
 }
