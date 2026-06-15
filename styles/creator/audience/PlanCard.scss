@@ -1,0 +1,200 @@
+// styles/creator/audience/PlanCard.scss
+
+.plan-card {
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    transition:
+        box-shadow var(--transition-base),
+        transform var(--transition-fast);
+
+    &:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    &--inactive {
+        opacity: 0.6;
+        background-color: var(--color-bg-alt);
+    }
+
+    // ── Header ────────────────────────────────────────────────────────────────
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+    }
+
+    &__name-wrap {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    &__name {
+        font-family: var(--font-body);
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__inactive-badge {
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        background-color: var(--color-bg-alt);
+        border: var(--border-width) solid var(--color-border);
+        padding: 2px var(--space-2);
+        border-radius: var(--radius-full);
+        white-space: nowrap;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        flex-shrink: 0;
+    }
+
+    &__icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-sm);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition-fast);
+
+        .toggle--on {
+            color: #16a34a;
+        }
+
+        .toggle--off {
+            color: var(--color-text-muted);
+        }
+
+        &:hover {
+            background-color: var(--color-bg-alt);
+            color: var(--color-dark);
+        }
+
+        &--delete:hover {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spin {
+            animation: spin 0.7s linear infinite;
+        }
+    }
+
+    // ── Price ─────────────────────────────────────────────────────────────────
+    &__price {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-1);
+    }
+
+    &__amount {
+        font-family: var(--font-display);
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-primary);
+        line-height: 1;
+        letter-spacing: var(--letter-spacing-tight);
+    }
+
+    &__interval {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+    }
+
+    // ── Description ───────────────────────────────────────────────────────────
+    &__description {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+        line-height: var(--line-height-relaxed);
+        margin: 0;
+    }
+
+    // ── Benefits ──────────────────────────────────────────────────────────────
+    &__benefits {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        border-top: var(--border-width) solid var(--color-border);
+        padding-top: var(--space-4);
+
+        li {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+
+            svg {
+                color: #16a34a;
+                flex-shrink: 0;
+            }
+        }
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    &__footer {
+        border-top: var(--border-width) solid var(--color-border);
+        padding-top: var(--space-3);
+    }
+
+    &__subs {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+
+        svg {
+            flex-shrink: 0;
+        }
+    }
+
+    &__error {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: #dc2626;
+        margin: 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

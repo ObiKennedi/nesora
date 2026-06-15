@@ -1,0 +1,400 @@
+// styles/creator/audience/SubscribersPage.scss
+
+.subscribers-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        color: var(--color-text-muted);
+
+        svg {
+            flex-shrink: 0;
+        }
+
+        h2 {
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-dark);
+            margin: 0;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            margin: 0;
+        }
+    }
+
+    &__controls {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+    }
+
+    &__search {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        background-color: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: var(--space-2) var(--space-4);
+        min-width: 220px;
+        transition: border-color var(--transition-base);
+
+        svg {
+            color: var(--color-text-muted);
+            flex-shrink: 0;
+        }
+
+        &:focus-within {
+            border-color: var(--color-primary);
+        }
+
+        input {
+            background: none;
+            border: none;
+            outline: none;
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            width: 100%;
+
+            &::placeholder {
+                color: var(--color-text-muted);
+            }
+        }
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        color: var(--color-text-muted);
+
+        .spin {
+            animation: spin 0.7s linear infinite;
+        }
+    }
+
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        min-height: 360px;
+        text-align: center;
+        color: var(--color-text-muted);
+
+        svg {
+            opacity: 0.3;
+        }
+
+        h3 {
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            margin: 0;
+            max-width: 320px;
+        }
+    }
+
+    &__pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-4);
+        padding-top: var(--space-4);
+        border-top: var(--border-width) solid var(--color-border);
+    }
+}
+
+// ─── Stats Row ────────────────────────────────────────────────────────────────
+
+.subscribers-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+.sub-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+
+    &__icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        &--green {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        &--blue {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        &--primary {
+            background-color: rgba(194, 98, 42, 0.12);
+            color: var(--color-primary);
+        }
+    }
+
+    &__value {
+        font-family: var(--font-display);
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+        margin: 0;
+        line-height: 1;
+        letter-spacing: var(--letter-spacing-tight);
+    }
+
+    &__label {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        margin: 0;
+    }
+}
+
+// ─── Status filter ────────────────────────────────────────────────────────────
+
+.sub-filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    background-color: var(--color-bg-alt);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+}
+
+.sub-filter-btn {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    border-radius: calc(var(--radius-sm) - 2px);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+
+    &:hover {
+        color: var(--color-dark);
+        background-color: var(--color-surface);
+    }
+
+    &--active {
+        background-color: var(--color-surface);
+        color: var(--color-dark);
+        font-weight: var(--font-weight-semibold);
+        box-shadow: var(--shadow-sm);
+    }
+}
+
+// Add at the bottom of SubscribersPage.scss
+
+// ─── Subscription Plans Section ───────────────────────────────────────────────
+
+.subscription-plans {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+
+        svg {
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        h3 {
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-dark);
+            margin: 0;
+        }
+    }
+
+    &__count {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-muted);
+        background-color: var(--color-bg-alt);
+        border: var(--border-width) solid var(--color-border);
+        padding: 2px var(--space-2);
+        border-radius: var(--radius-full);
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+    }
+
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8);
+        color: var(--color-text-muted);
+
+        .spin {
+            animation: spin 0.7s linear infinite;
+        }
+    }
+
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-8);
+        text-align: center;
+        color: var(--color-text-muted);
+
+        svg {
+            opacity: 0.3;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        span {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            max-width: 280px;
+        }
+    }
+}
+
+.sub-plan-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-surface);
+    background-color: var(--color-dark);
+    border: 1.5px solid var(--color-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-4);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-base);
+
+    &:hover:not(:disabled) {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+@media (max-width: 900px) {
+    .subscription-plans__grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .subscription-plans__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .subscribers-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .subscribers-page__header {
+        flex-direction: column;
+    }
+
+    .subscribers-page__controls {
+        width: 100%;
+    }
+
+    .subscribers-page__search {
+        flex: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

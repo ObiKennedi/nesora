@@ -1,0 +1,199 @@
+// styles/creator/audience/SubscriberCard.scss
+
+.subscriber-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    border-left: 3px solid transparent;
+    transition:
+        box-shadow var(--transition-base),
+        transform var(--transition-fast);
+
+    &:hover {
+        box-shadow: var(--shadow-sm);
+        transform: translateX(2px);
+    }
+
+    &--green {
+        border-left-color: #16a34a;
+    }
+
+    &--red {
+        border-left-color: #dc2626;
+    }
+
+    &--amber {
+        border-left-color: #d97706;
+    }
+
+    // ── Avatar ────────────────────────────────────────────────────────────────
+    &__avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        span {
+            font-family: var(--font-body);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-surface);
+            text-transform: uppercase;
+        }
+    }
+
+    // ── Info ──────────────────────────────────────────────────────────────────
+    &__info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    &__top {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    &__name {
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__handle {
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        margin: 0;
+    }
+
+    &__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+
+        span {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+
+            svg {
+                flex-shrink: 0;
+            }
+
+            &.expiring-soon {
+                color: #d97706;
+                font-weight: var(--font-weight-medium);
+            }
+        }
+    }
+
+    // ── Amount ────────────────────────────────────────────────────────────────
+    &__amount {
+        flex-shrink: 0;
+        text-align: right;
+
+        &-value {
+            font-family: var(--font-display);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-dark);
+            margin: 0;
+            letter-spacing: var(--letter-spacing-tight);
+        }
+
+        &-label {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            margin: 0;
+        }
+    }
+}
+
+// ─── Status badges ────────────────────────────────────────────────────────────
+
+.sub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+
+    &--green {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    &--red {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    &--amber {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+}
+
+.page-btn {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-5);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover:not(:disabled) {
+        border-color: var(--color-dark);
+        color: var(--color-dark);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.page-indicator {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}

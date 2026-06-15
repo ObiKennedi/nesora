@@ -1,0 +1,174 @@
+// styles/creator/audience/FollowersPage.scss
+
+.followers-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        color: var(--color-text-muted);
+
+        svg {
+            flex-shrink: 0;
+        }
+
+        h2 {
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-dark);
+            margin: 0;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            margin: 0;
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    &__search {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        background-color: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: var(--space-2) var(--space-4);
+        min-width: 260px;
+        transition: border-color var(--transition-base);
+
+        svg {
+            color: var(--color-text-muted);
+            flex-shrink: 0;
+        }
+
+        &:focus-within {
+            border-color: var(--color-primary);
+        }
+
+        input {
+            background: none;
+            border: none;
+            outline: none;
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            width: 100%;
+
+            &::placeholder {
+                color: var(--color-text-muted);
+            }
+        }
+    }
+
+    // ── Grid ──────────────────────────────────────────────────────────────────
+    &__grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    // ── Loading ───────────────────────────────────────────────────────────────
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        color: var(--color-text-muted);
+
+        .spin {
+            animation: spin 0.7s linear infinite;
+        }
+    }
+
+    // ── Empty ─────────────────────────────────────────────────────────────────
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        min-height: 360px;
+        text-align: center;
+        color: var(--color-text-muted);
+
+        svg {
+            opacity: 0.3;
+        }
+
+        h3 {
+            font-family: var(--font-body);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        p {
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            margin: 0;
+            max-width: 320px;
+        }
+    }
+
+    // ── Pagination ────────────────────────────────────────────────────────────
+    &__pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-4);
+        padding-top: var(--space-4);
+        border-top: var(--border-width) solid var(--color-border);
+    }
+}
+
+.page-btn {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-5);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover:not(:disabled) {
+        border-color: var(--color-dark);
+        color: var(--color-dark);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.page-indicator {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
