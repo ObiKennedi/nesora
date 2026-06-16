@@ -1,15 +1,14 @@
-// components/creator/feed/CreatePostModal.tsx
 "use client"
 
 import { useState, useTransition, useRef } from "react"
 import {
     X, Type, Image, Video, Mic,
-    BarChart2, Lock, Globe, Clock,
-    Loader2, CheckCircle, ChevronDown,
-    Plus, Trash2,
+    BarChart2, Clock, Loader2, Plus, Trash2,
+    ChevronDown,
 } from "lucide-react"
 import { createPostAction } from "@/actions/creator/posts"
-import { PostType, PostVisibility } from "@prisma/client"
+import { PostType, PostVisibility, PostAccessLevel } from "@prisma/client"
+import { AccessPicker } from "./AccessPicker"
 import "@/styles/creator/feed/CreatePostModal.scss"
 
 const POST_TYPES = [
@@ -20,14 +19,10 @@ const POST_TYPES = [
     { type: "POLL" as PostType, label: "Poll", icon: <BarChart2 size={16} /> },
 ]
 
-// components/creator/feed/CreatePostModal.tsx
-
-// ── Updated upload helper ─────────────────────────────────────────────────────
-
 const resourceTypeMap: Record<string, "image" | "video" | "raw"> = {
     PHOTO: "image",
     VIDEO: "video",
-    AUDIO: "raw",    // audio files go through raw
+    AUDIO: "raw",
     TEXT: "image",
     POLL: "image",
 }
@@ -66,7 +61,6 @@ type Props = {
 export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Props) => {
 
     const [activeType, setActiveType] = useState<PostType>(initialType)
-    const [visibility, setVisibility] = useState<PostVisibility>("PUBLIC")
     const [body, setBody] = useState("")
     const [mediaUrls, setMediaUrls] = useState<string[]>([])
     const [uploading, setUploading] = useState(false)
@@ -76,6 +70,15 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
     const [pollOptions, setPollOptions] = useState(["", ""])
     const [feedback, setFeedback] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
+
+    // Access control state
+    const [access, setAccess] = useState<{
+        accessLevel: PostAccessLevel
+        allowedPlanIds: string[]
+    }>({
+        accessLevel: "PUBLIC",
+        allowedPlanIds: [],
+    })
 
     const fileRef = useRef<HTMLInputElement>(null)
 
@@ -113,7 +116,6 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
             setFeedback("Upload failed. Check your Cloudinary preset settings.")
         } finally {
             setUploading(false)
-            // Reset input so the same file can be re-selected
             if (fileRef.current) fileRef.current.value = ""
         }
     }
@@ -142,10 +144,11 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
             const res = await createPostAction({
                 type: activeType,
                 status,
-                visibility,
+                visibility: "PUBLIC" as PostVisibility, // kept for schema compatibility
                 body: body || undefined,
                 mediaUrls,
                 scheduledAt: scheduledAt || undefined,
+                access,   // ← Required field
                 ...(activeType === "POLL" ? {
                     poll: {
                         question: pollQuestion,
@@ -171,8 +174,7 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                 aria-modal="true"
                 aria-label="Create post"
             >
-
-                {/* ── Header ── */}
+                {/* Header */}
                 <div className="post-modal__header">
                     <h2>Create Post</h2>
                     <button className="post-modal__close" onClick={onClose} aria-label="Close">
@@ -180,7 +182,7 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                     </button>
                 </div>
 
-                {/* ── Type tabs ── */}
+                {/* Type tabs */}
                 <div className="post-modal__types">
                     {POST_TYPES.map((pt) => (
                         <button
@@ -198,19 +200,13 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                     ))}
                 </div>
 
-                {/* ── Body ── */}
+                {/* Body */}
                 <div className="post-modal__body">
-
-                    {/* Text / Caption */}
                     {(activeType === "TEXT" || activeType === "PHOTO" ||
                         activeType === "VIDEO" || activeType === "AUDIO") && (
                             <textarea
                                 className="post-modal__textarea"
-                                placeholder={
-                                    activeType === "TEXT"
-                                        ? "What's on your mind?"
-                                        : "Add a caption…"
-                                }
+                                placeholder={activeType === "TEXT" ? "What's on your mind?" : "Add a caption…"}
                                 value={body}
                                 onChange={(e) => setBody(e.target.value)}
                                 rows={activeType === "TEXT" ? 6 : 3}
@@ -218,31 +214,21 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                             />
                         )}
 
-                    {/* Media upload */}
                     {["PHOTO", "VIDEO", "AUDIO"].includes(activeType) && (
                         <div className="post-modal__media">
-                            {/* Previews */}
                             {mediaUrls.length > 0 && (
                                 <div className="media-previews">
                                     {mediaUrls.map((url, i) => (
                                         <div key={url} className="media-preview">
-                                            {activeType === "PHOTO" && (
-                                                <img src={url} alt={`Upload ${i + 1}`} />
-                                            )}
-                                            {activeType === "VIDEO" && (
-                                                <video src={url} controls />
-                                            )}
+                                            {activeType === "PHOTO" && <img src={url} alt={`Upload ${i + 1}`} />}
+                                            {activeType === "VIDEO" && <video src={url} controls />}
                                             {activeType === "AUDIO" && (
                                                 <div className="media-preview--audio">
                                                     <Mic size={20} />
                                                     <audio src={url} controls />
                                                 </div>
                                             )}
-                                            <button
-                                                className="media-preview__remove"
-                                                onClick={() => removeMedia(i)}
-                                                aria-label="Remove"
-                                            >
+                                            <button className="media-preview__remove" onClick={() => removeMedia(i)}>
                                                 <X size={12} />
                                             </button>
                                         </div>
@@ -250,7 +236,6 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                                 </div>
                             )}
 
-                            {/* Upload zone */}
                             <button
                                 className="post-modal__upload-zone"
                                 onClick={() => fileRef.current?.click()}
@@ -280,7 +265,6 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                         </div>
                     )}
 
-                    {/* Poll */}
                     {activeType === "POLL" && (
                         <div className="post-modal__poll">
                             <input
@@ -317,40 +301,22 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                                 ))}
                             </div>
                             {pollOptions.length < 6 && (
-                                <button
-                                    type="button"
-                                    className="poll-add-option"
-                                    onClick={addPollOption}
-                                >
+                                <button type="button" className="poll-add-option" onClick={addPollOption}>
                                     <Plus size={14} /> Add option
                                 </button>
                             )}
                         </div>
                     )}
-
                 </div>
 
-                {/* ── Footer controls ── */}
+                {/* Controls */}
                 <div className="post-modal__controls">
+                    <AccessPicker
+                        value={access}
+                        onChange={setAccess}
+                        disabled={isPending}
+                    />
 
-                    {/* Visibility */}
-                    <div className="post-control">
-                        <label>Visibility</label>
-                        <select
-                            value={visibility}
-                            onChange={(e) => setVisibility(e.target.value as PostVisibility)}
-                            disabled={isPending}
-                        >
-                            <option value="PUBLIC">
-                                🌐 Public
-                            </option>
-                            <option value="SUBSCRIBERS_ONLY">
-                                🔒 Subscribers Only
-                            </option>
-                        </select>
-                    </div>
-
-                    {/* Schedule toggle */}
                     <button
                         type="button"
                         className={`post-control-btn ${showSchedule ? "post-control-btn--active" : ""}`}
@@ -373,12 +339,9 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                     )}
                 </div>
 
-                {/* Feedback */}
-                {feedback && (
-                    <p className="post-modal__error">{feedback}</p>
-                )}
+                {feedback && <p className="post-modal__error">{feedback}</p>}
 
-                {/* ── Actions ── */}
+                {/* Actions */}
                 <div className="post-modal__actions">
                     <button
                         type="button"
@@ -394,13 +357,11 @@ export const CreatePostModal = ({ onClose, onSuccess, initialType = "TEXT" }: Pr
                         onClick={() => handleSubmit("PUBLISHED")}
                         disabled={isPending || uploading}
                     >
-                        {isPending
-                            ? <><Loader2 size={15} className="spin" /> Publishing…</>
-                            : scheduledAt ? "Schedule Post" : "Publish Now"
-                        }
+                        {isPending ? (
+                            <><Loader2 size={15} className="spin" /> Publishing…</>
+                        ) : scheduledAt ? "Schedule Post" : "Publish Now"}
                     </button>
                 </div>
-
             </div>
         </div>
     )

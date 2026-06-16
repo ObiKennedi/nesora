@@ -1,0 +1,172 @@
+// styles/creator/audience/TopFanCard.scss
+
+.top-fan-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    box-shadow var(--transition-base),
+    transform  var(--transition-fast);
+
+  &:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateX(2px);
+  }
+
+  &--gold   { border-left: 3px solid #d97706; background: linear-gradient(90deg, rgba(217,119,6,0.04), transparent); }
+  &--silver { border-left: 3px solid #9ca3af; background: linear-gradient(90deg, rgba(156,163,175,0.04), transparent); }
+  &--bronze { border-left: 3px solid #b45309; background: linear-gradient(90deg, rgba(180,83,9,0.04), transparent); }
+
+  // ── Rank ──────────────────────────────────────────────────────────────────
+}
+
+.top-fan-rank {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+  }
+
+  &.rank--gold    { background-color: #fef3c7; font-size: 1.1rem; }
+  &.rank--silver  { background-color: #f3f4f6; font-size: 1.1rem; }
+  &.rank--bronze  { background-color: #fef3c7; font-size: 1.1rem; }
+  &.rank--default {
+    background-color: var(--color-bg-alt);
+    span { color: var(--color-text-muted); }
+  }
+}
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+
+.top-fan-avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  overflow: visible;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+  }
+
+  span {
+    font-family: var(--font-body);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-surface);
+    text-transform: uppercase;
+  }
+
+  &__sub {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-full);
+    background-color: #d97706;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-surface);
+  }
+}
+
+// ── Info ─────────────────────────────────────────────────────────────────────
+
+.top-fan-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  &__name {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__handle {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+// ── Signals ───────────────────────────────────────────────────────────────────
+
+.top-fan-signals {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.top-fan-signal {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+
+  &--gift   { background-color: #fef3c7; color: #92400e; }
+  &--sub    { background-color: #ede9fe; color: #7c3aed; }
+  &--follow { background-color: #dbeafe; color: #1d4ed8; }
+}
+
+// ── Score ─────────────────────────────────────────────────────────────────────
+
+.top-fan-score {
+  flex-shrink: 0;
+  text-align: right;
+
+  &__value {
+    font-family: var(--font-display);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1;
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  &__label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: var(--color-text-muted);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+  }
+}

@@ -132,6 +132,14 @@ enum PostVisibility {
   SUBSCRIBERS_ONLY
 }
 
+enum PostAccessLevel {
+  PUBLIC
+  FOLLOWERS_ONLY
+  SUBSCRIBERS_ONLY
+  PLAN_SPECIFIC
+  TOP_FANS_ONLY
+}
+
 enum FanRequestType {
   MESSAGE
   COLLABORATION
@@ -161,24 +169,37 @@ model FanRequest {
   @@map("fan_requests")
 }
 
+model PostAccess {
+  id     String @id @default(cuid())
+  postId String @unique
+
+  accessLevel    PostAccessLevel @default(PUBLIC)
+  allowedPlanIds String[]
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_access")
+}
+
 model Post {
   id        String @id @default(cuid())
   creatorId String
 
   type       PostType
   status     PostStatus     @default(DRAFT)
-  visibility PostVisibility @default(PUBLIC)
+  visibility PostVisibility @default(PUBLIC) // kept for backward compatibility
 
   // ── Content fields ────────────────────────────────────────────────────────
-  body         String? // text content / caption
-  mediaUrls    String[] // photos, videos, audio — Cloudinary URLs
-  thumbnailUrl String? // video thumbnail
+  title        String? // ← Added (was missing)
+  body         String?
+  mediaUrls    String[]
+  thumbnailUrl String?
 
   // ── Scheduling ────────────────────────────────────────────────────────────
   scheduledAt DateTime?
   publishedAt DateTime?
 
-  // ── Stats (denormalized for performance) ──────────────────────────────────
+  // ── Stats ─────────────────────────────────────────────────────────────────
   viewCount    Int @default(0)
   likeCount    Int @default(0)
   commentCount Int @default(0)
@@ -188,6 +209,7 @@ model Post {
 
   // Relations
   creator  Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  access   PostAccess? // ← Changed from postAccess to access
   poll     Poll?
   likes    PostLike[]
   comments PostComment[]
@@ -558,6 +580,7 @@ model Subscription {
 
   userId    String
   creatorId String
+  planId    String?
 
   amountPaid Decimal @db.Decimal(10, 2)
 

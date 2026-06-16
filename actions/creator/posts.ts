@@ -1,4 +1,3 @@
-// actions/creator/posts.ts
 "use server"
 
 import { auth } from "@/lib/auth"
@@ -6,47 +5,55 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import {
-    PostType, PostStatus,
+    PostType,
+    PostStatus,
     PostVisibility,
+    PostAccessLevel,
 } from "@prisma/client"
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
-const BasePostSchema = z.object({
-    type: z.nativeEnum(PostType),
-    visibility: z.nativeEnum(PostVisibility).default("PUBLIC"),
-    body: z.string().optional(),
-    mediaUrls: z.array(z.string()).default([]),
-    thumbnailUrl: z.string().optional(),
-    scheduledAt: z.string().optional(), // ISO string
+const PollSchema = z.object({
+    question:  z.string().min(1, "Poll question is required"),
+    options:   z.array(z.string().min(1)).min(2, "At least 2 options required").max(6),
+    expiresAt: z.string().optional(),
 })
 
-const PollSchema = z.object({
-    question: z.string().min(1, "Poll question is required"),
-    options: z.array(z.string().min(1)).min(2, "At least 2 options required").max(6),
-    expiresAt: z.string().optional(),
+const AccessSchema = z.object({
+    accessLevel:    z.nativeEnum(PostAccessLevel).default("PUBLIC"),
+    allowedPlanIds: z.array(z.string()).default([]),
+})
+
+const BasePostSchema = z.object({
+    title:        z.string().max(100).optional(),
+    type:         z.nativeEnum(PostType),
+    visibility:   z.nativeEnum(PostVisibility).default("PUBLIC"),
+    body:         z.string().optional(),
+    mediaUrls:    z.array(z.string()).default([]),
+    thumbnailUrl: z.string().optional().nullable(),
+    scheduledAt:  z.string().optional(),
+    access:       AccessSchema.optional().default({
+        accessLevel: "PUBLIC" as const,
+        allowedPlanIds: [],
+    }),
 })
 
 const CreatePostSchema = BasePostSchema.extend({
     status: z.nativeEnum(PostStatus).default("PUBLISHED"),
-    poll: PollSchema.optional(),
+    poll:   PollSchema.optional(),
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({
-        where: { userId },
-    })
+    const creator = await prisma.creator.findUnique({ where: { userId } })
     if (!creator) throw new Error("Creator profile not found")
     return creator
 }
 
-// ── Create post ───────────────────────────────────────────────────────────────
+// ── Create Post ───────────────────────────────────────────────────────────────
 
-export async function createPostAction(
-    formData: z.infer<typeof CreatePostSchema>
-) {
+export async function createPostAction(formData: z.infer<typeof CreatePostSchema>) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
@@ -56,7 +63,7 @@ export async function createPostAction(
     const creator = await getCreatorOrThrow(session.user.id)
     const data = parsed.data
 
-    // Validate content based on type
+    // Content validation
     if (data.type === "TEXT" && !data.body?.trim()) {
         return { error: "Text posts require content." }
     }
@@ -71,37 +78,44 @@ export async function createPostAction(
 
     const post = await prisma.post.create({
         data: {
-            creatorId: creator.id,
-            type: data.type,
+            creatorId:    creator.id,
+            title:        data.title ?? "",
+            type:         data.type,
             status,
-            visibility: data.visibility,
-            body: data.body,
-            mediaUrls: data.mediaUrls,
-            thumbnailUrl: data.thumbnailUrl,
-            scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
-            publishedAt: status === "PUBLISHED" ? new Date() : null,
+            visibility:   data.visibility,
+            body:         data.body ?? null,
+            mediaUrls:    data.mediaUrls,
+            thumbnailUrl: data.thumbnailUrl ?? null,
+            scheduledAt:  data.scheduledAt ? new Date(data.scheduledAt) : null,
+            publishedAt:  status === "PUBLISHED" ? new Date() : null,
 
-            // Create poll if applicable
+            access: {
+                create: {
+                    accessLevel:    data.access?.accessLevel ?? "PUBLIC",
+                    allowedPlanIds: data.access?.allowedPlanIds ?? [],
+                },
+            },
+
             ...(data.type === "POLL" && data.poll ? {
                 poll: {
                     create: {
                         question: data.poll.question,
-                        expiresAt: data.poll.expiresAt
-                            ? new Date(data.poll.expiresAt)
-                            : null,
-                        options: {
-                            create: data.poll.options.map((text) => ({ text })),
-                        },
+                        expiresAt: data.poll.expiresAt ? new Date(data.poll.expiresAt) : null,
+                        options: { create: data.poll.options.map(text => ({ text })) },
                     },
                 },
             } : {}),
+        },
+        include: {
+            poll: true,
+            access: true,
         },
     })
 
     return { success: true, postId: post.id }
 }
 
-// ── Update post ───────────────────────────────────────────────────────────────
+// ── Update Post ───────────────────────────────────────────────────────────────
 
 export async function updatePostAction(
     postId: string,
@@ -112,30 +126,45 @@ export async function updatePostAction(
 
     const creator = await getCreatorOrThrow(session.user.id)
 
-    // Verify ownership
     const existing = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id },
     })
     if (!existing) return { error: "Post not found." }
 
-    await prisma.post.update({
-        where: { id: postId },
-        data: {
-            body: formData.body,
-            visibility: formData.visibility,
-            mediaUrls: formData.mediaUrls,
-            thumbnailUrl: formData.thumbnailUrl,
-            scheduledAt: formData.scheduledAt
-                ? new Date(formData.scheduledAt)
-                : undefined,
-            updatedAt: new Date(),
-        },
+    await prisma.$transaction(async (tx) => {
+        await tx.post.update({
+            where: { id: postId },
+            data: {
+                title:        formData.title ?? undefined,
+                body:         formData.body ?? undefined,
+                visibility:   formData.visibility,
+                mediaUrls:    formData.mediaUrls,
+                thumbnailUrl: formData.thumbnailUrl ?? undefined,
+                scheduledAt:  formData.scheduledAt ? new Date(formData.scheduledAt) : undefined,
+                updatedAt:    new Date(),
+            },
+        })
+
+        if (formData.access) {
+            await tx.postAccess.upsert({
+                where: { postId },
+                update: {
+                    accessLevel:    formData.access.accessLevel,
+                    allowedPlanIds: formData.access.allowedPlanIds,
+                },
+                create: {
+                    postId,
+                    accessLevel:    formData.access.accessLevel,
+                    allowedPlanIds: formData.access.allowedPlanIds,
+                },
+            })
+        }
     })
 
     return { success: true }
 }
 
-// ── Delete post ───────────────────────────────────────────────────────────────
+// ── Delete Post ───────────────────────────────────────────────────────────────
 
 export async function deletePostAction(postId: string) {
     const session = await auth()
@@ -153,46 +182,41 @@ export async function deletePostAction(postId: string) {
     return { success: true }
 }
 
-// ── Get posts (feed) ──────────────────────────────────────────────────────────
+// ── Get Creator Posts ─────────────────────────────────────────────────────────
 
 export async function getCreatorPostsAction(params?: {
     status?: PostStatus
-    type?: PostType
-    page?: number
-    limit?: number
+    type?:   PostType
+    page?:   number
+    limit?:  number
 }) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
     const creator = await getCreatorOrThrow(session.user.id)
 
-    const page = params?.page ?? 1
+    const page  = params?.page  ?? 1
     const limit = params?.limit ?? 10
-    const skip = (page - 1) * limit
+    const skip  = (page - 1) * limit
+
+    const where = {
+        creatorId: creator.id,
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.type   ? { type:   params.type }   : {}),
+    }
 
     const [posts, total] = await Promise.all([
         prisma.post.findMany({
-            where: {
-                creatorId: creator.id,
-                ...(params?.status ? { status: params.status } : {}),
-                ...(params?.type ? { type: params.type } : {}),
-            },
+            where,
             orderBy: { createdAt: "desc" },
             skip,
             take: limit,
             include: {
-                poll: {
-                    include: { options: true },
-                },
+                poll:   { include: { options: true } },
+                access: true,
             },
         }),
-        prisma.post.count({
-            where: {
-                creatorId: creator.id,
-                ...(params?.status ? { status: params.status } : {}),
-                ...(params?.type ? { type: params.type } : {}),
-            },
-        }),
+        prisma.post.count({ where }),
     ])
 
     return {
@@ -203,7 +227,7 @@ export async function getCreatorPostsAction(params?: {
     }
 }
 
-// ── Publish draft ─────────────────────────────────────────────────────────────
+// ── Publish Draft ─────────────────────────────────────────────────────────────
 
 export async function publishDraftAction(postId: string) {
     const session = await auth()
@@ -224,9 +248,8 @@ export async function publishDraftAction(postId: string) {
     return { success: true }
 }
 
-// actions/creator/posts.ts — add these two
+// ── Reschedule Post ───────────────────────────────────────────────────────────
 
-// ── Reschedule a post ─────────────────────────────────────────────────────────
 export async function reschedulePostAction(postId: string, scheduledAt: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -253,7 +276,8 @@ export async function reschedulePostAction(postId: string, scheduledAt: string) 
     return { success: true }
 }
 
-// ── Cancel schedule → revert to draft ────────────────────────────────────────
+// ── Cancel Schedule ───────────────────────────────────────────────────────────
+
 export async function cancelScheduleAction(postId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -268,10 +292,72 @@ export async function cancelScheduleAction(postId: string) {
     await prisma.post.update({
         where: { id: postId },
         data: {
-            status: "DRAFT",
+            status:      "DRAFT",
             scheduledAt: null,
         },
     })
 
     return { success: true }
+}
+
+// ── Check Post Access (Fan Side) ──────────────────────────────────────────────
+
+export async function checkPostAccessAction(postId: string, viewerUserId: string) {
+    const post = await prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+            access:  true,
+            creator: { select: { id: true } },
+        },
+    })
+
+    if (!post?.access) return { hasAccess: true }
+
+    const { accessLevel, allowedPlanIds } = post.access
+    const creatorId = post.creator.id
+
+    switch (accessLevel) {
+        case "PUBLIC":
+            return { hasAccess: true }
+
+        case "FOLLOWERS_ONLY": {
+            const follow = await prisma.follow.findFirst({
+                where: { userId: viewerUserId, creatorId },
+            })
+            return { hasAccess: !!follow }
+        }
+
+        case "SUBSCRIBERS_ONLY": {
+            const sub = await prisma.subscription.findFirst({
+                where: { userId: viewerUserId, creatorId, status: "ACTIVE" },
+            })
+            return { hasAccess: !!sub }
+        }
+
+        case "PLAN_SPECIFIC": {
+            const sub = await prisma.subscription.findFirst({
+                where: {
+                    userId:    viewerUserId,
+                    creatorId,
+                    status:    "ACTIVE",
+                    planId:    { in: allowedPlanIds },
+                },
+            })
+            return { hasAccess: !!sub }
+        }
+
+        case "TOP_FANS_ONLY": {
+            const topFans = await prisma.giftTransaction.groupBy({
+                by:      ["senderId"],
+                where:   { creatorId },
+                _sum:    { amount: true },
+                orderBy: { _sum: { amount: "desc" } },
+                take:    50,
+            })
+            return { hasAccess: topFans.some((f) => f.senderId === viewerUserId) }
+        }
+
+        default:
+            return { hasAccess: false }
+    }
 }

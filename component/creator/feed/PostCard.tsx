@@ -1,11 +1,9 @@
-// components/creator/feed/PostCard.tsx
 "use client"
 
 import { useState, useTransition } from "react"
 import {
     Eye, Heart, MessageCircle, MoreHorizontal,
-    Edit2, Trash2, Globe, Lock, Clock,
-    Type, Image, Video, Mic, BarChart2,
+    Edit2, Trash2, Clock, Type, Image, Video, Mic, BarChart2,
     CheckCircle, Loader2,
 } from "lucide-react"
 import { deletePostAction, getCreatorPostsAction, publishDraftAction } from "@/actions/creator/posts"
@@ -33,6 +31,15 @@ const statusColor: Record<string, string> = {
     PUBLISHED: "green",
     DRAFT: "amber",
     SCHEDULED: "blue",
+}
+
+// Access badge configuration
+const accessConfig: Record<string, { label: string; icon: string }> = {
+    PUBLIC:          { label: "Public", icon: "🌐" },
+    FOLLOWERS_ONLY:  { label: "Followers", icon: "👥" },
+    SUBSCRIBERS_ONLY: { label: "Subscribers", icon: "⭐" },
+    PLAN_SPECIFIC:   { label: "Plan Only", icon: "🔒" },
+    TOP_FANS_ONLY:   { label: "Top Fans", icon: "👑" },
 }
 
 export const PostCard = ({ post, onEdit, onDeleted, onPublished }: Props) => {
@@ -67,17 +74,20 @@ export const PostCard = ({ post, onEdit, onDeleted, onPublished }: Props) => {
                         {typeIcon[post.type]}
                         {post.type.charAt(0) + post.type.slice(1).toLowerCase()}
                     </span>
+
                     <span className={`post-badge post-badge--${statusColor[post.status]}`}>
                         {post.status === "PUBLISHED" && <CheckCircle size={11} />}
                         {post.status === "SCHEDULED" && <Clock size={11} />}
                         {post.status.charAt(0) + post.status.slice(1).toLowerCase()}
                     </span>
-                    <span className="post-badge post-badge--visibility">
-                        {post.visibility === "PUBLIC"
-                            ? <><Globe size={11} /> Public</>
-                            : <><Lock size={11} /> Subscribers</>
-                        }
-                    </span>
+
+                    {/* New Access Badge */}
+                    {post.access && (
+                        <span className="post-badge post-badge--access">
+                            {accessConfig[post.access.accessLevel]?.icon}{" "}
+                            {accessConfig[post.access.accessLevel]?.label}
+                        </span>
+                    )}
                 </div>
 
                 {/* Menu */}
@@ -171,7 +181,7 @@ export const PostCard = ({ post, onEdit, onDeleted, onPublished }: Props) => {
                 )}
             </div>
 
-            {/* ── Footer: stats + date ── */}
+            {/* ── Footer ── */}
             <div className="post-card__footer">
                 <div className="post-card__stats">
                     <span><Eye size={13} /> {post.viewCount}</span>

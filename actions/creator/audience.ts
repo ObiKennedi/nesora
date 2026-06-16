@@ -244,3 +244,149 @@ export async function getSubscribersAction(params?: {
         },
     }
 }
+
+// actions/creator/audience.ts — add these
+
+// ── Top Fans ──────────────────────────────────────────────────────────────────
+
+export async function getTopFansAction(params?: {
+    page?:  number
+    limit?: number
+}) {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const creator = await getCreatorOrThrow(session.user.id)
+
+    const page  = params?.page  ?? 1
+    const limit = params?.limit ?? 20
+    const skip  = (page - 1) * limit
+
+    // ── Highest spenders (gift transactions) ──────────────────────────────────
+    const spenders = await prisma.giftTransaction.groupBy({
+        by:      ["senderId"],
+        where:   { creatorId: creator.id },
+        _sum:    { amount: true },
+        _count:  { id: true },
+        orderBy: { _sum: { amount: "desc" } },
+        take:    100, // pull top 100 to merge with other signals
+    })
+
+    // ── Longest supporters (earliest follow date) ─────────────────────────────
+    const longestFollowers = await prisma.follow.findMany({
+        where:   { creatorId: creator.id },
+        orderBy: { createdAt: "asc" },
+        take:    100,
+        select:  { userId: true, createdAt: true },
+    })
+
+    // ── Active subscribers ────────────────────────────────────────────────────
+    const activeSubscribers = await prisma.subscription.findMany({
+        where:   { creatorId: creator.id, status: "ACTIVE" },
+        select:  { userId: true, startedAt: true, amountPaid: true },
+    })
+
+    // ── Merge all signals into a score ────────────────────────────────────────
+    const scoreMap = new Map<string, {
+        userId:          string
+        giftTotal:       number
+        giftCount:       number
+        followedAt:      Date | null
+        isSubscriber:    boolean
+        subscriptionAge: number // days
+        score:           number
+    }>()
+
+    // Gift spend — highest weight
+    for (const s of spenders) {
+        const existing = scoreMap.get(s.senderId) ?? {
+            userId:          s.senderId,
+            giftTotal:       0,
+            giftCount:       0,
+            followedAt:      null,
+            isSubscriber:    false,
+            subscriptionAge: 0,
+            score:           0,
+        }
+        existing.giftTotal = Number(s._sum.amount ?? 0)
+        existing.giftCount = s._count.id
+        existing.score    += existing.giftTotal * 2 // 2x weight for spend
+        scoreMap.set(s.senderId, existing)
+    }
+
+    // Longest follow — medium weight
+    for (const f of longestFollowers) {
+        const existing = scoreMap.get(f.userId) ?? {
+            userId:          f.userId,
+            giftTotal:       0,
+            giftCount:       0,
+            followedAt:      null,
+            isSubscriber:    false,
+            subscriptionAge: 0,
+            score:           0,
+        }
+        const daysFollowing = Math.floor(
+            (Date.now() - new Date(f.createdAt).getTime()) / 86_400_000
+        )
+        existing.followedAt = f.createdAt
+        existing.score     += daysFollowing * 0.5 // 0.5 per day
+        scoreMap.set(f.userId, existing)
+    }
+
+    // Active subscriber — bonus points
+    for (const sub of activeSubscribers) {
+        const existing = scoreMap.get(sub.userId) ?? {
+            userId:          sub.userId,
+            giftTotal:       0,
+            giftCount:       0,
+            followedAt:      null,
+            isSubscriber:    false,
+            subscriptionAge: 0,
+            score:           0,
+        }
+        const daysSubscribed = Math.floor(
+            (Date.now() - new Date(sub.startedAt).getTime()) / 86_400_000
+        )
+        existing.isSubscriber    = true
+        existing.subscriptionAge = daysSubscribed
+        existing.score          += Number(sub.amountPaid) + daysSubscribed * 1
+        scoreMap.set(sub.userId, existing)
+    }
+
+    // Sort by score descending
+    const sorted = Array.from(scoreMap.values())
+        .sort((a, b) => b.score - a.score)
+
+    const totalTopFans = sorted.length
+    const paginated    = sorted.slice(skip, skip + limit)
+
+    // Fetch user details for the paginated set
+    const userIds = paginated.map((f) => f.userId)
+
+    const users = await prisma.user.findMany({
+        where:  { id: { in: userIds } },
+        select: {
+            id:        true,
+            username:  true,
+            firstName: true,
+            lastName:  true,
+            image:     true,
+        },
+    })
+
+    const userMap = new Map(users.map((u) => [u.id, u]))
+
+    const topFans = paginated
+        .map((fan) => ({
+            ...fan,
+            user: userMap.get(fan.userId) ?? null,
+        }))
+        .filter((f) => f.user !== null)
+
+    return {
+        topFans,
+        total: totalTopFans,
+        pages: Math.ceil(totalTopFans / limit),
+        page,
+    }
+}
