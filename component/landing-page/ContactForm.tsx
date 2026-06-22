@@ -96,7 +96,7 @@ export const ContactSection = () => {
 
                     <div className="contact-info">
                         <a
-                            href="mailto:hello@nesora.com"
+                            href="mailto:hello@nesora.org"
                             className="contact-info__item"
                         >
                             <Mail size={16} />
