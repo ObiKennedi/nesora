@@ -1,0 +1,275 @@
+// styles/creator/wallet/BankAccounts.scss
+
+.bank-accounts {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .wallet-section-title { margin: 0; }
+  }
+
+  &__add-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    background: none;
+    border: 1px dashed rgba(194,98,42,0.4);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover { background-color: rgba(194,98,42,0.06); border-color: var(--color-primary); }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    text-align: center;
+    color: var(--color-text-muted);
+
+    svg { opacity: 0.3; }
+
+    p {
+      font-family: var(--font-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    span {
+      font-family: var(--font-body);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__withdraw-btn {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-surface);
+    background-color: var(--color-dark);
+    border: 1.5px solid var(--color-dark);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    cursor: pointer;
+    transition: all var(--transition-base);
+
+    &:hover { background-color: var(--color-primary); border-color: var(--color-primary); }
+  }
+}
+
+// ─── Bank account item ────────────────────────────────────────────────────────
+
+.bank-account-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+
+  &--default {
+    border-color: var(--color-primary);
+    background-color: rgba(194,98,42,0.03);
+  }
+
+  &__info { flex: 1; min-width: 0; }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: 2px;
+  }
+
+  &__bank {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+    margin: 0;
+  }
+
+  &__default-badge {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    background-color: rgba(194,98,42,0.10);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-full);
+  }
+
+  &__name, &__number {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  &__btn {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+
+    &:hover:not(:disabled) { background-color: var(--color-bg-alt); color: var(--color-dark); }
+
+    &--delete:hover:not(:disabled) { background-color: #fee2e2; color: #dc2626; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spin { animation: spin 0.7s linear infinite; }
+  }
+}
+
+// ─── Bank form ────────────────────────────────────────────────────────────────
+
+.bank-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  animation: slide-in 200ms ease;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    label {
+      font-family: var(--font-body);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--letter-spacing-wide);
+      text-transform: uppercase;
+      color: var(--color-text-secondary);
+    }
+
+    input, select {
+      font-family: var(--font-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-primary);
+      background-color: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      outline: none;
+      width: 100%;
+      appearance: none;
+      transition: border-color var(--transition-fast);
+
+      &::placeholder { color: var(--color-text-muted); }
+      &:focus        { border-color: var(--color-primary); }
+      &:disabled     { opacity: 0.5; cursor: not-allowed; }
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A9A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right var(--space-3) center;
+      padding-right: var(--space-8);
+      cursor: pointer;
+    }
+  }
+
+  &__error {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: #dc2626;
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  &__cancel, &__submit {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  &__cancel {
+    color: var(--color-text-secondary);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+
+    &:hover:not(:disabled) { border-color: var(--color-dark); color: var(--color-dark); }
+  }
+
+  &__submit {
+    color: var(--color-surface);
+    background-color: var(--color-dark);
+    border: 1.5px solid var(--color-dark);
+
+    &:hover:not(:disabled) { background-color: var(--color-primary); border-color: var(--color-primary); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spin { animation: spin 0.7s linear infinite; }
+  }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

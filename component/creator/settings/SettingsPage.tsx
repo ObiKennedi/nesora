@@ -1,0 +1,82 @@
+// components/creator/settings/SettingsPage.tsx
+"use client"
+
+import { useState, useEffect, useTransition, useCallback } from "react"
+import { Loader2, User, Lock, Bell, BadgeDollarSign, Trash2, ShieldAlert } from "lucide-react"
+import { getSettingsAction } from "@/actions/creator/settings"
+import { AccountSettings }       from "./AccountSettings"
+import { PasswordSettings }      from "./PasswordSettings"
+import { NotificationSettings }  from "./NotificationSettings"
+import { MonetizationSettings }  from "./MonetizationSettings"
+import { DangerZone }            from "./DangerZone"
+import "@/styles/creator/settings/SettingsPage.scss"
+
+type SettingsData = Awaited<ReturnType<typeof getSettingsAction>>
+type Tab = "account" | "password" | "notifications" | "monetization" | "danger"
+
+const TABS = [
+    { id: "account"       as Tab, label: "Account",       icon: <User             size={16} /> },
+    { id: "password"      as Tab, label: "Password",      icon: <Lock             size={16} /> },
+    { id: "notifications" as Tab, label: "Notifications", icon: <Bell             size={16} /> },
+    { id: "monetization"  as Tab, label: "Monetization",  icon: <BadgeDollarSign  size={16} /> },
+    { id: "danger"        as Tab, label: "Danger Zone",   icon: <ShieldAlert      size={16} />, danger: true },
+]
+
+export const SettingsPage = () => {
+
+    const [data,      setData]      = useState<SettingsData | null>(null)
+    const [tab,       setTab]       = useState<Tab>("account")
+    const [isPending, startTransition] = useTransition()
+
+    const fetchData = useCallback(() => {
+        startTransition(async () => {
+            const res = await getSettingsAction()
+            setData(res)
+        })
+    }, [])
+
+    useEffect(() => { fetchData() }, [fetchData])
+
+    if (isPending && !data) {
+        return (
+            <div className="settings-page__loading">
+                <Loader2 size={24} className="spin" />
+            </div>
+        )
+    }
+
+    if (!data) return null
+
+    return (
+        <div className="settings-page">
+
+            {/* ── Sidebar tabs ── */}
+            <div className="settings-sidebar">
+                {TABS.map((t) => {
+                    // Hide password tab for Google-only accounts
+                    if (t.id === "password" && !data.hasPassword && data.isGoogleAccount) return null
+                    return (
+                        <button
+                            key={t.id}
+                            className={`settings-tab ${tab === t.id ? "settings-tab--active" : ""} ${t.danger ? "settings-tab--danger" : ""}`}
+                            onClick={() => setTab(t.id)}
+                        >
+                            {t.icon}
+                            {t.label}
+                        </button>
+                    )
+                })}
+            </div>
+
+            {/* ── Content ── */}
+            <div className="settings-content">
+                {tab === "account"       && <AccountSettings      data={data} onSuccess={fetchData} />}
+                {tab === "password"      && <PasswordSettings     />}
+                {tab === "notifications" && <NotificationSettings />}
+                {tab === "monetization"  && <MonetizationSettings data={data} onSuccess={fetchData} />}
+                {tab === "danger"        && <DangerZone           data={data} />}
+            </div>
+
+        </div>
+    )
+}

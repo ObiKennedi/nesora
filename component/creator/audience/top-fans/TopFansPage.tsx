@@ -1,4 +1,3 @@
-// components/creator/audience/top-fans/TopFansPage.tsx
 "use client"
 
 import { useState, useEffect, useTransition, useCallback } from "react"

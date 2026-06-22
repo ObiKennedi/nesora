@@ -1,0 +1,585 @@
+// styles/creator/wallet/WalletPage.scss
+
+.wallet-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--color-text-muted);
+
+    .spin {
+      animation: spin 0.7s linear infinite;
+    }
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  &__aside {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-6));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}
+
+.wallet-section-title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  margin: 0 0 var(--space-4);
+}
+
+// ─── Overview cards ───────────────────────────────────────────────────────────
+
+.wallet-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.wallet-overview__withdraw-btn {
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+
+  &:hover {
+    background-color: #a8521f;
+  }
+}
+
+.wallet-card {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__value {
+    font-family: var(--font-display);
+    font-size: clamp(var(--font-size-lg), 2vw, var(--font-size-2xl));
+    font-weight: var(--font-weight-bold);
+    color: var(--color-dark);
+    margin: 0;
+    letter-spacing: var(--letter-spacing-tight);
+    line-height: 1;
+  }
+
+  &__label {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  &__sub {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__withdraw-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-surface);
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+
+    &:hover {
+      background-color: #a8521f;
+    }
+  }
+
+  &--primary .wallet-card__icon {
+    background-color: rgba(194, 98, 42, 0.12);
+    color: var(--color-primary);
+  }
+  &--green .wallet-card__icon {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  &--red .wallet-card__icon {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+  &--amber .wallet-card__icon {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  &--blue .wallet-card__icon {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+  }
+}
+
+// ─── Revenue chart ────────────────────────────────────────────────────────────
+
+.revenue-chart {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+
+  &__wrap {
+    width: 100%;
+  }
+}
+
+// ─── Revenue breakdown ────────────────────────────────────────────────────────
+
+.revenue-breakdown {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}
+
+.revenue-source {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--primary {
+      background-color: rgba(194, 98, 42, 0.12);
+      color: var(--color-primary);
+    }
+    &--amber {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    &--red {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+    &--blue {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+    &--purple {
+      background-color: #ede9fe;
+      color: #7c3aed;
+    }
+  }
+
+  &__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__label {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+  }
+
+  &__value {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+  }
+
+  &__bar {
+    width: 100%;
+    height: 4px;
+    background-color: var(--color-bg-alt);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 600ms ease;
+
+    &--primary {
+      background-color: var(--color-primary);
+    }
+    &--amber {
+      background-color: #d97706;
+    }
+    &--red {
+      background-color: #dc2626;
+    }
+    &--blue {
+      background-color: #2563eb;
+    }
+    &--purple {
+      background-color: #7c3aed;
+    }
+  }
+
+  &__pct {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    align-self: flex-end;
+  }
+}
+
+// ─── Transaction history ──────────────────────────────────────────────────────
+
+.transaction-history {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+
+    .wallet-section-title {
+      margin: 0;
+    }
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+    color: var(--color-text-muted);
+
+    .spin {
+      animation: spin 0.7s linear infinite;
+    }
+  }
+
+  &__empty {
+    padding: var(--space-8);
+    text-align: center;
+
+    p {
+      font-family: var(--font-body);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}
+
+.tx-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background-color: var(--color-bg-alt);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tx-filter-btn {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: var(--color-dark);
+    background-color: var(--color-surface);
+  }
+  &--active {
+    background-color: var(--color-surface);
+    color: var(--color-dark);
+    font-weight: var(--font-weight-semibold);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.tx-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  transition: background-color var(--transition-fast);
+
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background-color: var(--color-bg);
+    margin: 0 calc(-1 * var(--space-5));
+    padding: var(--space-4) var(--space-5);
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--green {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    &--amber {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    &--red {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+    &--blue {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__label {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-dark);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__date {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+
+  &__right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  &__amount {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+
+    &--positive {
+      color: #166534;
+    }
+    &--negative {
+      color: var(--color-dark);
+    }
+  }
+}
+
+.tx-status {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+
+  &--pending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  &--approved {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+  }
+  &--paid {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  &--rejected {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 1200px) {
+  .wallet-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .wallet-page__body {
+    grid-template-columns: 1fr;
+  }
+  .wallet-page__aside {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .wallet-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page-btn {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-dark);
+    color: var(--color-dark);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.page-indicator {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

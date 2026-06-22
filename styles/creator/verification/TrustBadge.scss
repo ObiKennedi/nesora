@@ -1,0 +1,186 @@
+// styles/creator/verification/TrustBadge.scss
+
+.trust-badge {
+  background-color: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+// ─── Score ring ───────────────────────────────────────────────────────────────
+
+.trust-badge__score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.trust-score-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+
+  svg { width: 100%; height: 100%; }
+
+  &__center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__value {
+    font-family: var(--font-display);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-dark);
+    line-height: 1;
+  }
+
+  &__max {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+}
+
+.trust-badge__score-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+
+  p {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+.trust-tier {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-full);
+
+  &--green  { background-color: #dcfce7; color: #166534; }
+  &--blue   { background-color: #dbeafe; color: #1d4ed8; }
+  &--amber  { background-color: #fef3c7; color: #92400e; }
+  &--red    { background-color: #fee2e2; color: #dc2626; }
+}
+
+// ─── Progress section ─────────────────────────────────────────────────────────
+
+.trust-badge__progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trust-badge__progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  span {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+  }
+}
+
+.trust-badge__progress-pct {
+  color: var(--color-primary) !important;
+}
+
+.trust-badge__progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-bg-alt);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.trust-badge__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #e0895a);
+  border-radius: var(--radius-full);
+  transition: width 600ms ease;
+}
+
+.trust-badge__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.trust-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+
+  svg { flex-shrink: 0; }
+
+  &--done {
+    color: var(--color-text-secondary);
+    svg { color: #16a34a; }
+  }
+}
+
+// ─── Factors ──────────────────────────────────────────────────────────────────
+
+.trust-badge__factors {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+
+  &-title {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-3);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    li {
+      font-family: var(--font-body);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      position: relative;
+      padding-left: var(--space-4);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 7px;
+        width: 4px;
+        height: 4px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+      }
+    }
+  }
+}

@@ -16,6 +16,19 @@ enum OnboardingType {
   CREATOR
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum BankAccountStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
 enum VerificationStatus {
   PENDING
   APPROVED
@@ -84,10 +97,6 @@ enum NotificationType {
   SYSTEM
 }
 
-// ─── Core Accounts ────────────────────────────────────────────────────────────
-
-// Add to schema.prisma
-
 enum Category {
   MUSIC
   DANCE
@@ -132,6 +141,13 @@ enum PostVisibility {
   SUBSCRIBERS_ONLY
 }
 
+enum ProfileTheme {
+  LIGHT
+  DARK
+  NEON
+  PASTEL
+}
+
 enum PostAccessLevel {
   PUBLIC
   FOLLOWERS_ONLY
@@ -149,6 +165,101 @@ enum FanRequestStatus {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  VOICE_NOTE
+}
+
+enum MessageRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model BankAccount {
+  id            String            @id @default(cuid())
+  creatorId     String
+  bankName      String
+  accountName   String
+  accountNumber String
+  bankCode      String
+  isDefault     Boolean           @default(false)
+  status        BankAccountStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  creator     Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  withdrawals Withdrawal[]
+
+  @@map("bank_accounts")
+}
+
+// Add Tip model — not in V1 schema but needed for earnings
+model Tip {
+  id         String   @id @default(cuid())
+  fromUserId String
+  creatorId  String
+  amount     Decimal  @db.Decimal(10, 2)
+  message    String?
+  createdAt  DateTime @default(now())
+
+  fromUser User    @relation("TipSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  creator  Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("tips")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  senderId       String
+  type           MessageType @default(TEXT)
+  content        String?
+  mediaUrl       String?
+  voiceNoteUrl   String?
+  voiceDuration  Int?
+  isRead         Boolean     @default(false)
+  readAt         DateTime?
+  createdAt      DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Conversation {
+  id              String    @id @default(cuid())
+  creatorId       String
+  subscriberId    String
+  lastMessageAt   DateTime?
+  lastMessageText String?
+  createdAt       DateTime  @default(now())
+
+  creator    Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriber User      @relation("ConversationSubscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  messages   Message[]
+
+  @@unique([creatorId, subscriberId])
+  @@map("conversations")
+}
+
+model MessageRequest {
+  id          String               @id @default(cuid())
+  fromUserId  String
+  toCreatorId String
+  message     String
+  status      MessageRequestStatus @default(PENDING)
+  createdAt   DateTime             @default(now())
+
+  fromUser  User    @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  toCreator Creator @relation(fields: [toCreatorId], references: [id], onDelete: Cascade)
+
+  @@map("message_requests")
 }
 
 model FanRequest {
@@ -208,11 +319,14 @@ model Post {
   updatedAt DateTime @updatedAt
 
   // Relations
-  creator  Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  access   PostAccess? // ← Changed from postAccess to access
-  poll     Poll?
-  likes    PostLike[]
-  comments PostComment[]
+  creator    Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  access     PostAccess? // ← Changed from postAccess to access
+  poll       Poll?
+  likes      PostLike[]
+  comments   PostComment[]
+  postShares PostShare[]
+  postSaves  PostSave[]
+  postViews  PostView[]
 
   @@map("posts")
 }
@@ -330,6 +444,11 @@ model User {
   updatedAt     DateTime  @updatedAt
   emailVerified DateTime?
 
+  dateOfBirth DateTime?
+  gender      Gender?
+  country     String?
+  city        String?
+
   // Relations
   wallet            UserWallet?
   creator           Creator?
@@ -343,6 +462,9 @@ model User {
   fanRequests       FanRequest[]           @relation("FanRequestFrom")
   fanRequest        FanRequest?            @relation(fields: [fanRequestId], references: [id])
   fanRequestId      String?
+  messageRequests   MessageRequest[]
+  conversations     Conversation[]         @relation("ConversationSubscriber")
+  tipsSent          Tip[]                  @relation("TipSender")
 
   @@map("users")
 }
@@ -406,7 +528,8 @@ model Creator {
   subscriptionEnabled Boolean  @default(false)
   subscriptionPrice   Decimal? @db.Decimal(10, 2)
 
-  subscriberDMsEnabled Boolean @default(false)
+  subscriberDMsEnabled Boolean  @default(false)
+  subscriberDMPrice    Decimal? @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -426,6 +549,23 @@ model Creator {
   posts             Post[]
   fanRequests       FanRequest[]
   subscriptionPlans SubscriptionPlan[]
+  messageRequests   MessageRequest[]
+  bankAccounts      BankAccount[]
+  tips              Tip[]
+
+  trustScore Int @default(0)
+
+  instagramUrl String?
+  twitterUrl   String?
+  tiktokUrl    String?
+  youtubeUrl   String?
+
+  bannerImage String?
+  links       String[]
+  websiteUrl  String?
+
+  accentColor  String?
+  profileTheme ProfileTheme @default(LIGHT)
 
   @@map("creators")
 }
@@ -442,9 +582,20 @@ model CreatorVerification {
   idFrontImage String
   idBackImage  String
 
+  selfieImage    String?
+  selfieVerified Boolean @default(false)
+
+  addressLine       String?
+  addressCity       String?
+  addressState      String?
+  addressCountry    String?
+  addressProofImage String?
+  addressVerified   Boolean @default(false)
+
   bvnOrTaxId String?
 
-  status VerificationStatus @default(PENDING)
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
 
   createdAt DateTime @default(now())
 
@@ -590,6 +741,7 @@ model Subscription {
   status SubscriptionStatus @default(ACTIVE)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -617,8 +769,6 @@ model Follow {
   @@map("follows")
 }
 
-// ─── Points System ────────────────────────────────────────────────────────────
-
 model PointTransaction {
   id String @id @default(cuid())
 
@@ -636,8 +786,6 @@ model PointTransaction {
 
   @@map("point_transactions")
 }
-
-// ─── Streaming ────────────────────────────────────────────────────────────────
 
 model LiveStream {
   id String @id @default(cuid())
@@ -672,14 +820,11 @@ model StreamUsage {
 
   startedAt DateTime
   endedAt   DateTime?
-
   // Relations
-  stream LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  stream    LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
   @@map("stream_usages")
 }
-
-// ─── Creator Withdrawals ──────────────────────────────────────────────────────
 
 model Withdrawal {
   id String @id @default(cuid())
@@ -692,52 +837,16 @@ model Withdrawal {
 
   status WithdrawalStatus @default(PENDING)
 
-  createdAt DateTime @default(now())
+  createdAt     DateTime     @default(now())
+  bankAccountId String?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  notes         String?
 
   // Relations
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@map("withdrawals")
 }
-
-// ─── Subscriber DMs ───────────────────────────────────────────────────────────
-
-model Conversation {
-  id String @id @default(cuid())
-
-  creatorId    String
-  subscriberId String
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  creator  Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  messages Message[]
-
-  @@unique([creatorId, subscriberId])
-  @@map("conversations")
-}
-
-model Message {
-  id String @id @default(cuid())
-
-  conversationId String
-
-  senderId String
-
-  content String
-  isRead  Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@map("messages")
-}
-
-// Add to schema.prisma
 
 model SubscriptionPlan {
   id          String   @id @default(cuid())
@@ -756,4 +865,39 @@ model SubscriptionPlan {
   subscriptions Subscription[]
 
   @@map("subscription_plans")
+}
+
+model PostShare {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_shares")
+}
+
+model PostSave {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_saves")
+}
+
+// Track post views with timestamp for "active hours" analytics
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String? // nullable for anonymous views
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_views")
 }

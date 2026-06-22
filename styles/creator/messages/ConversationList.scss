@@ -1,0 +1,163 @@
+// styles/creator/messages/ConversationList.scss
+
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-10) var(--space-5);
+    text-align: center;
+
+    p {
+      font-family: var(--font-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    span {
+      font-family: var(--font-body);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+  }
+}
+
+.conv-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  background: none;
+  border: none;
+  border-bottom: var(--border-width) solid var(--color-border);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--transition-fast);
+
+  &:hover    { background-color: var(--color-bg); }
+  &--active  { background-color: rgba(194,98,42,0.06); }
+  &--unread  { background-color: var(--color-bg); }
+
+  // ── Avatar ────────────────────────────────────────────────────────────────
+  &__avatar {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-primary);
+    overflow: visible;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+    }
+
+    span {
+      font-family: var(--font-body);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-surface);
+      text-transform: uppercase;
+    }
+  }
+
+  &__sub-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-full);
+    background-color: #d97706;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-surface);
+  }
+
+  // ── Info ──────────────────────────────────────────────────────────────────
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  &__name {
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .conv-item--unread & { font-weight: var(--font-weight-bold); }
+  }
+
+  &__time {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  &__preview {
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .conv-item--unread & { color: var(--color-text-secondary); }
+  }
+
+  &__badge {
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-primary);
+    color: white;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-1);
+  }
+}
