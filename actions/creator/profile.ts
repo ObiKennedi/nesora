@@ -89,6 +89,8 @@ export async function updateBasicProfileAction(
 }
 
 // ── Update avatar ─────────────────────────────────────────────────────────────
+// Updates User.image (single source of truth for avatar)
+// Returns the new URL so the client can sync the session immediately via update()
 
 export async function updateAvatarAction(imageUrl: string) {
     const session = await auth()
@@ -101,7 +103,7 @@ export async function updateAvatarAction(imageUrl: string) {
         data:  { image: imageUrl },
     })
 
-    return { success: true }
+    return { success: true, image: imageUrl }
 }
 
 // ── Update banner ─────────────────────────────────────────────────────────────
@@ -185,6 +187,7 @@ export async function updateBrandingAction(
 }
 
 // ── Update username ───────────────────────────────────────────────────────────
+// Updating username also syncs creator.handle via the Prisma extension in lib/prisma.ts
 
 export async function updateUsernameAction(username: string) {
     const session = await auth()
@@ -206,5 +209,5 @@ export async function updateUsernameAction(username: string) {
         data:  { username },
     })
 
-    return { success: true }
+    return { success: true, username }
 }

@@ -33,10 +33,12 @@ export const CreatorHeader = ({ pageTitle, onMenuOpen }: Props) => {
                 <div className="creator-header__avatar">
                     {session?.user?.image
                         ? <Image
+                            key={session.user.image}   // ← forces remount when URL changes
                             src={session.user.image}
                             alt="Avatar"
                             width={32}
                             height={32}
+                            unoptimized                // ← bypasses Next.js image cache
                         />
                         : <span>
                             {session?.user?.name?.charAt(0) ?? "C"}

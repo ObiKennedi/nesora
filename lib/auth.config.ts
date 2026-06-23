@@ -76,29 +76,32 @@ export default {
                 token.role = user.role ?? "USER"
                 token.onboardingType = user.onboardingType ?? null
                 token.username = user.username ?? null
+                token.image = user.image ?? null
             }
 
             if (account?.provider === "google" && user?.id) {
                 const dbUser = await prisma.user.findUnique({
                     where: { id: user.id },
-                    select: { role: true, onboardingType: true, username: true },
+                    select: { role: true, onboardingType: true, username: true, image: true },
                 })
                 if (dbUser) {
                     token.role = dbUser.role
                     token.onboardingType = dbUser.onboardingType ?? null
                     token.username = dbUser.username ?? null
+                    token.image = dbUser.image ?? null
                 }
             }
 
             if (trigger === "update" && token.id) {
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.id as string },
-                    select: { role: true, onboardingType: true, username: true },
+                    select: { role: true, onboardingType: true, username: true, image: true },
                 })
                 if (dbUser) {
                     token.role = dbUser.role
                     token.onboardingType = dbUser.onboardingType ?? null
                     token.username = dbUser.username ?? null
+                    token.image = dbUser.image ?? null
                 }
             }
 
@@ -109,6 +112,7 @@ export default {
             session.user.role = token.role as Role
             session.user.onboardingType = token.onboardingType as OnboardingType | null
             session.user.username = token.username as string | null
+            session.user.image = token.image as string | null
             return session
         },
         async signIn({ user, account }) {

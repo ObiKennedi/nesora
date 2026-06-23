@@ -1,6 +1,6 @@
 // components/creator/profile/ProfilePreview.tsx
 import {
-     Globe, ExternalLink,
+    Globe, ExternalLink,
 } from "lucide-react"
 import { FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
@@ -8,8 +8,8 @@ import "@/styles/creator/profile/ProfilePreview.scss"
 
 type Props = {
     creator: {
-        displayName:  string
-        handle:       string | null
+        displayName: string
+        handle: string | null
         bio:          string | null
         bannerImage:  string | null
         websiteUrl:   string | null

@@ -15,7 +15,7 @@ type ProfileData = Awaited<ReturnType<typeof getCreatorProfileAction>>
 
 export const ProfilePage = () => {
 
-    const [data,      setData]      = useState<ProfileData | null>(null)
+    const [data, setData] = useState<ProfileData | null>(null)
     const [isPending, startTransition] = useTransition()
 
     const fetchData = useCallback(() => {

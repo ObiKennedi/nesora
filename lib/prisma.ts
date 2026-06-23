@@ -5,12 +5,44 @@ const adapter = new PrismaNeon({
     connectionString: process.env.DATABASE_URL!,
 });
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
-
-export const prisma = globalForPrisma.prisma ??
-    new PrismaClient({
+function makePrisma() {
+    const client = new PrismaClient({
         adapter,
         log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
     });
+
+    return client.$extends({
+        query: {
+            user: {
+                async create({ args, query }) {
+                    const result = await query(args);
+                    if (result?.id && result?.username) {
+                        await client.creator.updateMany({
+                            where: { userId: result.id },
+                            data: { handle: result.username },
+                        });
+                    }
+                    return result;
+                },
+                async update({ args, query }) {
+                    const result = await query(args);
+                    if (result?.id && result?.username) {
+                        await client.creator.updateMany({
+                            where: { userId: result.id },
+                            data: { handle: result.username },
+                        });
+                    }
+                    return result;
+                },
+            },
+        },
+    });
+}
+
+type ExtendedPrisma = ReturnType<typeof makePrisma>;
+
+const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrisma | undefined };
+
+export const prisma = globalForPrisma.prisma ?? makePrisma();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
