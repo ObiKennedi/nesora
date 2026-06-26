@@ -17,7 +17,6 @@ export const FanTopBar = () => {
                     alt="NESORA"
                     width={100}
                     height={26}
-                    priority
                 />
             </Link>
 
