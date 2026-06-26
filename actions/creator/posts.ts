@@ -25,14 +25,15 @@ const AccessSchema = z.object({
 })
 
 const BasePostSchema = z.object({
-    title:        z.string().max(100).optional(),
-    type:         z.nativeEnum(PostType),
-    visibility:   z.nativeEnum(PostVisibility).default("PUBLIC"),
-    body:         z.string().optional(),
-    mediaUrls:    z.array(z.string()).default([]),
-    thumbnailUrl: z.string().optional().nullable(),
-    scheduledAt:  z.string().optional(),
-    access:       AccessSchema.optional().default({
+    title:         z.string().max(100).optional(),
+    type:          z.nativeEnum(PostType),
+    visibility:    z.nativeEnum(PostVisibility).default("PUBLIC"),
+    body:          z.string().optional(),
+    mediaUrls:     z.array(z.string()).default([]),
+    thumbnailUrl:  z.string().optional().nullable(),
+    videoDuration: z.number().optional(),
+    scheduledAt:   z.string().optional(),
+    access:        AccessSchema.optional().default({
         accessLevel: "PUBLIC" as const,
         allowedPlanIds: [],
     }),
@@ -86,8 +87,10 @@ export async function createPostAction(formData: z.infer<typeof CreatePostSchema
             body:         data.body ?? null,
             mediaUrls:    data.mediaUrls,
             thumbnailUrl: data.thumbnailUrl ?? null,
+            videoDuration: data.videoDuration ?? null,
             scheduledAt:  data.scheduledAt ? new Date(data.scheduledAt) : null,
             publishedAt:  status === "PUBLISHED" ? new Date() : null,
+
 
             access: {
                 create: {

@@ -1,4 +1,3 @@
-// components/creator/layout/NotificationsBell.tsx
 "use client"
 
 import {

@@ -1,20 +1,19 @@
-// app/onboarding/creator/categories/page.tsx
 "use client"
 
 import { CategoryPicker } from "@/component/onboarding/CategoryPicker"
-import { saveCreatorCategoriesAction } from "@/actions/creator/categories"
+import { saveFanCategoriesAction } from "@/actions/creator/categories"
 import { Category } from "@prisma/client"
 
-export default function CreatorCategoriesPage() {
+export default function FanCategoriesPage() {
     return (
         <CategoryPicker
-            heading="What do you create?"
-            subHeading="Choose the categories that best describe your content. This helps fans find you and helps NESORA surface your work to the right audience."
-            hint="Pick between 1 and 5 categories. You can update these anytime."
+            heading="What are you into?"
+            subHeading="Pick the categories you love. We'll use these to recommend creators worth following."
+            hint="Pick between 1 and 10 categories. You can update these anytime."
             min={1}
-            max={5}
-            submitLabel="Continue to Verification →"
-            onSubmit={(cats: Category[]) => saveCreatorCategoriesAction(cats)}
+            max={10}
+            submitLabel="Continue →"
+            onSubmit={(cats: Category[]) => saveFanCategoriesAction(cats)}
         />
     )
 }

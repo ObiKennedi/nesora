@@ -37,7 +37,7 @@ export const CreatorSidebar = ({ isOpen, onClose }: Props) => {
             {/* Logo */}
             <div className="creator-sidebar__logo">
                 <Link href="/creator/dashboard" onClick={onClose}>
-                    <Image src="/logo.png" alt="NESORA" width={110} height={28} priority />
+                    <img src="/logo.png" alt="NESORA" width={110} height={28} />
                 </Link>
                 <button
                     className="creator-sidebar__close"
@@ -52,7 +52,7 @@ export const CreatorSidebar = ({ isOpen, onClose }: Props) => {
             <div className="creator-sidebar__profile">
                 <div className="creator-sidebar__avatar">
                     {session?.user?.image
-                        ? <Image src={session.user.image} alt="Avatar" width={36} height={36} />
+                        ? <img src={session.user.image} alt="Avatar" width={36} height={36} />
                         : <span>{session?.user?.name?.charAt(0) ?? "C"}</span>
                     }
                 </div>

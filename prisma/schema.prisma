@@ -307,8 +307,9 @@ model Post {
   thumbnailUrl String?
 
   // ── Scheduling ────────────────────────────────────────────────────────────
-  scheduledAt DateTime?
-  publishedAt DateTime?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  videoDuration Int?
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   viewCount    Int @default(0)
@@ -319,14 +320,15 @@ model Post {
   updatedAt DateTime @updatedAt
 
   // Relations
-  creator    Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  access     PostAccess? // ← Changed from postAccess to access
-  poll       Poll?
-  likes      PostLike[]
-  comments   PostComment[]
-  postShares PostShare[]
-  postSaves  PostSave[]
-  postViews  PostView[]
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  access        PostAccess? // ← Changed from postAccess to access
+  poll          Poll?
+  likes         PostLike[]
+  comments      PostComment[]
+  postShares    PostShare[]
+  postSaves     PostSave[]
+  postViews     PostView[]
+  postPurchases PostPurchase[]
 
   @@map("posts")
 }
@@ -450,21 +452,23 @@ model User {
   city        String?
 
   // Relations
-  wallet            UserWallet?
-  creator           Creator?
-  follows           Follow[]
-  subscriptions     Subscription[]
-  sentMessages      Message[]              @relation("MessageSender")
-  giftsSent         GiftTransaction[]      @relation("GiftSender")
-  accounts          Account[]
-  notifications     Notification[]
-  categoryInterests UserCategoryInterest[]
-  fanRequests       FanRequest[]           @relation("FanRequestFrom")
-  fanRequest        FanRequest?            @relation(fields: [fanRequestId], references: [id])
-  fanRequestId      String?
-  messageRequests   MessageRequest[]
-  conversations     Conversation[]         @relation("ConversationSubscriber")
-  tipsSent          Tip[]                  @relation("TipSender")
+  wallet             UserWallet?
+  creator            Creator?
+  follows            Follow[]
+  subscriptions      Subscription[]
+  sentMessages       Message[]              @relation("MessageSender")
+  giftsSent          GiftTransaction[]      @relation("GiftSender")
+  accounts           Account[]
+  notifications      Notification[]
+  categoryInterests  UserCategoryInterest[]
+  fanRequests        FanRequest[]           @relation("FanRequestFrom")
+  fanRequest         FanRequest?            @relation(fields: [fanRequestId], references: [id])
+  fanRequestId       String?
+  messageRequests    MessageRequest[]
+  conversations      Conversation[]         @relation("ConversationSubscriber")
+  tipsSent           Tip[]                  @relation("TipSender")
+  fanInterestSignals FanInterestSignal[]
+  postPurchases      PostPurchase[]
 
   @@map("users")
 }
@@ -564,8 +568,9 @@ model Creator {
   links       String[]
   websiteUrl  String?
 
-  accentColor  String?
-  profileTheme ProfileTheme @default(LIGHT)
+  accentColor        String?
+  profileTheme       ProfileTheme        @default(LIGHT)
+  fanInterestSignals FanInterestSignal[]
 
   @@map("creators")
 }
@@ -900,4 +905,33 @@ model PostView {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@map("post_views")
+}
+
+model FanInterestSignal {
+  id        String   @id @default(cuid())
+  userId    String
+  creatorId String
+  category  Category
+  score     Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, creatorId, category])
+  @@map("fan_interest_signals")
+}
+
+model PostPurchase {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_purchases")
 }

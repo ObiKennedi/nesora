@@ -52,7 +52,7 @@ export const SubscriberCard = ({ subscription: sub }: Props) => {
             {/* ── Avatar ── */}
             <div className="subscriber-card__avatar">
                 {sub.user.image ? (
-                    <Image src={sub.user.image} alt={name} width={44} height={44} />
+                    <img src={sub.user.image} alt={name} width={44} height={44} />
                 ) : (
                     <span>{name.charAt(0).toUpperCase()}</span>
                 )}

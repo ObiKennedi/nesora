@@ -11,7 +11,6 @@ const CategoriesSchema = z.object({
     categories: z.array(z.nativeEnum(Category)).min(1, "Pick at least one category").max(10, "Maximum 10 categories"),
 })
 
-// ── Fan — saves to UserCategoryInterest ──────────────────────────────────────
 export async function saveFanCategoriesAction(categories: Category[]) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -19,7 +18,6 @@ export async function saveFanCategoriesAction(categories: Category[]) {
     const parsed = CategoriesSchema.safeParse({ categories })
     if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-    // Wipe existing and re-insert
     await prisma.$transaction([
         prisma.userCategoryInterest.deleteMany({
             where: { userId: session.user.id },
@@ -32,10 +30,9 @@ export async function saveFanCategoriesAction(categories: Category[]) {
         }),
     ])
 
-    redirect("/feed")
+    redirect("/onboarding/fan/username")
 }
 
-// ── Creator — saves to CreatorCategory ───────────────────────────────────────
 export async function saveCreatorCategoriesAction(categories: Category[]) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")

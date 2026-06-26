@@ -85,7 +85,7 @@ export const RecentActivity = ({
                                 {/* User avatar */}
                                 <div className="activity-item__avatar">
                                     {item.user.image ? (
-                                        <Image
+                                        <img
                                             src={item.user.image}
                                             alt={name ?? ""}
                                             width={28}

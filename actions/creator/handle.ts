@@ -18,8 +18,6 @@ const HandleSchema = z.object({
         .toLowerCase(),
 })
 
-// ── Check availability ────────────────────────────────────────────────────────
-// Checks both user.username and creator.handle since they're the same thing
 export async function checkHandleAvailability(handle: string) {
     const parsed = HandleSchema.safeParse({ handle })
     if (!parsed.success) {
@@ -39,7 +37,6 @@ export async function checkHandleAvailability(handle: string) {
         }),
     ])
 
-    // Exclude the current user's own username from the conflict check
     const userConflict    = existingUser    && existingUser.id !== session?.user?.id
     const creatorConflict = existingCreator
 
@@ -49,10 +46,6 @@ export async function checkHandleAvailability(handle: string) {
     }
 }
 
-// ── Save handle and redirect to categories ────────────────────────────────────
-// Writes to both user.username and creator.handle
-// The Prisma extension in lib/prisma.ts will also sync handle from username
-// but we set both explicitly here to be safe
 export async function saveCreatorHandleAction(handle: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -62,7 +55,6 @@ export async function saveCreatorHandleAction(handle: string) {
         return { error: parsed.error.issues[0].message }
     }
 
-    // Double-check conflicts
     const [existingUser, existingCreator] = await Promise.all([
         prisma.user.findUnique({
             where:  { username: parsed.data.handle },
@@ -86,7 +78,6 @@ export async function saveCreatorHandleAction(handle: string) {
     })
     if (!creator) return { error: "Creator profile not found." }
 
-    // Write to both in a transaction so they can't drift
     await prisma.$transaction([
         prisma.user.update({
             where: { id: session.user.id },

@@ -32,7 +32,7 @@ export const CreatorHeader = ({ pageTitle, onMenuOpen }: Props) => {
 
                 <div className="creator-header__avatar">
                     {session?.user?.image
-                        ? <Image
+                        ? <img
                             key={session.user.image}   // ← forces remount when URL changes
                             src={session.user.image}
                             alt="Avatar"

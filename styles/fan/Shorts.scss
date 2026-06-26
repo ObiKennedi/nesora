@@ -1,0 +1,434 @@
+// styles/fan/Shorts.scss
+
+// ─── Player shell ─────────────────────────────────────────────────────────────
+// Fills the feed-main column on desktop, full viewport on mobile
+
+.shorts-player {
+    position: relative;
+    width: 100%;
+    height: calc(100svh - 56px - 64px); // viewport minus topbar and footnav
+    overflow: hidden;
+    background-color: #000;
+    border-radius: var(--radius-lg);
+
+    // Mute button — top right corner
+    &__mute {
+        position: absolute;
+        top: var(--space-4);
+        right: var(--space-4);
+        z-index: 30;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background-color: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(4px);
+        border: none;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color var(--transition-fast);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.65);
+        }
+    }
+
+    // Progress dots — right edge
+    &__dots {
+        position: absolute;
+        right: var(--space-3);
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        pointer-events: none;
+    }
+}
+
+.shorts-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background-color: rgba(255, 255, 255, 0.3);
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+
+    &--active {
+        background-color: #fff;
+        transform: scale(1.4);
+    }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+.shorts-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    min-height: 400px;
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--color-text-muted);
+
+    p { margin: 0; font-size: var(--font-size-sm) }
+    p:first-child { font-weight: var(--font-weight-semibold); color: var(--color-text-secondary) }
+}
+
+// ─── Short item ───────────────────────────────────────────────────────────────
+
+.short-item {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+
+    // Video fills the container
+    &__video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+    }
+
+    // Locked thumbnail bg
+    &__locked-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+    }
+
+    &__thumb-blur {
+        object-fit: cover;
+        filter: blur(20px);
+        transform: scale(1.08);
+    }
+
+    &__locked-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+
+        p {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            margin: 0;
+        }
+    }
+
+    &__locked-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+    }
+
+    // Bottom gradient overlay
+    &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 55%;
+        background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.75) 0%,
+            rgba(0, 0, 0, 0.3)  40%,
+            transparent         100%
+        );
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    // Creator info + caption — bottom left
+    &__info {
+        position: relative;
+        z-index: 2;
+        flex: 1;
+        min-width: 0;
+        padding: var(--space-4) var(--space-4) var(--space-6);
+        padding-right: 80px; // clear the action rail
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    &__creator {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        text-decoration: none;
+    }
+
+    &__creator-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 6px; // account for live tag below avatar
+    }
+
+    &__creator-name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-bold);
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    &__verified {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: 7px;
+        font-weight: var(--font-weight-bold);
+        flex-shrink: 0;
+    }
+
+    &__creator-handle {
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    &__caption {
+        font-size: var(--font-size-sm);
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+        line-height: var(--line-height-snug);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    // Action rail — right side
+    &__actions {
+        position: absolute;
+        z-index: 2;
+        right: var(--space-3);
+        bottom: var(--space-6);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+    }
+}
+
+// ─── Lock buttons inside short ────────────────────────────────────────────────
+
+.short-locked-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+
+    &:hover { opacity: 0.85 }
+
+    &--primary {
+        background-color: var(--color-primary);
+        color: #fff;
+        border: none;
+    }
+
+    &--secondary {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+}
+
+// ─── Action buttons (right rail) ──────────────────────────────────────────────
+
+.short-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    min-width: 44px;
+
+    span {
+        font-size: 11px;
+        font-weight: var(--font-weight-semibold);
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    &:hover {
+        transform: scale(1.12);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+
+    &--liked {
+        color: #ef4444;
+    }
+
+    &--saved {
+        color: var(--color-primary);
+    }
+
+    &--gift {
+        color: #f59e0b;
+    }
+}
+
+// ─── Nav arrows (desktop) ─────────────────────────────────────────────────────
+
+.short-nav {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.65);
+        transform: translateX(-50%) scale(1.05);
+    }
+
+    &--prev { top: var(--space-4) }
+    &--next { bottom: var(--space-4) }
+}
+
+// ─── Creator avatar with pulsing LIVE glow (shorts variant) ──────────────────
+
+.short-avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+
+    &__img-wrap {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        position: relative;
+        z-index: 1;
+    }
+
+    &__img { width: 100%; height: 100%; object-fit: cover }
+
+    &__fallback {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-bold);
+        text-transform: uppercase;
+    }
+
+    &__ring {
+        position: absolute;
+        inset: -4px;
+        border-radius: var(--radius-full);
+        border: 2.5px solid var(--color-primary);
+        z-index: 0;
+
+        &--1 { animation: short-live-ring 1.6s ease-out infinite }
+        &--2 { animation: short-live-ring 1.6s ease-out 0.6s infinite }
+    }
+
+    &__live-tag {
+        position: absolute;
+        bottom: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 8px;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.05em;
+        color: #fff;
+        background-color: #ef4444;
+        border-radius: var(--radius-full);
+        padding: 1px 5px;
+        white-space: nowrap;
+        z-index: 2;
+        border: 1.5px solid #000;
+    }
+
+    &--live &__img-wrap {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(194, 98, 42, 0.5);
+    }
+}
+
+@keyframes short-live-ring {
+    0%   { transform: scale(1);   opacity: 0.9 }
+    70%  { transform: scale(1.7); opacity: 0   }
+    100% { transform: scale(1.7); opacity: 0   }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+    .shorts-player {
+        // On mobile: fill full viewport minus topbar + footnav
+        height: calc(100svh - 56px - 64px);
+        border-radius: 0;
+    }
+
+    // Hide desktop nav arrows on mobile — touch handles it
+    .short-nav {
+        display: none;
+    }
+
+    // Dots hidden on mobile (too cluttered)
+    .shorts-player__dots {
+        display: none;
+    }
+}
