@@ -109,16 +109,16 @@ export const FeedClient = ({
     const [shortsStartIndex, setShortsStartIndex] = useState(0)
 
     // Feed state
-    const [posts,           setPosts]           = useState<FeedPost[]>(initialPosts)
-    const [page,            setPage]            = useState(1)
-    const [hasMore,         setHasMore]         = useState(initialPosts.length >= 20)
-    const [activeCategory,  setActiveCategory]  = useState<Category | "ALL">("ALL")
-    const [loadingMore,     setLoadingMore]     = useState(false)
+    const [posts, setPosts] = useState<FeedPost[]>(initialPosts)
+    const [page, setPage] = useState(1)
+    const [hasMore, setHasMore] = useState(initialPosts.length >= 20)
+    const [activeCategory, setActiveCategory] = useState<Category | "ALL">("ALL")
+    const [loadingMore, setLoadingMore] = useState(false)
 
     // Modal state (wired up in next phase)
-    const [commentPostId,  setCommentPostId]  = useState<string | null>(null)
-    const [giftCreatorId,  setGiftCreatorId]  = useState<string | null>(null)
-    const [unlockPost,     setUnlockPost]     = useState<FeedPost | null>(null)
+    const [commentPostId, setCommentPostId] = useState<string | null>(null)
+    const [giftCreatorId, setGiftCreatorId] = useState<string | null>(null)
+    const [unlockPost, setUnlockPost] = useState<FeedPost | null>(null)
 
     const [, startTransition] = useTransition()
 
@@ -191,10 +191,12 @@ export const FeedClient = ({
     }))
 
     // ── Shorts with live flag ─────────────────────────────────────────────────
-    const shortsWithLive: FeedShort[] = initialShorts.map((s) => ({
+    const shortsWithLive = initialShorts.map((s) => ({
         ...s,
+        // Convert string timestamps to proper Date objects if present
+        publishedAt: s.publishedAt ? new Date(s.publishedAt) : null,
         creator: { ...s.creator, isLive: liveCreatorIds.has(s.creator.id) },
-    }))
+    })) as any;
 
     return (
         <div className="feed-layout">
