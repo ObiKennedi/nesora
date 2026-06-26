@@ -33,7 +33,7 @@ const ACTIONS = [
     },
     {
         label: "Upload Photo",
-        icon: <imgPlus size={20} />,
+        icon: <ImagePlus size={20} />,
         href: "/creator/content/feed?action=photo",
         color: "green",
     },
