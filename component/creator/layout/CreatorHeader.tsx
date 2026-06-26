@@ -37,8 +37,7 @@ export const CreatorHeader = ({ pageTitle, onMenuOpen }: Props) => {
                             src={session.user.image}
                             alt="Avatar"
                             width={32}
-                            height={32}
-                            unoptimized                // ← bypasses Next.js image cache
+                            height={32}               // ← bypasses Next.js image cache
                         />
                         : <span>
                             {session?.user?.name?.charAt(0) ?? "C"}
