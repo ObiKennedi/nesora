@@ -92,11 +92,28 @@ export async function updateBasicProfileAction(
 // Updates User.image (single source of truth for avatar)
 // Returns the new URL so the client can sync the session immediately via update()
 
+const ALLOWED_IMAGE_HOSTS = [
+    "res.cloudinary.com",
+    "lh3.googleusercontent.com",
+    "lh5.googleusercontent.com",
+    "lh6.googleusercontent.com",
+]
+
+function isAllowedImageUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        return parsed.protocol === "https:" && ALLOWED_IMAGE_HOSTS.some(h => parsed.hostname === h)
+    } catch {
+        return false
+    }
+}
+
 export async function updateAvatarAction(imageUrl: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
     if (!imageUrl) return { error: "Image URL is required." }
+    if (!isAllowedImageUrl(imageUrl)) return { error: "Invalid image URL." }
 
     await prisma.user.update({
         where: { id: session.user.id },
@@ -113,6 +130,7 @@ export async function updateBannerAction(bannerUrl: string) {
     if (!session?.user?.id) redirect("/login")
 
     if (!bannerUrl) return { error: "Banner URL is required." }
+    if (!isAllowedImageUrl(bannerUrl)) return { error: "Invalid image URL." }
 
     const creator = await getCreatorOrThrow(session.user.id)
 

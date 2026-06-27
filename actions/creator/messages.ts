@@ -295,6 +295,17 @@ export async function sendTypingAction(
     const session = await auth()
     if (!session?.user?.id) return
 
+    const conversation = await prisma.conversation.findFirst({
+        where: {
+            id: conversationId,
+            OR: [
+                { creator:    { userId: session.user.id } },
+                { subscriberId: session.user.id           },
+            ],
+        },
+    })
+    if (!conversation) return
+
     await pusherServer.trigger(
         `private-conversation-${conversationId}`,
         "typing",

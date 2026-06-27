@@ -9,6 +9,7 @@ type Props = {
     data: {
         hasPassword:     boolean
         isGoogleAccount: boolean
+        user?:           { email?: string | null } | null
     }
 }
 
@@ -16,18 +17,19 @@ export const DangerZone = ({ data }: Props) => {
 
     const [showConfirm, setShowConfirm] = useState(false)
     const [password,    setPassword]    = useState("")
+    const [confirmEmail, setConfirmEmail] = useState("")
     const [showPw,      setShowPw]      = useState(false)
     const [typed,       setTyped]       = useState("")
     const [error,       setError]       = useState<string | null>(null)
     const [isPending,   startTransition] = useTransition()
 
     const CONFIRM_PHRASE = "delete my account"
-    const canDelete = typed === CONFIRM_PHRASE && (!data.hasPassword || !!password)
+    const canDelete = typed === CONFIRM_PHRASE && (data.hasPassword ? !!password : !!confirmEmail)
 
     const handleDelete = () => {
         setError(null)
         startTransition(async () => {
-            const res = await deleteAccountAction(password)
+            const res = await deleteAccountAction(password, confirmEmail || undefined)
             if ((res as any)?.error) setError((res as any).error)
         })
     }
@@ -70,7 +72,7 @@ export const DangerZone = ({ data }: Props) => {
                                 removed. This action is not reversible.
                             </div>
 
-                            {data.hasPassword && (
+                            {data.hasPassword ? (
                                 <div className="settings-field">
                                     <label>Enter your password to confirm</label>
                                     <div className="settings-field__pw-wrap">
@@ -90,6 +92,17 @@ export const DangerZone = ({ data }: Props) => {
                                             {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                                         </button>
                                     </div>
+                                </div>
+                            ) : (
+                                <div className="settings-field">
+                                    <label>Enter your email address ({data.user?.email}) to confirm</label>
+                                    <input
+                                        type="email"
+                                        value={confirmEmail}
+                                        onChange={(e) => setConfirmEmail(e.target.value)}
+                                        placeholder="your@email.com"
+                                        disabled={isPending}
+                                    />
                                 </div>
                             )}
 
@@ -114,6 +127,7 @@ export const DangerZone = ({ data }: Props) => {
                                     onClick={() => {
                                         setShowConfirm(false)
                                         setPassword("")
+                                        setConfirmEmail("")
                                         setTyped("")
                                         setError(null)
                                     }}
