@@ -302,8 +302,9 @@ export async function recordShareAction(postId: string) {
         await prisma.postShare.create({
             data: { postId, userId: session.user.id },
         })
-    } catch {
-        // Silently fail — share tracking is non-critical
+    } catch (err) {
+        // Share tracking is non-critical, but log for observability
+        console.error("[recordShare] Failed to record share:", err)
     }
 }
 

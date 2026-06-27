@@ -12,7 +12,8 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import "@/styles/creator/messages/MessageRequests.scss"
 
-type Request = Awaited<ReturnType<typeof getMessageRequestsAction>>[0]
+type RequestsResult = Awaited<ReturnType<typeof getMessageRequestsAction>>
+type Request = Exclude<RequestsResult, { error: string }>[0]
 
 type Props = {
     onAccepted: (conversationId: string) => void
@@ -27,6 +28,7 @@ export const MessageRequests = ({ onAccepted }: Props) => {
     useEffect(() => {
         startTransition(async () => {
             const res = await getMessageRequestsAction()
+            if ("error" in res) return
             setRequests(res)
         })
     }, [])

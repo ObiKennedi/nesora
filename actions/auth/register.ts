@@ -33,21 +33,31 @@ export async function registerAction(formData: z.infer<typeof RegisterSchema>) {
 
     const hashed = await bcrypt.hash(password, 12)
 
-    await prisma.user.create({
-        data: {
-            name: `${firstName} ${lastName}`.trim(),
-            firstName,
-            lastName,
-            email,
-            username,
-            password: hashed,
-            // Create wallet immediately
-            wallet: { create: { balance: 0 } },
-        },
-    })
+    try {
+        await prisma.user.create({
+            data: {
+                name: `${firstName} ${lastName}`.trim(),
+                firstName,
+                lastName,
+                email,
+                username,
+                password: hashed,
+                // Create wallet immediately
+                wallet: { create: { balance: 0 } },
+            },
+        })
+    } catch (err) {
+        console.error("[register] Failed to create user:", err)
+        return { error: "Something went wrong creating your account. Please try again." }
+    }
 
-    const token = await generateVerificationToken(email)
-    await sendVerificationEmail(email, token)
+    try {
+        const token = await generateVerificationToken(email)
+        await sendVerificationEmail(email, token)
+    } catch (err) {
+        console.error("[register] Failed to send verification email:", err)
+        return { error: "Account created but we couldn't send a verification email. Please try logging in and requesting a new one." }
+    }
 
     return { success: "Account created. Check your email to verify." }
 }

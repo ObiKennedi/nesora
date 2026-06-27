@@ -231,6 +231,12 @@ export async function deleteAccountAction(password: string) {
         if (!valid) return { error: "Incorrect password." }
     }
 
-    await prisma.user.delete({ where: { id: session.user.id } })
+    try {
+        await prisma.user.delete({ where: { id: session.user.id } })
+    } catch (err) {
+        console.error("[deleteAccount] Failed to delete account:", err)
+        return { error: "Failed to delete account. Please contact support if the issue persists." }
+    }
+
     await signOut({ redirectTo: "/" })
 }

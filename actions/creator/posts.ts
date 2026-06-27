@@ -46,10 +46,8 @@ const CreatePostSchema = BasePostSchema.extend({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) throw new Error("Creator profile not found")
-    return creator
+async function getCreator(userId: string) {
+    return prisma.creator.findUnique({ where: { userId } })
 }
 
 // ── Create Post ───────────────────────────────────────────────────────────────
@@ -61,7 +59,8 @@ export async function createPostAction(formData: z.infer<typeof CreatePostSchema
     const parsed = CreatePostSchema.safeParse(formData)
     if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
     const data = parsed.data
 
     // Content validation
@@ -127,7 +126,8 @@ export async function updatePostAction(
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const existing = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id },
@@ -173,7 +173,8 @@ export async function deletePostAction(postId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id },
@@ -196,7 +197,8 @@ export async function getCreatorPostsAction(params?: {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) redirect("/onboarding")
 
     const page  = params?.page  ?? 1
     const limit = params?.limit ?? 10
@@ -236,7 +238,8 @@ export async function publishDraftAction(postId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "DRAFT" },
@@ -264,7 +267,8 @@ export async function reschedulePostAction(postId: string, scheduledAt: string) 
         return { error: "Scheduled time must be in the future." }
     }
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },
@@ -285,7 +289,8 @@ export async function cancelScheduleAction(postId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },

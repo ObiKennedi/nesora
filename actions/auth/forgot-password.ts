@@ -27,8 +27,13 @@ export async function forgotPasswordAction(formData: z.infer<typeof ForgotSchema
     // Always return success — don't leak whether email exists
     if (!user) return { success: "If that email exists, a reset link has been sent." }
 
-    const token = await generatePasswordResetToken(parsed.data.email)
-    await sendPasswordResetEmail(parsed.data.email, token)
+    try {
+        const token = await generatePasswordResetToken(parsed.data.email)
+        await sendPasswordResetEmail(parsed.data.email, token)
+    } catch (err) {
+        console.error("[forgot-password] Failed to send reset email:", err)
+        return { error: "Something went wrong sending the reset email. Please try again." }
+    }
 
     return { success: "If that email exists, a reset link has been sent." }
 }
@@ -48,12 +53,17 @@ export async function resetPasswordAction(formData: z.infer<typeof ResetSchema>)
 
     const hashed = await bcrypt.hash(password, 12)
 
-    await prisma.user.update({
-        where: { email: record.email },
-        data: { password: hashed },
-    })
+    try {
+        await prisma.user.update({
+            where: { email: record.email },
+            data: { password: hashed },
+        })
 
-    await prisma.passwordResetToken.delete({ where: { token } })
+        await prisma.passwordResetToken.delete({ where: { token } })
+    } catch (err) {
+        console.error("[resetPassword] Failed to update password:", err)
+        return { error: "Something went wrong resetting your password. Please try again." }
+    }
 
     return { success: "Password updated. You can now log in." }
 }

@@ -517,59 +517,64 @@ export async function withdrawAction(
         select: { id: true },
     })
 
-    await prisma.$transaction([
-        // Deduct from wallet
-        prisma.creatorWallet.update({
-            where: { creatorId: creator.id },
-            data:  { balance: { decrement: grossAmount } },
-        }),
+    try {
+        await prisma.$transaction([
+            // Deduct from wallet
+            prisma.creatorWallet.update({
+                where: { creatorId: creator.id },
+                data:  { balance: { decrement: grossAmount } },
+            }),
 
-        // Create withdrawal record
-        prisma.withdrawal.create({
-            data: {
-                creatorId:     creator.id,
-                bankAccountId: parsed.data.bankAccountId,
-                grossAmount,
-                platformFee,
-                netAmount,
-                status: "PENDING",
-            },
-        }),
+            // Create withdrawal record
+            prisma.withdrawal.create({
+                data: {
+                    creatorId:     creator.id,
+                    bankAccountId: parsed.data.bankAccountId,
+                    grossAmount,
+                    platformFee,
+                    netAmount,
+                    status: "PENDING",
+                },
+            }),
 
-        // Wallet transaction record
-        prisma.creatorWalletTransaction.create({
-            data: {
-                walletId:    creator.wallet.id,
-                amount:      grossAmount,
-                type:        "WITHDRAWAL",
-                description: `Withdrawal to ${bankAccount.bankName} · ${bankAccount.accountNumber}`,
-            },
-        }),
+            // Wallet transaction record
+            prisma.creatorWalletTransaction.create({
+                data: {
+                    walletId:    creator.wallet.id,
+                    amount:      grossAmount,
+                    type:        "WITHDRAWAL",
+                    description: `Withdrawal to ${bankAccount.bankName} · ${bankAccount.accountNumber}`,
+                },
+            }),
 
-        // Notify the creator
-        prisma.notification.create({
-            data: {
-                userId: session.user.id,
-                type:   "PAYOUT_PROCESSED",
-                title:  "Withdrawal request submitted",
-                body:   `₦${netAmount.toLocaleString()} withdrawal is pending admin approval.`,
-                href:   "/creator/monetization/wallet",
-            },
-        }),
-
-        // ── Notify all admins ─────────────────────────────────────────────────
-        ...admins.map((admin) =>
+            // Notify the creator
             prisma.notification.create({
                 data: {
-                    userId: admin.id,
-                    type:   "SYSTEM",
-                    title:  "New withdrawal request",
-                    body:   `${creator.displayName} requested a withdrawal of ₦${netAmount.toLocaleString()}.`,
-                    href:   "/admin/payouts",
+                    userId: session.user.id,
+                    type:   "PAYOUT_PROCESSED",
+                    title:  "Withdrawal request submitted",
+                    body:   `₦${netAmount.toLocaleString()} withdrawal is pending admin approval.`,
+                    href:   "/creator/monetization/wallet",
                 },
-            })
-        ),
-    ])
+            }),
+
+            // ── Notify all admins ─────────────────────────────────────────────────
+            ...admins.map((admin) =>
+                prisma.notification.create({
+                    data: {
+                        userId: admin.id,
+                        type:   "SYSTEM",
+                        title:  "New withdrawal request",
+                        body:   `${creator.displayName} requested a withdrawal of ₦${netAmount.toLocaleString()}.`,
+                        href:   "/admin/payouts",
+                    },
+                })
+            ),
+        ])
+    } catch (err) {
+        console.error("[withdraw] Transaction failed:", err)
+        return { error: "Withdrawal failed. Your balance has not been deducted. Please try again." }
+    }
 
     return { success: true, netAmount }
 }

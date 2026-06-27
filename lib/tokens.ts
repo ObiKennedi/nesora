@@ -8,15 +8,13 @@ export async function generateVerificationToken(email: string) {
     const token = crypto.randomBytes(32).toString("hex")
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24) // 24h
 
-    await prisma.verificationToken.upsert({
-        where: { identifier_token: { identifier: email, token: "" } },
-        update: { token, expires },
-        create: { identifier: email, token, expires },
-    }).catch(async () => {
-        // If no existing row, just create
-        await prisma.verificationToken.create({
-            data: { identifier: email, token, expires },
-        })
+    // Delete any existing token for this email, then create a new one
+    await prisma.verificationToken.deleteMany({
+        where: { identifier: email },
+    })
+
+    await prisma.verificationToken.create({
+        data: { identifier: email, token, expires },
     })
 
     return token
