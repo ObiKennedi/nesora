@@ -52,6 +52,7 @@ export default async function FeedPage() {
                 initialShorts={[]}
                 liveStreams={liveStreams}
                 fanCategories={fanInterests.map((i) => i.category)}
+                currentUserId={session.user.id}
             />
         </Suspense>
     )
