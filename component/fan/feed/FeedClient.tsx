@@ -28,6 +28,7 @@ import { ShortsRail } from "./ShortsRail"
 import { PostCard } from "./PostCard"
 import { ShortsPlayer } from "./ShortsPlayer"
 import { FanMessagesClient } from "@/component/fan/messages/FanMessagesClient"
+import { CommentModal }      from "./CommentModal"
 import { CATEGORIES } from "@/component/onboarding/CategoryPicker"
 import "@/styles/fan/Feed.scss"
 
@@ -124,6 +125,13 @@ export const FeedClient = ({
     const [unlockPost, setUnlockPost] = useState<FeedPost | null>(null)
 
     const [, startTransition] = useTransition()
+
+    // ── Post update handler (optimistic UI from PostCard) ─────────────────────
+    const handlePostUpdate = useCallback((id: string, updates: Partial<FeedPost>) => {
+        setPosts((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+        )
+    }, [])
 
     const liveCreatorIds = new Set(liveStreams.map((s) => s.creator.id))
 
@@ -252,11 +260,12 @@ export const FeedClient = ({
                                 <PostCard
                                     key={post.id}
                                     post={post as any}
+                                    userId={currentUserId}
+                                    onUpdate={handlePostUpdate}
                                     onCommentOpen={(id) => setCommentPostId(id)}
                                     onGiftOpen={(id) => setGiftCreatorId(id)}
-                                    onUnlockOpen={(p) => setUnlockPost(p as any)} userId={""} onUpdate={function (id: string, updates: Partial<{ id: string; type: PostType; title: string | null; body: string | null; mediaUrls: string[]; thumbnailUrl: string | null; videoDuration?: number | null; publishedAt: Date | null; createdAt: Date; likeCount: number; commentCount: number; viewCount?: number; isLiked: boolean; isSaved: boolean; isPurchased: boolean; hasAccess: boolean; lockReason: string | null; unlockPrice: number | null; poll: any | null; creator: { id: string; displayName: string; handle: string | null; isVerified: boolean; image: string | null; categories: Category[] } }>): void {
-                                        throw new Error("Function not implemented.")
-                                    } }                                />
+                                    onUnlockOpen={(p) => setUnlockPost(p as any)}
+                                />
                             ))}
 
                             {hasMore && (
@@ -296,8 +305,21 @@ export const FeedClient = ({
 
             </div>
 
-            {/* Modal backdrops — full modals wired in next phase */}
-            {commentPostId && <div className="feed-backdrop" onClick={() => setCommentPostId(null)} aria-hidden="true" />}
+            {/* ── Comment modal ── */}
+            {commentPostId && (
+                <CommentModal
+                    postId={commentPostId}
+                    currentUserId={currentUserId}
+                    onClose={() => setCommentPostId(null)}
+                    onCommentAdded={() => {
+                        handlePostUpdate(commentPostId, {
+                            commentCount: (posts.find((p) => p.id === commentPostId)?.commentCount ?? 0) + 1,
+                        })
+                    }}
+                />
+            )}
+
+            {/* Modal backdrops — gift & unlock wired in next phase */}
             {giftCreatorId && <div className="feed-backdrop" onClick={() => setGiftCreatorId(null)} aria-hidden="true" />}
             {unlockPost    && <div className="feed-backdrop" onClick={() => setUnlockPost(null)}    aria-hidden="true" />}
 
