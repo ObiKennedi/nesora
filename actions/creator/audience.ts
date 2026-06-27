@@ -1,17 +1,8 @@
 // actions/creator/audience.ts
 "use server"
 
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({
-        where: { userId },
-    })
-    if (!creator) redirect("/onboarding")
-    return creator
-}
+import { requireAuth, requireCreator, paginationParams } from "@/lib/action-utils"
 
 // ── Followers ─────────────────────────────────────────────────────────────────
 
@@ -20,14 +11,11 @@ export async function getFollowersAction(params?: {
     page?: number
     limit?: number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
-    const page = params?.page ?? 1
-    const limit = params?.limit ?? 20
-    const skip = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params)
 
     const where = {
         creatorId: creator.id,
@@ -86,7 +74,7 @@ export async function getFollowersAction(params?: {
 
     const followBacks = await prisma.follow.findMany({
         where: {
-            userId: session.user.id,
+            userId,
             creator: { userId: { in: followerUserIds } },
         },
         select: { creator: { select: { userId: true } } },
@@ -107,8 +95,7 @@ export async function getFollowersAction(params?: {
 }
 
 export async function followBackAction(targetUserId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     // Find the creator profile of the target user (if they are a creator)
     const targetCreator = await prisma.creator.findUnique({
@@ -121,7 +108,7 @@ export async function followBackAction(targetUserId: string) {
     // Check if already following
     const existing = await prisma.follow.findFirst({
         where: {
-            userId: session.user.id,
+            userId,
             creatorId: targetCreator.id,
         },
     })
@@ -131,7 +118,7 @@ export async function followBackAction(targetUserId: string) {
     await prisma.$transaction([
         prisma.follow.create({
             data: {
-                userId: session.user.id,
+                userId,
                 creatorId: targetCreator.id,
             },
         }),
@@ -163,14 +150,11 @@ export async function getSubscribersAction(params?: {
     page?: number
     limit?: number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
-    const page = params?.page ?? 1
-    const limit = params?.limit ?? 20
-    const skip = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params)
     const status = params?.status ?? "ALL"
 
     const where = {
@@ -253,14 +237,11 @@ export async function getTopFansAction(params?: {
     page?:  number
     limit?: number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
-    const page  = params?.page  ?? 1
-    const limit = params?.limit ?? 20
-    const skip  = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params)
 
     // ── Highest spenders (gift transactions) ──────────────────────────────────
     const spenders = await prisma.giftTransaction.groupBy({

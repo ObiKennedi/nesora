@@ -1,24 +1,16 @@
 // actions/creator/analytics.ts
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator } from "@/lib/action-utils"
 import { subMonths, startOfMonth, endOfMonth, differenceInYears } from "date-fns"
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) redirect("/onboarding")
-    return creator
-}
 
 // ── Audience Analytics ────────────────────────────────────────────────────────
 
 export async function getAudienceAnalyticsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     // Get all followers + subscribers with demographic data
     const [followers, subscribers] = await Promise.all([
@@ -106,10 +98,9 @@ export async function getAudienceAnalyticsAction() {
 // ── Content Analytics ─────────────────────────────────────────────────────────
 
 export async function getContentAnalyticsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const [totalViews, totalLikes, totalShares, totalSaves, topPosts] = await Promise.all([
         prisma.post.aggregate({
@@ -186,10 +177,9 @@ export async function getContentAnalyticsAction() {
 // ── Revenue Analytics ─────────────────────────────────────────────────────────
 
 export async function getRevenueAnalyticsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const months = Array.from({ length: 6 }, (_, i) => {
         const date = subMonths(new Date(), 5 - i)

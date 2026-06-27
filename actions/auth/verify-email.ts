@@ -8,7 +8,7 @@ export async function verifyEmailAction(token: string) {
 
     const result = await verifyEmailToken(token)
 
-    if (result.error) return { error: result.error }
+    if (!result.success) return { error: result.error }
 
     redirect("/login?verified=true")
 }

@@ -1,8 +1,9 @@
 // actions/creator/handle.ts
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
+import { requireAuth, validateInput } from "@/lib/action-utils"
+import { auth }     from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { z }        from "zod"
 
@@ -19,10 +20,11 @@ const HandleSchema = z.object({
 })
 
 export async function checkHandleAvailability(handle: string) {
-    const parsed = HandleSchema.safeParse({ handle })
-    if (!parsed.success) {
-        return { available: false, error: parsed.error.issues[0].message }
+    const result = validateInput(HandleSchema, { handle })
+    if (!result.success) {
+        return { available: false, error: result.error }
     }
+    const parsed = result
 
     const session = await auth()
 
@@ -47,13 +49,13 @@ export async function checkHandleAvailability(handle: string) {
 }
 
 export async function saveCreatorHandleAction(handle: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = HandleSchema.safeParse({ handle })
-    if (!parsed.success) {
-        return { error: parsed.error.issues[0].message }
+    const result = validateInput(HandleSchema, { handle })
+    if (!result.success) {
+        return { error: result.error }
     }
+    const parsed = result
 
     const [existingUser, existingCreator] = await Promise.all([
         prisma.user.findUnique({
@@ -66,7 +68,7 @@ export async function saveCreatorHandleAction(handle: string) {
         }),
     ])
 
-    if (existingUser && existingUser.id !== session.user.id) {
+    if (existingUser && existingUser.id !== userId) {
         return { error: "This handle is already taken." }
     }
     if (existingCreator) {
@@ -74,13 +76,13 @@ export async function saveCreatorHandleAction(handle: string) {
     }
 
     const creator = await prisma.creator.findUnique({
-        where: { userId: session.user.id },
+        where: { userId },
     })
     if (!creator) return { error: "Creator profile not found." }
 
     await prisma.$transaction([
         prisma.user.update({
-            where: { id: session.user.id },
+            where: { id: userId },
             data:  { username: parsed.data.handle },
         }),
         prisma.creator.update({

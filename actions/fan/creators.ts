@@ -1,20 +1,18 @@
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth } from "@/lib/action-utils"
 
 // ── Get suggested creators ────────────────────────────────────────────────────
 // Reads fan's UserCategoryInterest, finds creators with matching CreatorCategory,
 // ranks by followersCount + subscribersCount descending, returns top 20 per category
 
 export async function getSuggestedCreatorsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     // Get fan's selected categories
     const interests = await prisma.userCategoryInterest.findMany({
-        where:  { userId: session.user.id },
+        where:  { userId },
         select: { category: true },
     })
 
@@ -63,7 +61,7 @@ export async function getSuggestedCreatorsAction() {
     // Check which ones the fan already follows
     const alreadyFollowing = await prisma.follow.findMany({
         where: {
-            userId:    session.user.id,
+            userId,
             creatorId: { in: unique.map((c) => c.id) },
         },
         select: { creatorId: true },
@@ -96,14 +94,13 @@ export async function getSuggestedCreatorsAction() {
 // ── Follow a single creator ───────────────────────────────────────────────────
 
 export async function followCreatorOnboardingAction(creatorId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     // Check not already following
     const existing = await prisma.follow.findUnique({
         where: {
             userId_creatorId: {
-                userId:    session.user.id,
+                userId,
                 creatorId,
             },
         },
@@ -118,7 +115,7 @@ export async function followCreatorOnboardingAction(creatorId: string) {
 
     await prisma.$transaction([
         prisma.follow.create({
-            data: { userId: session.user.id, creatorId },
+            data: { userId, creatorId },
         }),
         prisma.creator.update({
             where: { id: creatorId },
@@ -141,13 +138,12 @@ export async function followCreatorOnboardingAction(creatorId: string) {
 // ── Unfollow a creator ────────────────────────────────────────────────────────
 
 export async function unfollowCreatorOnboardingAction(creatorId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const existing = await prisma.follow.findUnique({
         where: {
             userId_creatorId: {
-                userId:    session.user.id,
+                userId,
                 creatorId,
             },
         },
@@ -158,7 +154,7 @@ export async function unfollowCreatorOnboardingAction(creatorId: string) {
         prisma.follow.delete({
             where: {
                 userId_creatorId: {
-                    userId:    session.user.id,
+                    userId,
                     creatorId,
                 },
             },
@@ -175,15 +171,14 @@ export async function unfollowCreatorOnboardingAction(creatorId: string) {
 // ── Bulk follow (Follow All button) ──────────────────────────────────────────
 
 export async function bulkFollowCreatorsAction(creatorIds: string[]) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     if (creatorIds.length === 0) return { success: true }
 
     // Filter out already-followed creators
     const existing = await prisma.follow.findMany({
         where: {
-            userId:    session.user.id,
+            userId,
             creatorId: { in: creatorIds },
         },
         select: { creatorId: true },
@@ -203,7 +198,7 @@ export async function bulkFollowCreatorsAction(creatorIds: string[]) {
         // Create all follows
         prisma.follow.createMany({
             data:           toFollow.map((creatorId) => ({
-                userId: session.user.id,
+                userId,
                 creatorId,
             })),
             skipDuplicates: true,

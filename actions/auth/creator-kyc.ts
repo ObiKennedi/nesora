@@ -2,7 +2,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAuth, validateInput } from "@/lib/action-utils"
 import { IdType } from "@prisma/client"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -17,14 +17,14 @@ const KYCSchema = z.object({
 })
 
 export async function submitKYCAction(formData: z.infer<typeof KYCSchema>) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = KYCSchema.safeParse(formData)
-    if (!parsed.success) return { error: "Invalid fields." }
+    const result = validateInput(KYCSchema, formData)
+    if (!result.success) return { error: "Invalid fields." }
+    const parsed = result
 
     const creator = await prisma.creator.findUnique({
-        where: { userId: session.user.id },
+        where: { userId },
     })
     if (!creator) return { error: "Creator profile not found." }
 
@@ -52,8 +52,7 @@ export async function submitKYCAction(formData: z.infer<typeof KYCSchema>) {
 }
 
 export async function skipKYCAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    await requireAuth()
 
     // Creator stays unverified — just redirect to dashboard
     redirect("/creator/dashboard")

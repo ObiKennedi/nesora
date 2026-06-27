@@ -2,7 +2,8 @@
 
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, paginationParams } from "@/lib/action-utils"
+import { resolveUnlockPrice } from "@/lib/post-access"
 import { Category } from "@prisma/client"
 
 const SIGNAL_LIKE           = 1.0
@@ -71,10 +72,7 @@ async function getPostCategories(postId: string): Promise<{
 // ── Like post ─────────────────────────────────────────────────────────────────
 
 export async function likePostAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-
-    const userId = session.user.id
+    const userId = await requireAuth()
 
     const existing = await prisma.postLike.findUnique({
         where: { postId_userId: { postId, userId } },
@@ -111,10 +109,7 @@ export async function likePostAction(postId: string) {
 // ── Unlike post ───────────────────────────────────────────────────────────────
 
 export async function unlikePostAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-
-    const userId = session.user.id
+    const userId = await requireAuth()
 
     const existing = await prisma.postLike.findUnique({
         where: { postId_userId: { postId, userId } },
@@ -143,11 +138,9 @@ export async function addCommentAction(params: {
     body:      string
     parentId?: string
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const { postId, body, parentId } = params
-    const userId = session.user.id
 
     if (!body.trim()) return { error: "Comment cannot be empty." }
     if (body.length > 1000) return { error: "Comment is too long." }
@@ -209,13 +202,10 @@ export async function getCommentsAction(params: {
     page?:  number
     limit?: number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    await requireAuth()
 
     const { postId } = params
-    const page  = params.page  ?? 1
-    const limit = params.limit ?? 20
-    const skip  = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params)
 
     // Top-level comments only (parentId = null)
     const [comments, total] = await Promise.all([
@@ -274,10 +264,7 @@ export async function getCommentsAction(params: {
 // ── Save / unsave post ────────────────────────────────────────────────────────
 
 export async function savePostAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-
-    const userId = session.user.id
+    const userId = await requireAuth()
 
     const existing = await prisma.postSave.findUnique({
         where: { postId_userId: { postId, userId } },
@@ -308,10 +295,7 @@ export async function recordShareAction(postId: string) {
 }
 
 export async function purchasePostAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-
-    const userId = session.user.id
+    const userId = await requireAuth()
 
     // Check not already purchased
     const alreadyPurchased = await prisma.postPurchase.findUnique({
@@ -326,11 +310,7 @@ export async function purchasePostAction(postId: string) {
             access:  true,
             creator: {
                 include: {
-                    wallet:           true,
-                    subscriptionPlans: {
-                        where:   { isActive: true },
-                        orderBy: { price: "asc" },
-                    },
+                    wallet: true,
                 },
             },
         },
@@ -341,24 +321,11 @@ export async function purchasePostAction(postId: string) {
     const accessLevel    = post.access?.accessLevel    ?? "PUBLIC"
     const allowedPlanIds = post.access?.allowedPlanIds ?? []
 
-    // Derive unlock price
-    let unlockPrice: number | null = null
-
-    if (accessLevel === "PLAN_SPECIFIC" && allowedPlanIds.length > 0) {
-        const plans = await prisma.subscriptionPlan.findMany({
-            where:   { id: { in: allowedPlanIds }, isActive: true },
-            orderBy: { price: "asc" },
-            select:  { price: true },
-        })
-        if (plans.length > 0) {
-            unlockPrice = Math.round(Number(plans[0].price) * 0.1)
-        }
-    } else if (accessLevel === "SUBSCRIBERS_ONLY") {
-        const cheapest = post.creator.subscriptionPlans[0]
-        if (cheapest) {
-            unlockPrice = Math.round(Number(cheapest.price) * 0.1)
-        }
-    }
+    const unlockPrice = await resolveUnlockPrice({
+        creatorId: post.creatorId,
+        accessLevel,
+        allowedPlanIds,
+    })
 
     if (!unlockPrice || unlockPrice <= 0) {
         return { error: "This post cannot be purchased individually." }
@@ -444,10 +411,7 @@ export async function purchasePostAction(postId: string) {
 // ── Vote on poll ──────────────────────────────────────────────────────────────
 
 export async function votePollAction(pollOptionId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-
-    const userId = session.user.id
+    const userId = await requireAuth()
 
     // Check option exists and get pollId
     const option = await prisma.pollOption.findUnique({

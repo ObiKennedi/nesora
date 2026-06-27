@@ -1,8 +1,8 @@
 // actions/creator/wallet.ts
 "use server";
 
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, requireCreator, validateInput, paginationParams, fmtNum } from "@/lib/action-utils";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -13,23 +13,12 @@ import {
   subDays,
 } from "date-fns";
 
-async function getCreatorOrThrow(userId: string) {
-  const creator = await prisma.creator.findUnique({
-    where: { userId },
-  });
-  if (!creator) redirect("/onboarding");
-  return creator;
-}
-
-const fmtNum = (n: any) => Number(n ?? 0);
-
 // ── Wallet overview ───────────────────────────────────────────────────────────
 
 export async function getWalletOverviewAction() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -188,10 +177,9 @@ export async function getWalletOverviewAction() {
 // ── Revenue chart data (last 6 months) ───────────────────────────────────────
 
 export async function getRevenueChartAction() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   const months = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
@@ -242,14 +230,11 @@ export async function getTransactionHistoryAction(params?: {
   limit?: number;
   type?: "all" | "subscriptions" | "gifts" | "tips" | "withdrawals";
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
-  const page = params?.page ?? 1;
-  const limit = params?.limit ?? 20;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = paginationParams(params);
   const type = params?.type ?? "all";
 
   const transactions: any[] = [];
@@ -373,10 +358,9 @@ export async function getTransactionHistoryAction(params?: {
 // ── Bank accounts ─────────────────────────────────────────────────────────────
 
 export async function getBankAccountsAction() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   return prisma.bankAccount.findMany({
     where: { creatorId: creator.id },
@@ -394,13 +378,13 @@ const BankAccountSchema = z.object({
 export async function addBankAccountAction(
   data: z.infer<typeof BankAccountSchema>,
 ) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const parsed = BankAccountSchema.safeParse(data);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const result = validateInput(BankAccountSchema, data);
+  if (!result.success) return { error: result.error };
+  const parsed = result;
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   const count = await prisma.bankAccount.count({
     where: { creatorId: creator.id },
@@ -421,10 +405,9 @@ export async function addBankAccountAction(
 }
 
 export async function setDefaultBankAccountAction(accountId: string) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   await prisma.$transaction([
     prisma.bankAccount.updateMany({
@@ -441,10 +424,9 @@ export async function setDefaultBankAccountAction(accountId: string) {
 }
 
 export async function deleteBankAccountAction(accountId: string) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await requireAuth();
 
-  const creator = await getCreatorOrThrow(session.user.id);
+  const creator = await requireCreator(userId);
 
   const account = await prisma.bankAccount.findFirst({
     where: { id: accountId, creatorId: creator.id },
@@ -475,14 +457,14 @@ const PLATFORM_FEE_PERCENT = 10; // 10%
 export async function withdrawAction(
     data: z.infer<typeof WithdrawSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = WithdrawSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(WithdrawSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
     const creator = await prisma.creator.findUnique({
-        where:  { userId: session.user.id },
+        where:  { userId },
         include: { wallet: true },
     })
     if (!creator) redirect("/onboarding")
@@ -549,7 +531,7 @@ export async function withdrawAction(
         // Notify the creator
         prisma.notification.create({
             data: {
-                userId: session.user.id,
+                userId,
                 type:   "PAYOUT_PROCESSED",
                 title:  "Withdrawal request submitted",
                 body:   `₦${netAmount.toLocaleString()} withdrawal is pending admin approval.`,
@@ -581,14 +563,11 @@ export async function getPayoutHistoryAction(params?: {
     page?:   number
     limit?:  number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
-    const page  = params?.page  ?? 1
-    const limit = params?.limit ?? 20
-    const skip  = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params)
 
     const where = {
         creatorId: creator.id,

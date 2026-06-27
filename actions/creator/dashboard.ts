@@ -1,20 +1,18 @@
 // actions/creator/dashboard.ts
 "use server"
 
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator } from "@/lib/action-utils"
 import {
     startOfMonth, startOfWeek,
     endOfMonth, endOfWeek,
 } from "date-fns"
 
 export async function getDashboardData() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const creator = await prisma.creator.findUnique({
-        where: { userId: session.user.id },
+        where: { userId },
         select: {
             id: true,
             displayName: true,
@@ -26,7 +24,7 @@ export async function getDashboardData() {
         },
     })
 
-    if (!creator) redirect("/onboarding")
+    if (!creator) return requireCreator(userId) as never
 
     const now = new Date()
     const monthStart = startOfMonth(now)
@@ -171,7 +169,7 @@ export async function getDashboardData() {
 
     // ── Profile completion ────────────────────────────────────────────────────
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: {
             firstName: true,
             lastName: true,

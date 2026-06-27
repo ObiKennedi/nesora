@@ -3,6 +3,7 @@
 
 import { signIn } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { validateInput } from "@/lib/action-utils"
 import { z } from "zod"
 import { redirect } from "next/navigation"
 import { AuthError } from "next-auth"
@@ -13,8 +14,9 @@ const LoginSchema = z.object({
 })
 
 export async function loginAction(formData: z.infer<typeof LoginSchema>) {
-    const parsed = LoginSchema.safeParse(formData)
-    if (!parsed.success) return { error: "Invalid fields." }
+    const result = validateInput(LoginSchema, formData)
+    if (!result.success) return { error: "Invalid fields." }
+    const parsed = result
 
     const { email, password } = parsed.data
 

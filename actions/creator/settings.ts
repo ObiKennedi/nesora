@@ -1,39 +1,20 @@
 // actions/creator/settings.ts
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator, validateInput } from "@/lib/action-utils"
 import { z }        from "zod"
 import bcrypt       from "bcryptjs"
 import { signOut }  from "@/lib/auth"
 
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({
-        where: { userId },
-        select: {
-            id: true,
-            subscriptionEnabled: true,
-            subscriptionPrice: true,
-            // These two may not be in your current Prisma client yet
-            subscriberDMsEnabled: true as any,
-            subscriberDMPrice: true as any,
-        },
-    })
-
-    if (!creator) redirect("/onboarding")
-    return creator
-}
-
 // ── Get settings data ─────────────────────────────────────────────────────────
 
 export async function getSettingsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const [user, creatorRaw] = await Promise.all([
         prisma.user.findUnique({
-            where: { id: session.user.id },
+            where: { id: userId },
             select: {
                 id:            true,
                 email:         true,
@@ -46,7 +27,7 @@ export async function getSettingsAction() {
             },
         }),
         prisma.creator.findUnique({
-            where: { userId: session.user.id },
+            where: { userId },
             select: {
                 id:                   true,
                 subscriptionEnabled:  true,
@@ -86,13 +67,14 @@ const AccountSchema = z.object({
 })
 
 export async function updateAccountAction(data: z.infer<typeof AccountSchema>) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
+    const session = await (await import("@/lib/auth")).auth()
 
-    const parsed = AccountSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(AccountSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    if (parsed.data.email !== session.user.email) {
+    if (parsed.data.email !== session?.user?.email) {
         const existing = await prisma.user.findUnique({
             where: { email: parsed.data.email },
         })
@@ -100,7 +82,7 @@ export async function updateAccountAction(data: z.infer<typeof AccountSchema>) {
     }
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data: {
             firstName: parsed.data.firstName,
             lastName:  parsed.data.lastName,
@@ -128,14 +110,14 @@ const PasswordSchema = z.object({
 })
 
 export async function changePasswordAction(data: z.infer<typeof PasswordSchema>) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = PasswordSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(PasswordSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: { password: true },
     })
 
@@ -147,7 +129,7 @@ export async function changePasswordAction(data: z.infer<typeof PasswordSchema>)
     const hashed = await bcrypt.hash(parsed.data.newPassword, 12)
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data: { password: hashed },
     })
 
@@ -166,13 +148,13 @@ const MonetizationSchema = z.object({
 export async function updateMonetizationSettingsAction(
     data: z.infer<typeof MonetizationSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = MonetizationSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(MonetizationSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     // Use raw update to avoid type issues for now
     await prisma.$executeRaw`
@@ -192,8 +174,7 @@ export async function updateMonetizationSettingsAction(
 // ── Notification preferences ──────────────────────────────────────────────────
 
 export async function getNotificationPrefsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    await requireAuth()
 
     return {
         newFollower:       true,
@@ -208,8 +189,7 @@ export async function getNotificationPrefsAction() {
 }
 
 export async function updateNotificationPrefsAction(prefs: Record<string, boolean>) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    await requireAuth()
 
     // TODO: Implement persistence later
     return { success: true }
@@ -218,11 +198,10 @@ export async function updateNotificationPrefsAction(prefs: Record<string, boolea
 // ── Delete account ────────────────────────────────────────────────────────────
 
 export async function deleteAccountAction(password: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: { password: true },
     })
 
@@ -231,6 +210,6 @@ export async function deleteAccountAction(password: string) {
         if (!valid) return { error: "Incorrect password." }
     }
 
-    await prisma.user.delete({ where: { id: session.user.id } })
+    await prisma.user.delete({ where: { id: userId } })
     await signOut({ redirectTo: "/" })
 }
