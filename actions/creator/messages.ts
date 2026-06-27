@@ -11,10 +11,8 @@ import { MessageType }   from "@prisma/client"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) throw new Error("Creator profile not found")
-    return creator
+async function getCreator(userId: string) {
+    return prisma.creator.findUnique({ where: { userId } })
 }
 
 // ── Get conversations ─────────────────────────────────────────────────────────
@@ -23,7 +21,8 @@ export async function getConversationsAction(filter?: "all" | "fans" | "subscrib
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const conversations = await prisma.conversation.findMany({
         where: {
@@ -308,7 +307,8 @@ export async function getMessageRequestsAction() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const requests = await prisma.messageRequest.findMany({
         where:   { toCreatorId: creator.id, status: "PENDING" },
@@ -337,7 +337,8 @@ export async function acceptMessageRequestAction(requestId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const request = await prisma.messageRequest.findFirst({
         where: { id: requestId, toCreatorId: creator.id, status: "PENDING" },
@@ -400,7 +401,8 @@ export async function declineMessageRequestAction(requestId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await getCreator(session.user.id)
+    if (!creator) return { error: "Creator profile not found." }
 
     const request = await prisma.messageRequest.findFirst({
         where: { id: requestId, toCreatorId: creator.id },

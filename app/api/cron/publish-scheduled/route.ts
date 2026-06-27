@@ -91,13 +91,20 @@ export async function GET(req: NextRequest) {
     )
 
     const published = results.filter((r) => r.status === "fulfilled").length
-    const failed = results.filter((r) => r.status === "rejected").length
+    const failed = results.filter((r) => r.status === "rejected")
 
-    console.log(`[cron] Published: ${published}, Failed: ${failed}`)
+    if (failed.length > 0) {
+        console.error(
+            `[cron] ${failed.length} post(s) failed to publish:`,
+            failed.map((r) => (r as PromiseRejectedResult).reason)
+        )
+    }
+
+    console.log(`[cron] Published: ${published}, Failed: ${failed.length}`)
 
     return NextResponse.json({
         published,
-        failed,
+        failed: failed.length,
         total: duePosts.length,
     })
 }

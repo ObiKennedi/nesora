@@ -23,7 +23,8 @@ import { getPusherClient } from "@/lib/pusher-client"
 import { useSession } from "next-auth/react"
 import "@/styles/creator/messages/MessagesLayout.scss"
 
-type Conversation = Awaited<ReturnType<typeof getConversationsAction>>[0]
+type ConversationsResult = Awaited<ReturnType<typeof getConversationsAction>>
+type Conversation = Exclude<ConversationsResult, { error: string }>[0]
 type Filter = "all" | "fans" | "subscribers"
 
 export const MessagesLayout = () => {
@@ -40,6 +41,7 @@ export const MessagesLayout = () => {
     const fetchConversations = useCallback(() => {
         startTransition(async () => {
             const res = await getConversationsAction(filter)
+            if ("error" in res) return
             setConversations(res)
         })
     }, [filter])

@@ -478,7 +478,8 @@ export async function recordPostViewAction(postId: string) {
                 data:  { viewCount: { increment: 1 } },
             }),
         ])
-    } catch {
-        // Silently fail — views are non-critical
+    } catch (err) {
+        // View tracking is non-critical, but log for observability
+        console.error("[recordPostView] Failed to record view:", err)
     }
 }
