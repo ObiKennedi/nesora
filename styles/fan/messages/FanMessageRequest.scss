@@ -1,0 +1,614 @@
+// ── FanMessageRequest ─────────────────────────────────────────────────────────
+
+.fan-msg-request {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding: var(--space-4);
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+
+    // ── Loading ───────────────────────────────────────────────────────────────
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-12);
+        color: var(--color-text-muted);
+    }
+
+    // ── Section card ──────────────────────────────────────────────────────────
+    &__section {
+        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+        box-shadow: var(--shadow-sm);
+    }
+
+    &__section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+        color: var(--color-text-primary);
+
+        h3 {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        svg {
+            color: var(--color-primary);
+        }
+    }
+
+    &__section-title {
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-4);
+    }
+
+    // ── Group labels ──────────────────────────────────────────────────────────
+    &__group-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) 0;
+        margin-top: var(--space-3);
+        margin-bottom: var(--space-2);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: var(--letter-spacing-wide);
+        border-bottom: var(--border-width) solid var(--color-border);
+
+        &:first-child {
+            margin-top: 0;
+        }
+
+        svg {
+            color: var(--color-primary);
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    &__search {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-bg);
+        margin-bottom: var(--space-3);
+        transition: border-color var(--transition-fast);
+
+        &:focus-within {
+            border-color: var(--color-primary);
+        }
+
+        svg {
+            color: var(--color-text-muted);
+            flex-shrink: 0;
+        }
+
+        input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: var(--font-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+
+            &::placeholder {
+                color: var(--color-text-muted);
+            }
+        }
+    }
+
+    // ── Creator list ──────────────────────────────────────────────────────────
+    &__creator-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    // ── Empty state ───────────────────────────────────────────────────────────
+    &__empty {
+        text-align: center;
+        padding: var(--space-8) var(--space-4);
+
+        p {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+        }
+
+        span {
+            display: block;
+            margin-top: var(--space-1);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+    }
+
+    &__error {
+        font-size: var(--font-size-xs);
+        color: var(--color-error);
+        margin-bottom: var(--space-3);
+    }
+
+    // ── Compose section ───────────────────────────────────────────────────────
+    &__compose {
+        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+        box-shadow: var(--shadow-sm);
+    }
+
+    &__back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        margin-bottom: var(--space-4);
+        padding: var(--space-2) var(--space-3);
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-bg);
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-bg-alt);
+            color: var(--color-text-primary);
+        }
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+        color: var(--color-text-primary);
+
+        h3 {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        svg {
+            color: var(--color-primary);
+        }
+    }
+
+    // Creator preview in compose
+    &__creator-preview {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+        background: var(--color-bg);
+        margin-bottom: var(--space-4);
+    }
+
+    &__creator-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--color-bg-alt);
+        flex-shrink: 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-full);
+        }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__creator-name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        line-height: var(--line-height-tight);
+    }
+
+    &__creator-handle {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+
+    // Input area
+    &__input-wrap {
+        position: relative;
+        margin-bottom: var(--space-3);
+    }
+
+    &__input {
+        width: 100%;
+        resize: none;
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        padding-bottom: var(--space-6);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        background: var(--color-bg);
+        outline: none;
+        line-height: var(--line-height-normal);
+        transition: border-color var(--transition-fast);
+
+        &:focus {
+            border-color: var(--color-primary);
+        }
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+
+    &__char-count {
+        position: absolute;
+        right: var(--space-3);
+        bottom: var(--space-2);
+        font-size: 10px;
+        color: var(--color-text-muted);
+    }
+
+    &__send-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        width: 100%;
+        padding: var(--space-3) var(--space-6);
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    }
+
+    // Success state
+    &__success {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-6) 0;
+        text-align: center;
+
+        svg {
+            color: var(--color-success);
+        }
+
+        p {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        span {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+        }
+    }
+
+    // Request history list
+    &__req-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+}
+
+// ── Creator card ──────────────────────────────────────────────────────────────
+
+.fan-creator-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: var(--color-bg);
+    }
+
+    &__left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+        flex: 1;
+    }
+
+    &__avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--color-bg-alt);
+        flex-shrink: 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-full);
+        }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    &__name-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    &__name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__handle {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+
+    // Subscription tier badge
+    &__tier {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        margin-top: 2px;
+        padding: 1px var(--space-2);
+        border-radius: var(--radius-full);
+        background: rgba(194, 98, 42, 0.1);
+        font-size: 10px;
+        font-weight: var(--font-weight-medium);
+        color: var(--color-primary);
+        width: fit-content;
+    }
+
+    &__tier-price {
+        opacity: 0.7;
+        margin-left: 2px;
+
+        &::before {
+            content: "\00b7";
+            margin-right: 2px;
+        }
+    }
+
+    // Action buttons
+    &__action {
+        flex-shrink: 0;
+    }
+
+    &__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-2) var(--space-3);
+        border: none;
+        border-radius: var(--radius-full);
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        &--message {
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+
+            &:hover:not(:disabled) {
+                opacity: 0.9;
+            }
+        }
+
+        &--open {
+            background: var(--color-bg-alt);
+            color: var(--color-text-secondary);
+
+            &:hover {
+                background: var(--color-border);
+                color: var(--color-text-primary);
+            }
+        }
+
+        &--request {
+            background: transparent;
+            border: var(--border-width) solid var(--color-primary);
+            color: var(--color-primary);
+
+            &:hover {
+                background: var(--color-primary);
+                color: var(--color-text-inverse);
+            }
+        }
+    }
+}
+
+// ── Request card (history) ────────────────────────────────────────────────────
+
+.fan-req-card {
+    padding: var(--space-4);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: var(--color-bg);
+    }
+
+    &__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-2);
+    }
+
+    &__creator {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    &__avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--color-bg-alt);
+        flex-shrink: 0;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-full);
+        }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-primary);
+        line-height: var(--line-height-tight);
+    }
+
+    &__handle {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+
+    &__message {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+        line-height: var(--line-height-normal);
+        margin-bottom: var(--space-2);
+    }
+
+    &__time {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+.fan-req-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+
+    &--pending {
+        background: rgba(212, 160, 23, 0.12);
+        color: var(--color-warning);
+    }
+
+    &--accepted {
+        background: rgba(74, 124, 89, 0.12);
+        color: var(--color-success);
+    }
+
+    &--declined {
+        background: rgba(185, 64, 64, 0.12);
+        color: var(--color-error);
+    }
+}
+
+// ── Spin ──────────────────────────────────────────────────────────────────────
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

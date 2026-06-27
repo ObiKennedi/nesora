@@ -27,6 +27,7 @@ import {
 import { ShortsRail } from "./ShortsRail"
 import { PostCard } from "./PostCard"
 import { ShortsPlayer } from "./ShortsPlayer"
+import { FanMessagesClient } from "@/component/fan/messages/FanMessagesClient"
 import { CATEGORIES } from "@/component/onboarding/CategoryPicker"
 import "@/styles/fan/Feed.scss"
 
@@ -71,6 +72,7 @@ type Props = {
     initialShorts: FeedShort[]
     liveStreams:   LiveStream[]
     fanCategories: Category[]
+    currentUserId: string
 }
 
 // ─── Coming Soon ──────────────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ export const FeedClient = ({
     initialShorts,
     liveStreams,
     fanCategories,
+    currentUserId,
 }: Props) => {
     const router       = useRouter()
     const searchParams = useSearchParams()
@@ -102,7 +105,7 @@ export const FeedClient = ({
     // ── Tab state — read from ?tab= on mount ──────────────────────────────────
     const [activeTab,      setActiveTab]      = useState<FeedTab>(() => {
         const t = searchParams.get("tab")
-        return (t === "shorts" || t === "live") ? t : "feed"
+        return (t === "shorts" || t === "live" || t === "chat") ? t : "feed"
     })
 
     // Shorts player state
@@ -285,6 +288,11 @@ export const FeedClient = ({
 
                 {/* ── LIVE TAB ─────────────────────────────────────────────── */}
                 {activeTab === "live" && <LiveComingSoon />}
+
+                {/* ── CHAT TAB ─────────────────────────────────────────────── */}
+                {activeTab === "chat" && (
+                    <FanMessagesClient currentUserId={currentUserId} />
+                )}
 
             </div>
 

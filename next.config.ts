@@ -5,40 +5,16 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "media.licdn.com",
-      },
-      {
-        protocol: "https",
-        hostname: "platform-lookaside.fbsbx.com",
-      },
-      {
-        protocol: "https",
-        hostname: "avatar.iran.liara.run",
-      },
-      {
-        protocol: "https",
-        hostname: "s3-alpha-sig.figma.com",
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh5.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh6.googleusercontent.com',
-      },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "media.licdn.com" },
+      { protocol: "https", hostname: "platform-lookaside.fbsbx.com" },
+      { protocol: "https", hostname: "avatar.iran.liara.run" },
+      { protocol: "https", hostname: "s3-alpha-sig.figma.com" },
+      { protocol: "https", hostname: "lh5.googleusercontent.com" },
+      { protocol: "https", hostname: "lh6.googleusercontent.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },  // ← add this
     ],
-  },
+},
 };
 
 export default nextConfig;

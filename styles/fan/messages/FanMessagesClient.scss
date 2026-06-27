@@ -1,0 +1,176 @@
+// ── FanMessagesClient ─────────────────────────────────────────────────────────
+
+.fan-messages {
+    display: flex;
+    height: calc(100vh - var(--header-height) - 2rem);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+
+    // ── Loading ───────────────────────────────────────────────────────────────
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - var(--header-height) - 2rem);
+        color: var(--color-text-muted);
+    }
+
+    // ── Sidebar ───────────────────────────────────────────────────────────────
+    &__sidebar {
+        display: flex;
+        flex-direction: column;
+        width: 340px;
+        min-width: 340px;
+        border-right: var(--border-width) solid var(--color-border);
+        background: var(--color-surface);
+
+        @media (max-width: 768px) {
+            width: 100%;
+            min-width: 100%;
+
+            &--hidden-mobile {
+                display: none;
+            }
+        }
+    }
+
+    &__sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-4);
+        border-bottom: var(--border-width) solid var(--color-border);
+
+        h2 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+    }
+
+    &__new-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-bg);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+        }
+    }
+
+    // ── Main panel ────────────────────────────────────────────────────────────
+    &__main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--color-bg);
+
+        @media (max-width: 768px) {
+            &--hidden-mobile {
+                display: none;
+            }
+        }
+    }
+
+    // ── Empty state ───────────────────────────────────────────────────────────
+    &__empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        flex: 1;
+        padding: var(--space-8);
+        text-align: center;
+
+        svg {
+            color: var(--color-border);
+        }
+
+        h3 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        p {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            max-width: 280px;
+            line-height: var(--line-height-normal);
+        }
+    }
+
+    &__start-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+        padding: var(--space-3) var(--space-5);
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+    }
+
+    // ── Request panel ─────────────────────────────────────────────────────────
+    &__request-panel {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-4);
+    }
+
+    &__back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        margin-bottom: var(--space-4);
+        padding: var(--space-2) var(--space-3);
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-surface);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-bg-alt);
+            color: var(--color-text-primary);
+        }
+    }
+}
+
+// ── Spin ──────────────────────────────────────────────────────────────────────
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

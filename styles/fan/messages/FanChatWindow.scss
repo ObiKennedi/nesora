@@ -1,0 +1,399 @@
+// ── FanChatWindow ─────────────────────────────────────────────────────────────
+
+.fan-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-bg);
+
+    // ── Header ────────────────────────────────────────────────────────────────
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-surface);
+        border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    &__back {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: transparent;
+        color: var(--color-text-primary);
+        cursor: pointer;
+        transition: background var(--transition-fast);
+
+        &:hover {
+            background: var(--color-bg);
+        }
+
+        @media (max-width: 768px) {
+            display: flex;
+        }
+    }
+
+    &__avatar {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--color-bg-alt);
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-full);
+        }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__header-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    &__name {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        line-height: var(--line-height-tight);
+    }
+
+    &__handle {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        line-height: var(--line-height-tight);
+    }
+
+    // ── Messages area ─────────────────────────────────────────────────────────
+    &__messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    &__loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: var(--color-text-muted);
+    }
+
+    &__load-more {
+        align-self: center;
+        margin-bottom: var(--space-4);
+        padding: var(--space-2) var(--space-4);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-full);
+        background: var(--color-surface);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-bg-alt);
+            color: var(--color-text-primary);
+        }
+    }
+
+    &__date-sep {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: var(--space-4) 0 var(--space-2);
+
+        span {
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            background: var(--color-bg-alt);
+            font-size: 11px;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-muted);
+        }
+    }
+
+    // ── Typing indicator ──────────────────────────────────────────────────────
+    &__typing {
+        display: flex;
+        align-items: center;
+        padding: var(--space-2) 0;
+    }
+
+    &__typing-dots {
+        display: flex;
+        gap: 3px;
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface);
+
+        span {
+            width: 6px;
+            height: 6px;
+            border-radius: var(--radius-full);
+            background: var(--color-text-muted);
+            animation: fan-typing-bounce 1.4s ease-in-out infinite;
+
+            &:nth-child(2) { animation-delay: 0.2s; }
+            &:nth-child(3) { animation-delay: 0.4s; }
+        }
+    }
+
+    // ── Input bar ─────────────────────────────────────────────────────────────
+    &__input {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-surface);
+        border-top: var(--border-width) solid var(--color-border);
+    }
+
+    &__input-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: var(--radius-full);
+        background: transparent;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover:not(:disabled) {
+            background: var(--color-bg);
+            color: var(--color-text-primary);
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        &--recording {
+            color: var(--color-error);
+            animation: fan-pulse 1.5s ease-in-out infinite;
+        }
+    }
+
+    &__input-text {
+        flex: 1;
+        resize: none;
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2) var(--space-3);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        background: var(--color-bg);
+        outline: none;
+        min-height: 36px;
+        max-height: 120px;
+        line-height: var(--line-height-normal);
+        transition: border-color var(--transition-fast);
+
+        &:focus {
+            border-color: var(--color-primary);
+        }
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+
+    &__send-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: var(--radius-full);
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: scale(1.04);
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    }
+}
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+
+.fan-msg {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
+    max-width: 75%;
+
+    &--mine {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+
+    &--theirs {
+        align-self: flex-start;
+    }
+
+    &__avatar {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--color-bg-alt);
+        align-self: flex-end;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-full);
+        }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: 11px;
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__bubble {
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-lg);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+        word-break: break-word;
+
+        .fan-msg--mine & {
+            background: var(--color-primary);
+            color: var(--color-text-inverse);
+            border-bottom-right-radius: var(--radius-sm);
+        }
+
+        .fan-msg--theirs & {
+            background: var(--color-surface);
+            color: var(--color-text-primary);
+            border-bottom-left-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+        }
+
+        p {
+            margin: 0;
+        }
+    }
+
+    &__image {
+        max-width: 240px;
+        border-radius: var(--radius-md);
+        display: block;
+    }
+
+    &__video {
+        max-width: 280px;
+        border-radius: var(--radius-md);
+        display: block;
+    }
+
+    &__voice {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+
+        audio {
+            height: 32px;
+            max-width: 200px;
+        }
+    }
+
+    &__meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        margin-top: 2px;
+    }
+
+    &__time {
+        font-size: 10px;
+        opacity: 0.7;
+    }
+
+    &__read {
+        display: flex;
+        align-items: center;
+        opacity: 0.7;
+
+        .read--done {
+            color: var(--color-text-inverse);
+
+            .fan-msg--theirs & {
+                color: var(--color-primary);
+            }
+        }
+    }
+}
+
+// ── Animations ────────────────────────────────────────────────────────────────
+
+@keyframes fan-typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30%           { transform: translateY(-4px); }
+}
+
+@keyframes fan-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.5; }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

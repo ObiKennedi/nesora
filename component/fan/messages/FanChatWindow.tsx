@@ -1,4 +1,3 @@
-// components/creator/messages/ChatWindow.tsx
 "use client"
 
 import {
@@ -9,16 +8,18 @@ import Image from "next/image"
 import {
     Send, Mic, ImagePlus, X,
     Loader2, CheckCheck, Check,
-    StopCircle,
+    StopCircle, ArrowLeft,
 } from "lucide-react"
 import {
-    getMessagesAction,
-    sendMessageAction,
-    sendTypingAction,
-} from "@/actions/creator/messages"
+    getFanMessagesAction,
+    sendFanMessageAction,
+    sendFanTypingAction,
+} from "@/actions/fan/messages"
 import { getPusherClient } from "@/lib/pusher-client"
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns"
-import "@/styles/creator/messages/ChatWindow.scss"
+import "@/styles/fan/messages/FanChatWindow.scss"
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Message = {
     id:            string
@@ -40,13 +41,12 @@ type Message = {
 }
 
 type Conversation = {
-    id:          string
-    subscriber: {
-        id:        string
-        username:  string | null
-        firstName: string | null
-        lastName:  string | null
-        image:     string | null
+    id:      string
+    creator: {
+        id:          string
+        displayName: string
+        handle:      string | null
+        user:        { image: string | null }
     }
 }
 
@@ -54,7 +54,10 @@ type Props = {
     conversation:  Conversation
     currentUserId: string
     onMessageSent: () => void
+    onBack?:       () => void   // mobile back arrow
 }
+
+// ── Cloudinary upload ─────────────────────────────────────────────────────────
 
 const uploadToCloudinary = async (file: File, folder: string) => {
     const form = new FormData()
@@ -75,17 +78,20 @@ const uploadToCloudinary = async (file: File, folder: string) => {
     return data.secure_url as string
 }
 
-export const ChatWindow = ({
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export const FanChatWindow = ({
     conversation,
     currentUserId,
     onMessageSent,
+    onBack,
 }: Props) => {
 
     const [messages,     setMessages]     = useState<Message[]>([])
     const [text,         setText]         = useState("")
     const [uploading,    setUploading]    = useState(false)
     const [recording,    setRecording]    = useState(false)
-    const [isTyping,     setIsTyping]     = useState(false) // other person typing
+    const [isTyping,     setIsTyping]     = useState(false)
     const [page,         setPage]         = useState(1)
     const [hasMore,      setHasMore]      = useState(false)
     const [isPending,    startTransition] = useTransition()
@@ -97,15 +103,13 @@ export const ChatWindow = ({
     const mediaRef    = useRef<MediaRecorder | null>(null)
     const chunksRef   = useRef<Blob[]>([])
 
-    const name = [
-        conversation.subscriber.firstName,
-        conversation.subscriber.lastName,
-    ].filter(Boolean).join(" ") || "Anonymous"
+    const creatorName  = conversation.creator.displayName
+    const creatorImage = conversation.creator.user.image
 
     // ── Fetch messages ────────────────────────────────────────────────────────
     const fetchMessages = useCallback(() => {
         startTransition(async () => {
-            const res = await getMessagesAction(conversation.id, { page, limit: 30 })
+            const res = await getFanMessagesAction(conversation.id, { page, limit: 30 })
             if ("error" in res) return
             setMessages(res.messages as Message[])
             setHasMore(res.pages > 1)
@@ -114,19 +118,18 @@ export const ChatWindow = ({
 
     useEffect(() => { fetchMessages() }, [fetchMessages])
 
-    // Scroll to bottom on new messages
+    // Scroll to bottom
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
 
-    // ── Pusher: listen for real-time events ───────────────────────────────────
+    // ── Pusher ────────────────────────────────────────────────────────────────
     useEffect(() => {
         const pusher  = getPusherClient()
         const channel = pusher.subscribe(`private-conversation-${conversation.id}`)
 
         channel.bind("new-message", (data: { message: Message }) => {
             setMessages((prev) => {
-                // Avoid duplicates
                 if (prev.find((m) => m.id === data.message.id)) return prev
                 return [...prev, data.message]
             })
@@ -157,11 +160,11 @@ export const ChatWindow = ({
     // ── Typing indicator ──────────────────────────────────────────────────────
     const handleTextChange = (val: string) => {
         setText(val)
-        sendTypingAction(conversation.id, true)
+        sendFanTypingAction(conversation.id, true)
 
         if (typingTimer.current) clearTimeout(typingTimer.current)
         typingTimer.current = setTimeout(() => {
-            sendTypingAction(conversation.id, false)
+            sendFanTypingAction(conversation.id, false)
         }, 2000)
     }
 
@@ -172,7 +175,7 @@ export const ChatWindow = ({
         setText("")
 
         startSend(async () => {
-            const res = await sendMessageAction({
+            const res = await sendFanMessageAction({
                 conversationId: conversation.id,
                 type:           "TEXT",
                 content,
@@ -195,28 +198,28 @@ export const ChatWindow = ({
 
         setUploading(true)
         try {
-            const isImage  = file.type.startsWith("image/")
-            const folder   = isImage ? "messages/media" : "messages/videos"
-            const url      = await uploadToCloudinary(file, folder)
+            const isImage = file.type.startsWith("image/")
+            const folder  = isImage ? "messages/media" : "messages/videos"
+            const url     = await uploadToCloudinary(file, folder)
 
-            await sendMessageAction({
+            await sendFanMessageAction({
                 conversationId: conversation.id,
                 type:           isImage ? "IMAGE" : "VIDEO",
                 mediaUrl:       url,
             })
             onMessageSent()
         } catch {
-            // handle error
+            // silently handle
         } finally {
             setUploading(false)
             if (fileRef.current) fileRef.current.value = ""
         }
     }
 
-    // ── Voice note recording ──────────────────────────────────────────────────
+    // ── Voice note ────────────────────────────────────────────────────────────
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
             const recorder = new MediaRecorder(stream)
             chunksRef.current = []
 
@@ -228,7 +231,7 @@ export const ChatWindow = ({
                 setUploading(true)
                 try {
                     const url = await uploadToCloudinary(file, "messages/voice-notes")
-                    await sendMessageAction({
+                    await sendFanMessageAction({
                         conversationId: conversation.id,
                         type:           "VOICE_NOTE",
                         voiceNoteUrl:   url,
@@ -253,54 +256,64 @@ export const ChatWindow = ({
         setRecording(false)
     }
 
-    // ── Date separator helper ─────────────────────────────────────────────────
+    // ── Date helper ───────────────────────────────────────────────────────────
     const getDateLabel = (date: Date) => {
         if (isToday(date))     return "Today"
         if (isYesterday(date)) return "Yesterday"
         return format(date, "d MMM yyyy")
     }
 
-    // Group messages by date
     let lastDate = ""
 
     return (
-        <div className="chat-window">
+        <div className="fan-chat">
 
             {/* ── Header ── */}
-            <div className="chat-window__header">
-                <div className="chat-window__avatar">
-                    {conversation.subscriber.image ? (
+            <div className="fan-chat__header">
+                {onBack && (
+                    <button
+                        className="fan-chat__back"
+                        onClick={onBack}
+                        aria-label="Back"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                )}
+
+                <div className="fan-chat__avatar">
+                    {creatorImage ? (
                         <Image
-                            src={conversation.subscriber.image}
-                            alt={name}
+                            src={creatorImage}
+                            alt={creatorName}
                             width={36}
                             height={36}
                         />
                     ) : (
-                        <span>{name.charAt(0).toUpperCase()}</span>
+                        <span>{creatorName.charAt(0).toUpperCase()}</span>
                     )}
                 </div>
-                <div>
-                    <p className="chat-window__name">{name}</p>
-                    {conversation.subscriber.username && (
-                        <p className="chat-window__handle">
-                            @{conversation.subscriber.username}
+
+                <div className="fan-chat__header-info">
+                    <p className="fan-chat__name">{creatorName}</p>
+                    {conversation.creator.handle && (
+                        <p className="fan-chat__handle">
+                            @{conversation.creator.handle}
                         </p>
                     )}
                 </div>
             </div>
 
             {/* ── Messages ── */}
-            <div className="chat-window__messages">
+            <div className="fan-chat__messages">
                 {isPending ? (
-                    <div className="chat-window__loading">
+                    <div className="fan-chat__loading">
                         <Loader2 size={20} className="spin" />
                     </div>
                 ) : (
                     <>
                         {hasMore && (
                             <button
-                                className="chat-window__load-more"
+                                className="fan-chat__load-more"
                                 onClick={() => setPage((p) => p + 1)}
                             >
                                 Load older messages
@@ -316,16 +329,15 @@ export const ChatWindow = ({
                             return (
                                 <div key={msg.id}>
                                     {showDate && (
-                                        <div className="chat-date-sep">
+                                        <div className="fan-chat__date-sep">
                                             <span>{dateLabel}</span>
                                         </div>
                                     )}
 
-                                    <div className={`chat-msg ${isMine ? "chat-msg--mine" : "chat-msg--theirs"}`}>
-
+                                    <div className={`fan-msg ${isMine ? "fan-msg--mine" : "fan-msg--theirs"}`}>
                                         {/* Sender avatar (theirs only) */}
                                         {!isMine && (
-                                            <div className="chat-msg__avatar">
+                                            <div className="fan-msg__avatar">
                                                 {msg.sender.image ? (
                                                     <Image
                                                         src={msg.sender.image}
@@ -342,38 +354,38 @@ export const ChatWindow = ({
                                         )}
 
                                         {/* Bubble */}
-                                        <div className="chat-msg__bubble">
+                                        <div className="fan-msg__bubble">
                                             {msg.type === "TEXT" && (
                                                 <p>{msg.content}</p>
                                             )}
-                                            {(msg.type === "IMAGE") && msg.mediaUrl && (
+                                            {msg.type === "IMAGE" && msg.mediaUrl && (
                                                 <img
                                                     src={msg.mediaUrl}
                                                     alt="Shared image"
-                                                    className="chat-msg__image"
+                                                    className="fan-msg__image"
                                                 />
                                             )}
                                             {msg.type === "VIDEO" && msg.mediaUrl && (
                                                 <video
                                                     src={msg.mediaUrl}
                                                     controls
-                                                    className="chat-msg__video"
+                                                    className="fan-msg__video"
                                                 />
                                             )}
                                             {msg.type === "VOICE_NOTE" && msg.voiceNoteUrl && (
-                                                <div className="chat-msg__voice">
+                                                <div className="fan-msg__voice">
                                                     <Mic size={14} />
                                                     <audio src={msg.voiceNoteUrl} controls />
                                                 </div>
                                             )}
 
                                             {/* Meta */}
-                                            <div className="chat-msg__meta">
-                                                <span className="chat-msg__time">
+                                            <div className="fan-msg__meta">
+                                                <span className="fan-msg__time">
                                                     {format(new Date(msg.createdAt), "h:mm a")}
                                                 </span>
                                                 {isMine && (
-                                                    <span className="chat-msg__read">
+                                                    <span className="fan-msg__read">
                                                         {msg.isRead
                                                             ? <CheckCheck size={12} className="read--done" />
                                                             : <Check      size={12} />
@@ -389,8 +401,8 @@ export const ChatWindow = ({
 
                         {/* Typing indicator */}
                         {isTyping && (
-                            <div className="chat-typing">
-                                <div className="chat-typing__dots">
+                            <div className="fan-chat__typing">
+                                <div className="fan-chat__typing-dots">
                                     <span /><span /><span />
                                 </div>
                             </div>
@@ -402,7 +414,7 @@ export const ChatWindow = ({
             </div>
 
             {/* ── Input ── */}
-            <div className="chat-window__input">
+            <div className="fan-chat__input">
                 <input
                     ref={fileRef}
                     type="file"
@@ -411,9 +423,8 @@ export const ChatWindow = ({
                     style={{ display: "none" }}
                 />
 
-                {/* Media button */}
                 <button
-                    className="chat-input-btn"
+                    className="fan-chat__input-btn"
                     onClick={() => fileRef.current?.click()}
                     disabled={uploading || isSending || recording}
                     title="Send photo or video"
@@ -424,10 +435,9 @@ export const ChatWindow = ({
                     }
                 </button>
 
-                {/* Text input */}
                 <textarea
-                    className="chat-input-text"
-                    placeholder="Type a message…"
+                    className="fan-chat__input-text"
+                    placeholder="Type a message..."
                     value={text}
                     onChange={(e) => handleTextChange(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -435,9 +445,8 @@ export const ChatWindow = ({
                     disabled={uploading || isSending || recording}
                 />
 
-                {/* Voice note */}
                 <button
-                    className={`chat-input-btn ${recording ? "chat-input-btn--recording" : ""}`}
+                    className={`fan-chat__input-btn ${recording ? "fan-chat__input-btn--recording" : ""}`}
                     onMouseDown={startRecording}
                     onMouseUp={stopRecording}
                     onTouchStart={startRecording}
@@ -451,9 +460,8 @@ export const ChatWindow = ({
                     }
                 </button>
 
-                {/* Send */}
                 <button
-                    className="chat-send-btn"
+                    className="fan-chat__send-btn"
                     onClick={handleSendText}
                     disabled={!text.trim() || isSending || uploading}
                 >
@@ -463,7 +471,6 @@ export const ChatWindow = ({
                     }
                 </button>
             </div>
-
         </div>
     )
 }
