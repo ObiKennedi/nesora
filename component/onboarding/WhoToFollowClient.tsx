@@ -9,7 +9,7 @@ import {
     unfollowCreatorOnboardingAction,
     bulkFollowCreatorsAction,
 } from "@/actions/fan/creators"
-import { CATEGORIES } from "@/component/onboarding/CategoryPicker"
+import { CATEGORIES } from "@/lib/categories"
 import "@/styles/onboarding/WhoToFollow.scss"
 
 type Creator = {
