@@ -20,7 +20,7 @@ export const FAN_BOTTOM_NAV: FanNavItem[] = [
     },
     {
         label: "Explore",
-        href:  "/fan/explore",
+        href:  "/fan/discover",
         icon:  <Compass size={22} />,
     },
     // centre slot is the "+" wallet button — rendered separately in FanBottomNav

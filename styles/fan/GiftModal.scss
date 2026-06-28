@@ -1,0 +1,367 @@
+// styles/fan/GiftModal.scss
+
+// ─── Shared slide-up modal primitives ────────────────────────────────────────
+
+%slide-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0);
+    z-index: var(--z-overlay);
+    transition: background-color 0.28s ease;
+    pointer-events: none;
+
+    &--visible {
+        background-color: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(3px);
+        pointer-events: auto;
+    }
+}
+
+%slide-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-modal);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
+    max-height: 85svh;
+
+    &--visible {
+        transform: translateY(0);
+    }
+}
+
+// ─── Gift backdrop + modal ────────────────────────────────────────────────────
+
+.gift-backdrop  { @extend %slide-backdrop }
+.gift-modal     { @extend %slide-modal }
+
+.gift-modal {
+    &__handle {
+        width: 40px; height: 4px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-border);
+        margin: var(--space-3) auto var(--space-1);
+        flex-shrink: 0;
+    }
+
+    &__header {
+        padding: var(--space-2) var(--space-5) var(--space-3);
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    &__title-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-2);
+
+        h3 {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-dark);
+            margin: 0;
+        }
+    }
+
+    &__to {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+
+    &__creator-avatar {
+        width: 22px; height: 22px;
+        border-radius: var(--radius-full);
+        object-fit: cover;
+    }
+
+    &__creator-fallback {
+        width: 22px; height: 22px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: 10px;
+        font-weight: var(--font-weight-bold);
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    &__creator-name {
+        display: flex; align-items: center; gap: 3px;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+    }
+
+    &__verified { color: var(--color-primary) }
+
+    &__balance {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+
+        strong { color: var(--color-dark) }
+    }
+
+    &__topup-link {
+        display: inline-flex; align-items: center; gap: 2px;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+        background: none; border: none; cursor: pointer;
+        padding: 2px var(--space-2);
+        border-radius: var(--radius-full);
+        border: 1px solid rgba(194,98,42,0.3);
+        transition: background-color var(--transition-fast);
+        &:hover { background-color: rgba(194,98,42,0.06) }
+    }
+
+    &__close {
+        position: absolute;
+        top: var(--space-2); right: var(--space-5);
+        width: 32px; height: 32px;
+        border-radius: var(--radius-full);
+        border: none; background: none; cursor: pointer;
+        color: var(--color-text-muted);
+        display: flex; align-items: center; justify-content: center;
+        transition: background-color var(--transition-fast);
+        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
+    }
+
+    &__loading {
+        flex: 1;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 200px;
+        color: var(--color-text-muted);
+        .spin { animation: gift-spin 0.7s linear infinite }
+    }
+
+    // ── Top-up view ───────────────────────────────────────────────────────────
+    &__topup {
+        padding: 0 var(--space-5) var(--space-6);
+        display: flex; flex-direction: column; gap: var(--space-4);
+        overflow-y: auto;
+    }
+
+    &__topup-header {
+        display: flex; align-items: center; gap: var(--space-3);
+    }
+
+    &__back {
+        background: none; border: none; cursor: pointer;
+        font-size: var(--font-size-xs); color: var(--color-primary);
+        font-weight: var(--font-weight-semibold);
+        padding: 0; transition: opacity var(--transition-fast);
+        &:hover { opacity: 0.7 }
+    }
+
+    &__topup-title {
+        font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);
+        color: var(--color-dark); margin: 0;
+    }
+
+    &__topup-hint {
+        padding: var(--space-3) var(--space-4);
+        background-color: rgba(194,98,42,0.06);
+        border: 1px solid rgba(194,98,42,0.15);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        line-height: var(--line-height-relaxed);
+        strong { color: var(--color-dark) }
+    }
+
+    &__presets {
+        display: flex; gap: var(--space-2); flex-wrap: wrap;
+    }
+
+    &__custom-amount {
+        display: flex; align-items: center;
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md); overflow: hidden;
+        transition: border-color var(--transition-fast);
+        &:focus-within { border-color: var(--color-primary) }
+    }
+
+    &__currency {
+        padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+        font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+        background-color: var(--color-bg-alt);
+        border-right: var(--border-width) solid var(--color-border);
+    }
+
+    &__amount-input {
+        flex: 1; padding: var(--space-3) var(--space-4);
+        font-size: var(--font-size-sm); font-family: var(--font-body);
+        color: var(--color-dark); background: none; border: none; outline: none;
+    }
+
+    &__pay-btn {
+        display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+        width: 100%; padding: var(--space-4);
+        font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
+        color: #fff; background-color: var(--color-primary);
+        border: none; border-radius: var(--radius-md); cursor: pointer;
+        transition: background-color var(--transition-fast);
+        &:hover:not(:disabled) { background-color: #a8521f }
+        &:disabled { opacity: 0.45; cursor: not-allowed }
+        .spin { animation: gift-spin 0.7s linear infinite }
+    }
+
+    // ── Gift grid footer ──────────────────────────────────────────────────────
+    &__footer {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5) var(--space-6);
+        border-top: var(--border-width) solid var(--color-border);
+        flex-shrink: 0;
+    }
+
+    &__quantity {
+        display: flex; align-items: center; gap: var(--space-2);
+    }
+
+    &__total {
+        display: flex; flex-direction: column; flex: 1;
+        span { font-size: var(--font-size-xs); color: var(--color-text-muted) }
+        strong { font-size: var(--font-size-base); color: var(--color-dark) }
+    }
+
+    &__send-btn {
+        display: inline-flex; align-items: center; gap: var(--space-2);
+        padding: var(--space-3) var(--space-5);
+        font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
+        color: #fff; background-color: var(--color-primary);
+        border: none; border-radius: var(--radius-full); cursor: pointer;
+        white-space: nowrap;
+        transition: background-color var(--transition-fast), transform var(--transition-fast);
+        &:hover:not(:disabled) { background-color: #a8521f; transform: translateY(-1px) }
+        &:disabled { opacity: 0.45; cursor: not-allowed; transform: none }
+        &--topup { background-color: #16a34a }
+        &--topup:hover:not(:disabled) { background-color: #15803d }
+        .spin { animation: gift-spin 0.7s linear infinite }
+    }
+}
+
+// ─── Gift grid ────────────────────────────────────────────────────────────────
+
+.gift-modal__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-5) var(--space-4);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.gift-tile {
+    display: flex; flex-direction: column; align-items: center;
+    gap: var(--space-2); padding: var(--space-4) var(--space-2);
+    background-color: var(--color-bg-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+
+    &:hover { border-color: var(--color-primary); background-color: rgba(194,98,42,0.04); transform: translateY(-2px) }
+
+    &--selected {
+        border-color: var(--color-primary);
+        background-color: rgba(194,98,42,0.08);
+        box-shadow: 0 0 0 3px rgba(194,98,42,0.15);
+    }
+
+    &__emoji { font-size: 2rem; line-height: 1 }
+    &__name  { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-dark) }
+    &__value { font-size: var(--font-size-xs); color: var(--color-primary); font-weight: var(--font-weight-medium) }
+}
+
+// ─── Quantity buttons ─────────────────────────────────────────────────────────
+
+.gift-qty-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--color-border);
+    background: none; cursor: pointer;
+    font-size: var(--font-size-base); font-weight: var(--font-weight-bold);
+    color: var(--color-dark);
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+    &:hover:not(:disabled) { border-color: var(--color-primary); background-color: rgba(194,98,42,0.06) }
+    &:disabled { opacity: 0.35; cursor: not-allowed }
+}
+
+.gift-qty-val {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+    min-width: 24px; text-align: center;
+}
+
+// ─── Amount presets ───────────────────────────────────────────────────────────
+
+.gift-preset {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    background: none;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-full); cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+    &:hover { border-color: var(--color-primary); color: var(--color-primary) }
+    &--active { background-color: var(--color-primary); border-color: var(--color-primary); color: #fff }
+}
+
+// ─── Gift toast ───────────────────────────────────────────────────────────────
+
+.gift-toast {
+    position: absolute;
+    bottom: var(--space-4);
+    left: 50%; transform: translateX(-50%);
+    white-space: nowrap;
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: #fff;
+    box-shadow: var(--shadow-md);
+    animation: gift-toast-in 0.2s ease;
+    z-index: 10;
+
+    &--success { background-color: #16a34a }
+    &--error   { background-color: var(--color-error) }
+}
+
+@keyframes gift-toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px) }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) }
+}
+
+@keyframes gift-spin { to { transform: rotate(360deg) } }
+
+// ─── Desktop cap ─────────────────────────────────────────────────────────────
+
+@media (min-width: 640px) {
+    .gift-modal {
+        max-width: 460px;
+        left: 50%; right: auto;
+        transform: translateX(-50%) translateY(100%);
+        border-radius: var(--radius-xl);
+        bottom: var(--space-4);
+
+        &--visible { transform: translateX(-50%) translateY(0) }
+    }
+}

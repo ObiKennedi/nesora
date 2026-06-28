@@ -1,8 +1,10 @@
+// app/(fan)/layout.tsx
 "use client"
 
 import { useState }       from "react"
 import { FanTopBar }      from "@/component/fan/layout/FanTopBar"
 import { FanBottomNav }   from "@/component/fan/layout/FanBottomNav"
+import { WalletModal }    from "@/component/fan/wallet/WalletModal"
 import { Suspense }       from "react"
 import { Loader }         from "@/component/essentials/Loader"
 import "@/styles/fan/FanLayout.scss"
@@ -12,7 +14,6 @@ export default function FanLayout({
 }: {
     children: React.ReactNode
 }) {
-    // Wallet top-up modal state — passed down to bottom nav, modal built later
     const [walletOpen, setWalletOpen] = useState(false)
 
     return (
@@ -28,13 +29,8 @@ export default function FanLayout({
 
             <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
 
-            {/* Wallet top-up modal placeholder — wired up when wallet actions are built */}
             {walletOpen && (
-                <div
-                    className="fan-modal-backdrop"
-                    onClick={() => setWalletOpen(false)}
-                    aria-hidden="true"
-                />
+                <WalletModal onClose={() => setWalletOpen(false)} />
             )}
 
         </div>

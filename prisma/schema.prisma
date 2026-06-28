@@ -696,7 +696,8 @@ model Notification {
 // ─── Creator Economy ─────────────────────────────────────────────────────────
 
 model Gift {
-  id String @id @default(cuid())
+  id    String @id @default(cuid())
+  emoji String
 
   name  String
   value Decimal @db.Decimal(10, 2)
