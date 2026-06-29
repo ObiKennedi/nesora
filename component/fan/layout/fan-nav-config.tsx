@@ -31,7 +31,7 @@ export const FAN_BOTTOM_NAV: FanNavItem[] = [
     },
     {
         label: "You",
-        href:  "/fan/you",
+        href:  "/fan/settings",
         icon:  <UserCircle size={22} />,
     }
 ]
