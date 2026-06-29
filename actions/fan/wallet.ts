@@ -5,6 +5,7 @@ import { prisma }   from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { z }        from "zod"
 import { pusherServer } from "@/lib/pusher"
+import { UserWalletTransactionType } from "@prisma/client"
 
 // ── Get fan wallet ────────────────────────────────────────────────────────────
 
@@ -41,20 +42,37 @@ export async function getFanWalletAction() {
 
 // ── Get full transaction history ──────────────────────────────────────────────
 
+const CREDIT_TYPES: UserWalletTransactionType[] = ["DEPOSIT", "REFUND"]
+const DEBIT_TYPES:  UserWalletTransactionType[] = ["GIFT_PURCHASE", "SUBSCRIPTION_PAYMENT"]
+
+type TxFilter = "all" | "incoming" | "outgoing"
+
 export async function getFanTransactionHistoryAction(params?: {
-    page?:  number
-    limit?: number
+    page?:   number
+    limit?:  number
+    filter?: TxFilter
 }) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const page  = params?.page  ?? 1
-    const limit = params?.limit ?? 20
-    const skip  = (page - 1) * limit
+    const page   = params?.page   ?? 1
+    const limit  = params?.limit  ?? 20
+    const filter = params?.filter ?? "all"
+    const skip   = (page - 1) * limit
+
+    const typeWhere =
+        filter === "incoming" ? { type: { in: CREDIT_TYPES } } :
+        filter === "outgoing" ? { type: { in: DEBIT_TYPES  } } :
+        {}
+
+    const where = {
+        wallet: { userId: session.user.id },
+        ...typeWhere,
+    }
 
     const [transactions, total] = await Promise.all([
         prisma.userWalletTransaction.findMany({
-            where:   { wallet: { userId: session.user.id } },
+            where,
             orderBy: { createdAt: "desc" },
             skip,
             take:    limit,
@@ -66,9 +84,7 @@ export async function getFanTransactionHistoryAction(params?: {
                 createdAt:   true,
             },
         }),
-        prisma.userWalletTransaction.count({
-            where: { wallet: { userId: session.user.id } },
-        }),
+        prisma.userWalletTransaction.count({ where }),
     ])
 
     return {
@@ -78,8 +94,6 @@ export async function getFanTransactionHistoryAction(params?: {
         page,
     }
 }
-
-// ── Initialize Paystack transaction ──────────────────────────────────────────
 
 const TopUpSchema = z.object({
     amount: z.number().min(100, "Minimum top-up is ₦100"),

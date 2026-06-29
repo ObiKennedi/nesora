@@ -283,7 +283,7 @@ const SubscriptionCard = ({
             {/* Creator row */}
             <div className="sub-card__header">
                 <Link
-                    href={`/@${sub.creator.handle ?? sub.creator.id}`}
+                    href={`/profile/${sub.creator.handle ?? sub.creator.id}`}
                     className="sub-card__creator-link"
                 >
                     <div className="sub-card__avatar">
@@ -396,7 +396,7 @@ const SuggestedCard = ({
     onSubscribe: (creator: SuggestedCreator) => void
 }) => (
     <div className="suggested-card">
-        <Link href={`/@${creator.handle ?? creator.id}`} className="suggested-card__creator">
+        <Link href={`/profile/${creator.handle ?? creator.id}`} className="suggested-card__creator">
             <div className="suggested-card__avatar">
                 {creator.image ? (
                     <Image
