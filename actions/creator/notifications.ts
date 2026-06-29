@@ -1,10 +1,9 @@
 // actions/creator/notifications.ts
 "use server"
 
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
-import { unstable_cache, revalidateTag } from "next/cache"  // ← top-level import
+import { requireAuth } from "@/lib/action-utils"
+import { unstable_cache, revalidateTag } from "next/cache"
 
 const fetchNotifications = unstable_cache(
     async (userId: string) => {
@@ -31,17 +30,15 @@ const fetchNotifications = unstable_cache(
 )
 
 export async function getNotifications() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
-    return fetchNotifications(session.user.id)
+    const userId = await requireAuth()
+    return fetchNotifications(userId)
 }
 
 export async function markAllRead() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     await prisma.notification.updateMany({
-        where: { userId: session.user.id, read: false },
+        where: { userId, read: false },
         data: { read: true },
     })
 
@@ -49,11 +46,10 @@ export async function markAllRead() {
 }
 
 export async function markOneRead(id: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     await prisma.notification.update({
-        where: { id, userId: session.user.id },
+        where: { id, userId },
         data: { read: true },
     })
 

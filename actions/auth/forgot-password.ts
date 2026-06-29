@@ -2,6 +2,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { validateInput } from "@/lib/action-utils"
 import { generatePasswordResetToken } from "@/lib/tokens"
 import { sendPasswordResetEmail } from "@/lib/mail"
 import bcrypt from "bcryptjs"
@@ -17,8 +18,9 @@ const ResetSchema = z.object({
 })
 
 export async function forgotPasswordAction(formData: z.infer<typeof ForgotSchema>) {
-    const parsed = ForgotSchema.safeParse(formData)
-    if (!parsed.success) return { error: "Invalid email." }
+    const result = validateInput(ForgotSchema, formData)
+    if (!result.success) return { error: "Invalid email." }
+    const parsed = result
 
     const user = await prisma.user.findUnique({
         where: { email: parsed.data.email },
@@ -34,8 +36,9 @@ export async function forgotPasswordAction(formData: z.infer<typeof ForgotSchema
 }
 
 export async function resetPasswordAction(formData: z.infer<typeof ResetSchema>) {
-    const parsed = ResetSchema.safeParse(formData)
-    if (!parsed.success) return { error: "Invalid fields." }
+    const result = validateInput(ResetSchema, formData)
+    if (!result.success) return { error: "Invalid fields." }
+    const parsed = result
 
     const { token, password } = parsed.data
 

@@ -1,18 +1,9 @@
 // actions/creator/subscription-plans.ts
 "use server"
 
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator, validateInput } from "@/lib/action-utils"
 import { z } from "zod"
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({
-        where: { userId },
-    })
-    if (!creator) redirect("/onboarding")
-    return creator
-}
 
 const PlanSchema = z.object({
     name: z.string().min(1, "Plan name is required").max(50),
@@ -25,10 +16,9 @@ const PlanSchema = z.object({
 // ── Get all plans ─────────────────────────────────────────────────────────────
 
 export async function getSubscriptionPlansAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const plans = await prisma.subscriptionPlan.findMany({
         where: { creatorId: creator.id },
@@ -52,13 +42,13 @@ export async function getSubscriptionPlansAction() {
 export async function createSubscriptionPlanAction(
     data: z.infer<typeof PlanSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = PlanSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(PlanSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     // Max 3 plans per creator
     const existingCount = await prisma.subscriptionPlan.count({
@@ -94,10 +84,9 @@ export async function updateSubscriptionPlanAction(
     planId: string,
     data: Partial<z.infer<typeof PlanSchema>>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const plan = await prisma.subscriptionPlan.findFirst({
         where: { id: planId, creatorId: creator.id },
@@ -121,10 +110,9 @@ export async function updateSubscriptionPlanAction(
 // ── Toggle plan active/inactive ───────────────────────────────────────────────
 
 export async function togglePlanStatusAction(planId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const plan = await prisma.subscriptionPlan.findFirst({
         where: { id: planId, creatorId: creator.id },
@@ -142,10 +130,9 @@ export async function togglePlanStatusAction(planId: string) {
 // ── Delete plan ───────────────────────────────────────────────────────────────
 
 export async function deletePlanAction(planId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const plan = await prisma.subscriptionPlan.findFirst({
         where: { id: planId, creatorId: creator.id },

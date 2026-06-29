@@ -1,8 +1,8 @@
 "use server"
 
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator, validateInput, paginationParams } from "@/lib/action-utils"
+import { resolvePostAccess } from "@/lib/post-access"
 import { z } from "zod"
 import {
     PostType,
@@ -44,24 +44,16 @@ const CreatePostSchema = BasePostSchema.extend({
     poll:   PollSchema.optional(),
 })
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) throw new Error("Creator profile not found")
-    return creator
-}
-
 // ── Create Post ───────────────────────────────────────────────────────────────
 
 export async function createPostAction(formData: z.infer<typeof CreatePostSchema>) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = CreatePostSchema.safeParse(formData)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(CreatePostSchema, formData)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
     const data = parsed.data
 
     // Content validation
@@ -124,10 +116,9 @@ export async function updatePostAction(
     postId: string,
     formData: Partial<z.infer<typeof CreatePostSchema>>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const existing = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id },
@@ -170,10 +161,9 @@ export async function updatePostAction(
 // ── Delete Post ───────────────────────────────────────────────────────────────
 
 export async function deletePostAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id },
@@ -193,14 +183,11 @@ export async function getCreatorPostsAction(params?: {
     page?:   number
     limit?:  number
 }) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
-    const page  = params?.page  ?? 1
-    const limit = params?.limit ?? 10
-    const skip  = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params, 10)
 
     const where = {
         creatorId: creator.id,
@@ -233,10 +220,9 @@ export async function getCreatorPostsAction(params?: {
 // ── Publish Draft ─────────────────────────────────────────────────────────────
 
 export async function publishDraftAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "DRAFT" },
@@ -254,8 +240,7 @@ export async function publishDraftAction(postId: string) {
 // ── Reschedule Post ───────────────────────────────────────────────────────────
 
 export async function reschedulePostAction(postId: string, scheduledAt: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const parsed = z.string().datetime().safeParse(scheduledAt)
     if (!parsed.success) return { error: "Invalid date." }
@@ -264,7 +249,7 @@ export async function reschedulePostAction(postId: string, scheduledAt: string) 
         return { error: "Scheduled time must be in the future." }
     }
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },
@@ -282,10 +267,9 @@ export async function reschedulePostAction(postId: string, scheduledAt: string) 
 // ── Cancel Schedule ───────────────────────────────────────────────────────────
 
 export async function cancelScheduleAction(postId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const post = await prisma.post.findFirst({
         where: { id: postId, creatorId: creator.id, status: "SCHEDULED" },
@@ -317,50 +301,11 @@ export async function checkPostAccessAction(postId: string, viewerUserId: string
     if (!post?.access) return { hasAccess: true }
 
     const { accessLevel, allowedPlanIds } = post.access
-    const creatorId = post.creator.id
 
-    switch (accessLevel) {
-        case "PUBLIC":
-            return { hasAccess: true }
-
-        case "FOLLOWERS_ONLY": {
-            const follow = await prisma.follow.findFirst({
-                where: { userId: viewerUserId, creatorId },
-            })
-            return { hasAccess: !!follow }
-        }
-
-        case "SUBSCRIBERS_ONLY": {
-            const sub = await prisma.subscription.findFirst({
-                where: { userId: viewerUserId, creatorId, status: "ACTIVE" },
-            })
-            return { hasAccess: !!sub }
-        }
-
-        case "PLAN_SPECIFIC": {
-            const sub = await prisma.subscription.findFirst({
-                where: {
-                    userId:    viewerUserId,
-                    creatorId,
-                    status:    "ACTIVE",
-                    planId:    { in: allowedPlanIds },
-                },
-            })
-            return { hasAccess: !!sub }
-        }
-
-        case "TOP_FANS_ONLY": {
-            const topFans = await prisma.giftTransaction.groupBy({
-                by:      ["senderId"],
-                where:   { creatorId },
-                _sum:    { amount: true },
-                orderBy: { _sum: { amount: "desc" } },
-                take:    50,
-            })
-            return { hasAccess: topFans.some((f) => f.senderId === viewerUserId) }
-        }
-
-        default:
-            return { hasAccess: false }
-    }
+    return resolvePostAccess({
+        userId:    viewerUserId,
+        creatorId: post.creator.id,
+        accessLevel,
+        allowedPlanIds,
+    })
 }

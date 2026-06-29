@@ -1,32 +1,24 @@
 // actions/creator/verification.ts
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator, validateInput } from "@/lib/action-utils"
 import { z }        from "zod"
 import { IdType }   from "@prisma/client"
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) redirect("/onboarding")
-    return creator
-}
 
 // ── Get verification status ───────────────────────────────────────────────────
 
 export async function getVerificationStatusAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const [verification, user] = await Promise.all([
         prisma.creatorVerification.findUnique({
             where: { creatorId: creator.id },
         }),
         prisma.user.findUnique({
-            where:  { id: session.user.id },
+            where:  { id: userId },
             select: {
                 dateOfBirth: true,
                 gender:      true,
@@ -101,14 +93,14 @@ const PersonalInfoSchema = z.object({
 export async function updatePersonalInfoAction(
     data: z.infer<typeof PersonalInfoSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = PersonalInfoSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(PersonalInfoSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data: {
             dateOfBirth: new Date(parsed.data.dateOfBirth),
             gender:      parsed.data.gender,
@@ -133,16 +125,16 @@ const IdentitySchema = z.object({
 export async function submitIdentityDocumentsAction(
     data: z.infer<typeof IdentitySchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = IdentitySchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(IdentitySchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const user = await prisma.user.findUnique({
-        where:  { id: session.user.id },
+        where:  { id: userId },
         select: { dateOfBirth: true },
     })
     if (!user?.dateOfBirth) {
@@ -185,12 +177,11 @@ export async function submitIdentityDocumentsAction(
 // ── Submit selfie ──────────────────────────────────────────────────────────────
 
 export async function submitSelfieAction(selfieImage: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     if (!selfieImage) return { error: "Selfie image is required." }
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const existing = await prisma.creatorVerification.findUnique({
         where: { creatorId: creator.id },
@@ -225,13 +216,13 @@ const AddressSchema = z.object({
 export async function submitAddressAction(
     data: z.infer<typeof AddressSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = AddressSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(AddressSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const existing = await prisma.creatorVerification.findUnique({
         where: { creatorId: creator.id },

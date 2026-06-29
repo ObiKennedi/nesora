@@ -1,26 +1,18 @@
 // actions/creator/profile.ts
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { requireAuth, requireCreator, validateInput } from "@/lib/action-utils"
 import { z }        from "zod"
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) redirect("/onboarding")
-    return creator
-}
 
 // ── Get full profile ──────────────────────────────────────────────────────────
 
 export async function getCreatorProfileAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     const [creator, user] = await Promise.all([
         prisma.creator.findUnique({
-            where: { userId: session.user.id },
+            where: { userId },
             include: {
                 creatorCategories: { select: { category: true } },
                 _count: {
@@ -33,7 +25,7 @@ export async function getCreatorProfileAction() {
             },
         }),
         prisma.user.findUnique({
-            where:  { id: session.user.id },
+            where:  { id: userId },
             select: {
                 firstName: true,
                 lastName:  true,
@@ -44,7 +36,7 @@ export async function getCreatorProfileAction() {
         }),
     ])
 
-    if (!creator) redirect("/onboarding")
+    if (!creator) return requireCreator(userId) as never
 
     return {
         creator: {
@@ -67,13 +59,13 @@ const BasicProfileSchema = z.object({
 export async function updateBasicProfileAction(
     data: z.infer<typeof BasicProfileSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = BasicProfileSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(BasicProfileSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     await prisma.creator.update({
         where: { id: creator.id },
@@ -93,13 +85,12 @@ export async function updateBasicProfileAction(
 // Returns the new URL so the client can sync the session immediately via update()
 
 export async function updateAvatarAction(imageUrl: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     if (!imageUrl) return { error: "Image URL is required." }
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data:  { image: imageUrl },
     })
 
@@ -109,12 +100,11 @@ export async function updateAvatarAction(imageUrl: string) {
 // ── Update banner ─────────────────────────────────────────────────────────────
 
 export async function updateBannerAction(bannerUrl: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     if (!bannerUrl) return { error: "Banner URL is required." }
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     await prisma.creator.update({
         where: { id: creator.id },
@@ -136,13 +126,13 @@ const SocialLinksSchema = z.object({
 export async function updateSocialLinksAction(
     data: z.infer<typeof SocialLinksSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = SocialLinksSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(SocialLinksSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     await prisma.creator.update({
         where: { id: creator.id },
@@ -167,13 +157,13 @@ const BrandingSchema = z.object({
 export async function updateBrandingAction(
     data: z.infer<typeof BrandingSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = BrandingSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(BrandingSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     await prisma.creator.update({
         where: { id: creator.id },
@@ -190,8 +180,7 @@ export async function updateBrandingAction(
 // Updating username also syncs creator.handle via the Prisma extension in lib/prisma.ts
 
 export async function updateUsernameAction(username: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
     if (!username.match(/^[a-zA-Z0-9_]{3,30}$/)) {
         return { error: "Username must be 3-30 characters, letters, numbers and underscores only." }
@@ -200,12 +189,12 @@ export async function updateUsernameAction(username: string) {
     const existing = await prisma.user.findUnique({
         where: { username },
     })
-    if (existing && existing.id !== session.user.id) {
+    if (existing && existing.id !== userId) {
         return { error: "This username is already taken." }
     }
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data:  { username },
     })
 

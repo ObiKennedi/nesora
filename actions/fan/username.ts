@@ -1,7 +1,8 @@
 "use server"
 
-import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
+import { requireAuth, validateInput } from "@/lib/action-utils"
+import { auth }     from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { z }        from "zod"
 
@@ -22,10 +23,11 @@ const UsernameSchema = z.object({
 // A fan cannot claim a username already taken by a creator's handle
 
 export async function checkFanUsernameAvailability(username: string) {
-    const parsed = UsernameSchema.safeParse({ username })
-    if (!parsed.success) {
-        return { available: false, error: parsed.error.issues[0].message }
+    const result = validateInput(UsernameSchema, { username })
+    if (!result.success) {
+        return { available: false, error: result.error }
     }
+    const parsed = result
 
     const session = await auth()
 
@@ -54,13 +56,13 @@ export async function checkFanUsernameAvailability(username: string) {
 // Fans only write to user.username — no creator.handle to sync
 
 export async function saveFanUsernameAction(username: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = UsernameSchema.safeParse({ username })
-    if (!parsed.success) {
-        return { error: parsed.error.issues[0].message }
+    const result = validateInput(UsernameSchema, { username })
+    if (!result.success) {
+        return { error: result.error }
     }
+    const parsed = result
 
     // Double-check conflicts at write time
     const [existingUser, existingCreator] = await Promise.all([
@@ -74,7 +76,7 @@ export async function saveFanUsernameAction(username: string) {
         }),
     ])
 
-    if (existingUser && existingUser.id !== session.user.id) {
+    if (existingUser && existingUser.id !== userId) {
         return { error: "This username is already taken." }
     }
     if (existingCreator) {
@@ -82,7 +84,7 @@ export async function saveFanUsernameAction(username: string) {
     }
 
     await prisma.user.update({
-        where: { id: session.user.id },
+        where: { id: userId },
         data:  { username: parsed.data.username },
     })
 

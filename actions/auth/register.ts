@@ -2,6 +2,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { validateInput } from "@/lib/action-utils"
 import { sendVerificationEmail } from "@/lib/mail"
 import { generateVerificationToken } from "@/lib/tokens"
 import bcrypt from "bcryptjs"
@@ -15,8 +16,9 @@ const RegisterSchema = z.object({
 })
 
 export async function registerAction(formData: z.infer<typeof RegisterSchema>) {
-    const parsed = RegisterSchema.safeParse(formData)
-    if (!parsed.success) return { error: "Invalid fields." }
+    const result = validateInput(RegisterSchema, formData)
+    if (!result.success) return { error: "Invalid fields." }
+    const parsed = result
 
     const { firstName, lastName, email, password } = parsed.data
 

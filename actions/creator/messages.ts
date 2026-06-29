@@ -3,27 +3,18 @@
 
 import { auth }          from "@/lib/auth"
 import { prisma }        from "@/lib/prisma"
-import { redirect }      from "next/navigation"
+import { requireAuth, requireCreator, validateInput, paginationParams } from "@/lib/action-utils"
 import { pusherServer }  from "@/lib/pusher"
 import { redis, redisKeys } from "@/lib/redis"
 import { z }             from "zod"
 import { MessageType }   from "@prisma/client"
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function getCreatorOrThrow(userId: string) {
-    const creator = await prisma.creator.findUnique({ where: { userId } })
-    if (!creator) throw new Error("Creator profile not found")
-    return creator
-}
-
 // ── Get conversations ─────────────────────────────────────────────────────────
 
 export async function getConversationsAction(filter?: "all" | "fans" | "subscribers") {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const conversations = await prisma.conversation.findMany({
         where: {
@@ -69,7 +60,7 @@ export async function getConversationsAction(filter?: "all" | "fans" | "subscrib
     const withUnread = await Promise.all(
         conversations.map(async (conv) => {
             const unread = await redis.get<number>(
-                redisKeys.unreadCount(session.user.id, conv.id)
+                redisKeys.unreadCount(userId, conv.id)
             ) ?? 0
             return { ...conv, unreadCount: unread }
         })
@@ -84,20 +75,17 @@ export async function getMessagesAction(
     conversationId: string,
     params?: { page?: number; limit?: number }
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const page  = params?.page  ?? 1
-    const limit = params?.limit ?? 30
-    const skip  = (page - 1) * limit
+    const { page, limit, skip } = paginationParams(params, 30)
 
     // Verify membership
     const conversation = await prisma.conversation.findFirst({
         where: {
             id: conversationId,
             OR: [
-                { creator:    { userId: session.user.id } },
-                { subscriberId: session.user.id           },
+                { creator:    { userId } },
+                { subscriberId: userId           },
             ],
         },
     })
@@ -125,14 +113,14 @@ export async function getMessagesAction(
     ])
 
     // Clear unread count in Redis when messages are fetched
-    await redis.set(redisKeys.unreadCount(session.user.id, conversationId), 0)
+    await redis.set(redisKeys.unreadCount(userId, conversationId), 0)
 
     // Mark unread messages as read
     await prisma.message.updateMany({
         where: {
             conversationId,
             isRead:   false,
-            senderId: { not: session.user.id },
+            senderId: { not: userId },
         },
         data: {
             isRead: true,
@@ -144,7 +132,7 @@ export async function getMessagesAction(
     await pusherServer.trigger(
         `private-conversation-${conversationId}`,
         "messages-read",
-        { readBy: session.user.id }
+        { readBy: userId }
     )
 
     return {
@@ -169,11 +157,11 @@ const SendMessageSchema = z.object({
 export async function sendMessageAction(
     data: z.infer<typeof SendMessageSchema>
 ) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const parsed = SendMessageSchema.safeParse(data)
-    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    const result = validateInput(SendMessageSchema, data)
+    if (!result.success) return { error: result.error }
+    const parsed = result
 
     const { conversationId, type, content, mediaUrl, voiceNoteUrl, voiceDuration } = parsed.data
 
@@ -188,8 +176,8 @@ export async function sendMessageAction(
         where: {
             id: conversationId,
             OR: [
-                { creator:    { userId: session.user.id } },
-                { subscriberId: session.user.id           },
+                { creator:    { userId } },
+                { subscriberId: userId           },
             ],
         },
         include: {
@@ -202,7 +190,7 @@ export async function sendMessageAction(
     const message = await prisma.message.create({
         data: {
             conversationId,
-            senderId:     session.user.id,
+            senderId:     userId,
             type,
             content,
             mediaUrl,
@@ -237,7 +225,7 @@ export async function sendMessageAction(
     })
 
     // Determine recipient
-    const recipientId = conversation.subscriberId === session.user.id
+    const recipientId = conversation.subscriberId === userId
         ? conversation.creator.userId
         : conversation.subscriberId
 
@@ -299,16 +287,15 @@ export async function sendTypingAction(
         `private-conversation-${conversationId}`,
         "typing",
         { userId: session.user.id, isTyping }
-    )
+    )  // sendTypingAction keeps session.user.id intentionally for the payload
 }
 
 // ── Get message requests ──────────────────────────────────────────────────────
 
 export async function getMessageRequestsAction() {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const requests = await prisma.messageRequest.findMany({
         where:   { toCreatorId: creator.id, status: "PENDING" },
@@ -334,10 +321,9 @@ export async function getMessageRequestsAction() {
 // ── Accept message request ────────────────────────────────────────────────────
 
 export async function acceptMessageRequestAction(requestId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const request = await prisma.messageRequest.findFirst({
         where: { id: requestId, toCreatorId: creator.id, status: "PENDING" },
@@ -397,10 +383,9 @@ export async function acceptMessageRequestAction(requestId: string) {
 // ── Decline message request ───────────────────────────────────────────────────
 
 export async function declineMessageRequestAction(requestId: string) {
-    const session = await auth()
-    if (!session?.user?.id) redirect("/login")
+    const userId = await requireAuth()
 
-    const creator = await getCreatorOrThrow(session.user.id)
+    const creator = await requireCreator(userId)
 
     const request = await prisma.messageRequest.findFirst({
         where: { id: requestId, toCreatorId: creator.id },
@@ -423,6 +408,6 @@ export async function getTotalUnreadAction() {
 
     const count = await redis.get<number>(
         redisKeys.totalUnread(session.user.id)
-    )
+    )  // getTotalUnreadAction: returns 0 for unauthenticated, so keeps session check
     return count ?? 0
 }
