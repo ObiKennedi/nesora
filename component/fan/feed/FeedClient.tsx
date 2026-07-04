@@ -8,17 +8,18 @@ import {
     useEffect,
 } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Category, PostType }         from "@prisma/client"
-import { Loader2, Radio }             from "lucide-react"
-import { getFeedAction }              from "@/actions/fan/feed"
-import { FeedSideNav, FeedTab }       from "./FeedSideNav"
-import { ShortsRail }                 from "./ShortsRail"
-import { PostCard }                   from "./PostCard"
-import { ShortsPlayer }               from "./ShortsPlayer"
-import { CommentModal }               from "./CommentModal"
-import { GiftModal }                  from "./GiftModal"
-import { FanMessagesClient }          from "@/component/fan/messages/FanMessagesClient"
-import { CATEGORIES }                 from "@/lib/categories"
+import { Category, PostType } from "@prisma/client"
+import { Loader2, Radio } from "lucide-react"
+import { getFeedAction } from "@/actions/fan/feed"
+import { FeedSideNav, FeedTab } from "./FeedSideNav"
+import { ShortsRail } from "./ShortsRail"
+import { PostCard } from "./PostCard"
+import { ShortsPlayer } from "./ShortsPlayer"
+import { CommentModal } from "./CommentModal"
+import { GiftModal } from "./GiftModal"
+import { FanMessagesClient } from "@/component/fan/messages/FanMessagesClient"
+import { CATEGORIES } from "@/lib/categories"
+import { LiveGrid } from "./LiveGrid"
 import "@/styles/fan/Feed.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -287,7 +288,7 @@ export const FeedClient = ({
                 )}
 
                 {/* LIVE ───────────────────────────────────────────────────── */}
-                {activeTab === "live" && <LiveComingSoon />}
+                {activeTab === "live" && <LiveGrid streams={liveStreams} />}
 
                 {/* CHAT ───────────────────────────────────────────────────── */}
                 {activeTab === "chat" && (

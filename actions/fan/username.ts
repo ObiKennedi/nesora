@@ -17,10 +17,6 @@ const UsernameSchema = z.object({
         .toLowerCase(),
 })
 
-// ── Check availability ────────────────────────────────────────────────────────
-// Checks both user.username and creator.handle to prevent collisions
-// A fan cannot claim a username already taken by a creator's handle
-
 export async function checkFanUsernameAvailability(username: string) {
     const parsed = UsernameSchema.safeParse({ username })
     if (!parsed.success) {
@@ -40,7 +36,6 @@ export async function checkFanUsernameAvailability(username: string) {
         }),
     ])
 
-    // Exclude current user's own username from conflict check
     const userConflict    = existingUser    && existingUser.id !== session?.user?.id
     const creatorConflict = !!existingCreator
 
@@ -49,9 +44,6 @@ export async function checkFanUsernameAvailability(username: string) {
         error:     null,
     }
 }
-
-// ── Save username ─────────────────────────────────────────────────────────────
-// Fans only write to user.username — no creator.handle to sync
 
 export async function saveFanUsernameAction(username: string) {
     const session = await auth()
@@ -62,7 +54,6 @@ export async function saveFanUsernameAction(username: string) {
         return { error: parsed.error.issues[0].message }
     }
 
-    // Double-check conflicts at write time
     const [existingUser, existingCreator] = await Promise.all([
         prisma.user.findUnique({
             where:  { username: parsed.data.username },

@@ -7,8 +7,6 @@ import { z }        from "zod"
 import { pusherServer } from "@/lib/pusher"
 import { UserWalletTransactionType } from "@prisma/client"
 
-// ── Get fan wallet ────────────────────────────────────────────────────────────
-
 export async function getFanWalletAction() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -212,7 +210,6 @@ export async function getGiftsAction() {
     return gifts.map((g) => ({ ...g, value: Number(g.value) }))
 }
 
-// ── Get creator info for gift modal ──────────────────────────────────────────
 
 export async function getCreatorForGiftAction(creatorId: string) {
     const creator = await prisma.creator.findUnique({
@@ -239,9 +236,10 @@ export async function getCreatorForGiftAction(creatorId: string) {
 // ── Send gift ─────────────────────────────────────────────────────────────────
 
 const SendGiftSchema = z.object({
-    creatorId: z.string().min(1),
-    giftId:    z.string().min(1),
-    quantity:  z.number().int().min(1).max(100).default(1),
+    creatorId:    z.string().min(1),
+    giftId:       z.string().min(1),
+    quantity:     z.number().int().min(1).max(100).default(1),
+    liveStreamId: z.string().optional(),
 })
 
 export async function sendGiftAction(data: z.infer<typeof SendGiftSchema>) {
@@ -251,8 +249,17 @@ export async function sendGiftAction(data: z.infer<typeof SendGiftSchema>) {
     const parsed = SendGiftSchema.safeParse(data)
     if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-    const { creatorId, giftId, quantity } = parsed.data
+    const { creatorId, giftId, quantity, liveStreamId } = parsed.data
     const userId = session.user.id
+
+    let validStreamId: string | null = null
+    if (liveStreamId) {
+        const s = await prisma.liveStream.findUnique({
+            where:  { id: liveStreamId },
+            select: { id: true, creatorId: true, status: true },
+        })
+    if (s && s.creatorId === creatorId && s.status === "LIVE") validStreamId = s.id
+}
 
     // Get gift details
     const gift = await prisma.gift.findUnique({
@@ -333,11 +340,12 @@ export async function sendGiftAction(data: z.infer<typeof SendGiftSchema>) {
         // Gift transaction record
         prisma.giftTransaction.create({
             data: {
-                senderId:  userId,
+                senderId:     userId,
                 creatorId,
                 giftId,
                 quantity,
-                amount:    totalAmount,
+                amount:       totalAmount,
+                liveStreamId: validStreamId,
             },
         }),
 

@@ -16,6 +16,13 @@ import "@/styles/fan/GiftModal.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+type Props = {
+    creatorId:    string
+    liveStreamId?: string          // ← add
+    onClose:      () => void
+    onSent?:      (giftEmoji: string, giftName: string) => void
+}
+
 type Gift = {
     id:       string
     name:     string
@@ -31,20 +38,13 @@ type Creator = {
     isVerified:  boolean
     image:       string | null
 }
-
-type Props = {
-    creatorId: string
-    onClose:   () => void
-    onSent?:   (giftEmoji: string, giftName: string) => void
-}
-
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 type ToastState = { message: string; type: "success" | "error" } | null
 
 // ── GiftModal ─────────────────────────────────────────────────────────────────
 
-export const GiftModal = ({ creatorId, onClose, onSent }: Props) => {
+export const GiftModal = ({ creatorId, liveStreamId, onClose, onSent }: Props) => {
     const [gifts,       setGifts]       = useState<Gift[]>([])
     const [creator,     setCreator]     = useState<Creator | null>(null)
     const [balance,     setBalance]     = useState(0)
@@ -58,7 +58,6 @@ export const GiftModal = ({ creatorId, onClose, onSent }: Props) => {
     const [isPending,   startTransition] = useTransition()
 
     const PRESETS = [500, 1000, 2000, 5000, 10000]
-
     // Slide-up animation
     useEffect(() => {
         const t = setTimeout(() => setVisible(true), 10)
@@ -107,7 +106,7 @@ export const GiftModal = ({ creatorId, onClose, onSent }: Props) => {
         }
 
         startTransition(async () => {
-            const res = await sendGiftAction({ creatorId, giftId: selectedId, quantity })
+            const res = await sendGiftAction({ creatorId, giftId: selectedId, quantity, liveStreamId })
 
             if (res?.error === "INSUFFICIENT_FUNDS") {
                 setTopUpAmount(res.shortfall ?? shortfall)

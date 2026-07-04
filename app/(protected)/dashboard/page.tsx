@@ -42,7 +42,7 @@ export default function DashboardRedirectPage() {
 
         // ── Fan ───────────────────────────────────────────────────────────────
         if (onboardingType === "FAN") {
-            router.replace("/feed")
+            router.replace("/fan/feed")
             return
         }
 

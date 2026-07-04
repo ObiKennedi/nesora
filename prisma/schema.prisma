@@ -56,15 +56,6 @@ enum CreatorWalletTransactionType {
   REFUND
 }
 
-enum PointTransactionType {
-  PURCHASE
-  NEW_CREATOR_BONUS
-  FOLLOWER_MILESTONE
-  SUBSCRIBER_REWARD
-  STREAM_USAGE
-  ADMIN_GRANT
-}
-
 enum SubscriptionStatus {
   ACTIVE
   EXPIRED
@@ -469,6 +460,7 @@ model User {
   tipsSent           Tip[]                  @relation("TipSender")
   fanInterestSignals FanInterestSignal[]
   postPurchases      PostPurchase[]
+  liveStreamMessages LiveStreamMessage[]    @relation("LiveStreamMessageSender")
 
   @@map("users")
 }
@@ -527,8 +519,6 @@ model Creator {
   followersCount   Int @default(0)
   subscribersCount Int @default(0)
 
-  pointsBalance Int @default(0)
-
   subscriptionEnabled Boolean  @default(false)
   subscriptionPrice   Decimal? @db.Decimal(10, 2)
 
@@ -545,7 +535,6 @@ model Creator {
   streams           LiveStream[]
   followers         Follow[]
   subscribers       Subscription[]
-  pointTransactions PointTransaction[]
   withdrawals       Withdrawal[]
   giftTransactions  GiftTransaction[]    @relation("GiftRecipient")
   conversations     Conversation[]
@@ -557,7 +546,11 @@ model Creator {
   bankAccounts      BankAccount[]
   tips              Tip[]
 
-  trustScore Int @default(0)
+  trustScore        Int     @default(0)
+  ivsChannelArn     String?
+  ivsIngestEndpoint String?
+  ivsPlaybackUrl    String?
+  ivsStreamKeyArn   String?
 
   instagramUrl String?
   twitterUrl   String?
@@ -573,6 +566,22 @@ model Creator {
   fanInterestSignals FanInterestSignal[]
 
   @@map("creators")
+}
+
+model LiveStreamMessage {
+  id       String @id @default(cuid())
+  streamId String
+  userId   String
+
+  content String
+
+  createdAt DateTime @default(now())
+
+  stream LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  user   User       @relation("LiveStreamMessageSender", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([streamId, createdAt])
+  @@map("live_stream_messages")
 }
 
 model CreatorVerification {
@@ -725,9 +734,11 @@ model GiftTransaction {
   createdAt DateTime @default(now())
 
   // Relations
-  sender  User    @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
-  creator Creator @relation("GiftRecipient", fields: [creatorId], references: [id], onDelete: Cascade)
-  gift    Gift    @relation(fields: [giftId], references: [id])
+  sender       User        @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  creator      Creator     @relation("GiftRecipient", fields: [creatorId], references: [id], onDelete: Cascade)
+  gift         Gift        @relation(fields: [giftId], references: [id])
+  liveStream   LiveStream? @relation(fields: [liveStreamId], references: [id])
+  liveStreamId String?
 
   @@map("gift_transactions")
 }
@@ -773,63 +784,6 @@ model Follow {
 
   @@unique([userId, creatorId])
   @@map("follows")
-}
-
-model PointTransaction {
-  id String @id @default(cuid())
-
-  creatorId String
-
-  points Int
-  type   PointTransactionType
-
-  description String?
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-
-  @@map("point_transactions")
-}
-
-model LiveStream {
-  id String @id @default(cuid())
-
-  creatorId String
-
-  title       String
-  description String?
-
-  isSubscriberOnly Boolean @default(false)
-
-  status StreamStatus @default(SCHEDULED)
-
-  startedAt DateTime?
-  endedAt   DateTime?
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  creator Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  usage   StreamUsage[]
-
-  @@map("live_streams")
-}
-
-model StreamUsage {
-  id String @id @default(cuid())
-
-  streamId String
-
-  pointsUsed Int
-
-  startedAt DateTime
-  endedAt   DateTime?
-  // Relations
-  stream    LiveStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
-
-  @@map("stream_usages")
 }
 
 model Withdrawal {
@@ -935,4 +889,38 @@ model PostPurchase {
 
   @@unique([userId, postId])
   @@map("post_purchases")
+}
+
+model LiveStream {
+  id        String @id @default(cuid())
+  creatorId String
+
+  title        String
+  description  String?
+  thumbnailUrl String?
+
+  isSubscriberOnly Boolean      @default(false)
+  status           StreamStatus @default(SCHEDULED)
+
+  // ── IVS session (populated from EventBridge on go-live) ─────
+  ivsStreamId  String? // IVS stream session id
+  playbackUrl  String? // snapshot of channel playback url at go-live
+  recordingUrl String? // S3 url, set on ENDED if recording is enabled
+
+  // ── Stats (live viewer count lives in Redis, not here) ──────
+  peakViewers Int @default(0)
+
+  scheduledFor DateTime? // planned time while SCHEDULED
+  startedAt    DateTime? // actual go-live time
+  endedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator  Creator             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  messages LiveStreamMessage[]
+  gifts    GiftTransaction[]
+
+  @@index([creatorId, status])
+  @@map("live_streams")
 }

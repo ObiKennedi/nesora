@@ -22,7 +22,6 @@ export async function getDashboardData() {
             verificationStatus: true,
             followersCount: true,
             subscribersCount: true,
-            pointsBalance: true,
         },
     })
 

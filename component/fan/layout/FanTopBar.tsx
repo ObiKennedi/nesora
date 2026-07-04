@@ -11,7 +11,7 @@ export const FanTopBar = () => {
     return (
         <header className="fan-topbar">
             {/* Logo */}
-            <Link href="/feed" className="fan-topbar__logo">
+            <Link href="/fan/feed" className="fan-topbar__logo">
                 <img
                     src="/logo.png"
                     alt="NESORA"
