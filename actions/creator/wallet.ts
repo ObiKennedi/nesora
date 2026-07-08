@@ -495,7 +495,7 @@ export async function withdrawAction(
         }
     }
 
-    // ── Check balance ─────────────────────────────────────────────────────────
+    // ── Initial Check balance (Fast-fail) ─────────────────────────────────────
     if (!creator.wallet) return { error: "Wallet not found." }
     if (fmtNum(creator.wallet.balance) < parsed.data.amount) {
         return { error: "Insufficient balance." }
@@ -517,64 +517,80 @@ export async function withdrawAction(
         select: { id: true },
     })
 
-    await prisma.$transaction([
-        // Deduct from wallet
-        prisma.creatorWallet.update({
-            where: { creatorId: creator.id },
-            data:  { balance: { decrement: grossAmount } },
-        }),
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Deduct from wallet securely (prevents race conditions)
+            const debited = await tx.creatorWallet.updateMany({
+                where: { creatorId: creator.id, balance: { gte: grossAmount } },
+                data:  { balance: { decrement: grossAmount } },
+            })
+            
+            if (debited.count === 0) {
+                throw new Error("INSUFFICIENT_BALANCE")
+            }
 
-        // Create withdrawal record
-        prisma.withdrawal.create({
-            data: {
-                creatorId:     creator.id,
-                bankAccountId: parsed.data.bankAccountId,
-                grossAmount,
-                platformFee,
-                netAmount,
-                status: "PENDING",
-            },
-        }),
-
-        // Wallet transaction record
-        prisma.creatorWalletTransaction.create({
-            data: {
-                walletId:    creator.wallet.id,
-                amount:      grossAmount,
-                type:        "WITHDRAWAL",
-                description: `Withdrawal to ${bankAccount.bankName} · ${bankAccount.accountNumber}`,
-            },
-        }),
-
-        // Notify the creator
-        prisma.notification.create({
-            data: {
-                userId: session.user.id,
-                type:   "PAYOUT_PROCESSED",
-                title:  "Withdrawal request submitted",
-                body:   `₦${netAmount.toLocaleString()} withdrawal is pending admin approval.`,
-                href:   "/creator/monetization/wallet",
-            },
-        }),
-
-        // ── Notify all admins ─────────────────────────────────────────────────
-        ...admins.map((admin) =>
-            prisma.notification.create({
+            // 2. Create withdrawal record
+            await tx.withdrawal.create({
                 data: {
-                    userId: admin.id,
-                    type:   "SYSTEM",
-                    title:  "New withdrawal request",
-                    body:   `${creator.displayName} requested a withdrawal of ₦${netAmount.toLocaleString()}.`,
-                    href:   "/admin/payouts",
+                    creatorId:     creator.id,
+                    bankAccountId: parsed.data.bankAccountId,
+                    grossAmount,
+                    platformFee,
+                    netAmount,
+                    status: "PENDING",
                 },
             })
-        ),
-    ])
 
-    return { success: true, netAmount }
+            // 3. Wallet transaction record
+            await tx.creatorWalletTransaction.create({
+                data: {
+                    walletId:    creator.wallet!.id, // Non-null asserted because of the check above
+                    amount:      grossAmount,
+                    type:        "WITHDRAWAL",
+                    description: `Withdrawal to ${bankAccount.bankName} · ${bankAccount.accountNumber}`,
+                },
+            })
+
+            // 4. Notify the creator
+            await tx.notification.create({
+                data: {
+                    userId: session.user.id,
+                    type:   "PAYOUT_PROCESSED",
+                    title:  "Withdrawal request submitted",
+                    body:   `₦${netAmount.toLocaleString()} withdrawal is pending admin approval.`,
+                    href:   "/creator/monetization/wallet",
+                },
+            })
+
+            // 5. Notify all admins (using Promise.all for concurrency)
+            if (admins.length > 0) {
+                await Promise.all(
+                    admins.map((admin) =>
+                        tx.notification.create({
+                            data: {
+                                userId: admin.id,
+                                type:   "SYSTEM",
+                                title:  "New withdrawal request",
+                                body:   `${creator.displayName} requested a withdrawal of ₦${netAmount.toLocaleString()}.`,
+                                href:   "/admin/payouts",
+                            },
+                        })
+                    )
+                )
+            }
+        })
+
+        return { success: true, netAmount }
+
+    } catch (error) {
+        if (error instanceof Error && error.message === "INSUFFICIENT_BALANCE") {
+            return { error: "Insufficient balance. Your request could not be processed." }
+        }
+        
+        console.error("Withdrawal transaction error:", error)
+        return { error: "An error occurred while processing your withdrawal. Please try again." }
+    }
 }
-
-// actions/creator/wallet.ts — add this
 
 export async function getPayoutHistoryAction(params?: {
     status?: "PENDING" | "APPROVED" | "PAID" | "REJECTED"

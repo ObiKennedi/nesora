@@ -88,10 +88,7 @@ async function resolvePostAccess(params: {
     }
 }
 
-// Derive one-time unlock price for a locked post:
-// PLAN_SPECIFIC → 10% of the required plan price
-// SUBSCRIBERS_ONLY → 10% of cheapest active plan
-// Others → null (no purchase option)
+// Derive one-time unlock price for a locked post
 async function resolveUnlockPrice(params: {
     creatorId:      string
     accessLevel:    PostAccessLevel
@@ -163,8 +160,35 @@ export async function getFeedAction(params?: {
     // ── 1. Get creator IDs the fan follows or subscribes to ───────────────────
     const creatorIds = await getFanCreatorIds(userId)
 
+    // Helper to fetch suggested creators if the feed is empty
+    const fetchSuggestedCreators = async () => {
+        return await prisma.creator.findMany({
+            where: category === "ALL" 
+                ? { id: { notIn: creatorIds } } 
+                : {
+                    id: { notIn: creatorIds },
+                    creatorCategories: { some: { category } },
+                  },
+            select: {
+                id: true,
+                displayName: true,
+                handle: true,
+                isVerified: true,
+                user: { select: { image: true } },
+                // Note: Change 'followers' to 'follows' if that's what your Prisma schema uses.
+                _count: { select: { followers: true } }
+            },
+            orderBy: {
+                // Note: Change 'followers' to 'follows' if that's what your Prisma schema uses.
+                followers: { _count: "desc" }
+            },
+            take: 10,
+        })
+    }
+
     if (creatorIds.length === 0) {
-        return { posts: [], total: 0, pages: 0, page }
+        const suggestedCreators = page === 1 ? await fetchSuggestedCreators() : []
+        return { posts: [], total: 0, pages: 0, page, suggestedCreators }
     }
 
     // ── 2. Get fan's interest signals (for ranking) ───────────────────────────
@@ -173,7 +197,6 @@ export async function getFeedAction(params?: {
         select: { creatorId: true, category: true, score: true },
     })
 
-    // Build a fast lookup: "creatorId:category" → score
     const signalMap = new Map<string, number>()
     for (const s of signals) {
         signalMap.set(`${s.creatorId}:${s.category}`, s.score)
@@ -220,41 +243,32 @@ export async function getFeedAction(params?: {
             },
         },
         orderBy: { publishedAt: "desc" },
-        take:    limit * 5, // fetch a wider pool to rank from
+        take:    limit * 5, 
     })
 
     // ── 4. Score each post ────────────────────────────────────────────────────
     const scoredPosts = rawPosts.map((post) => {
         const categories = post.creator.creatorCategories.map((cc) => cc.category)
 
-        // Sum interest signals across all creator categories
         const interestScore = categories.reduce((sum, cat) => {
             return sum + (signalMap.get(`${post.creatorId}:${cat}`) ?? 0)
         }, 0)
 
         const recency = recencyScore(post.publishedAt ?? post.createdAt)
-
-        // 70/30 weighted final score
-        const finalScore =
-            RANKED_RATIO * interestScore + FRESH_RATIO * recency
+        const finalScore = RANKED_RATIO * interestScore + FRESH_RATIO * recency
 
         return { post, finalScore, recency }
     })
 
     // ── 5. Split into ranked and fresh pools, then merge ─────────────────────
-    const ranked = [...scoredPosts]
-        .sort((a, b) => b.finalScore - a.finalScore)
+    const ranked = [...scoredPosts].sort((a, b) => b.finalScore - a.finalScore)
+    const fresh  = [...scoredPosts].sort((a, b) => b.recency - a.recency)
 
-    const fresh = [...scoredPosts]
-        .sort((a, b) => b.recency - a.recency)
-
-    // Merge: take from ranked and fresh alternately in 7:3 ratio
-    const seen    = new Set<string>()
+    const seen   = new Set<string>()
     const merged: typeof scoredPosts = []
 
     let ri = 0, fi = 0
     while (merged.length < limit * 3 && (ri < ranked.length || fi < fresh.length)) {
-        // Add ~7 ranked then ~3 fresh
         for (let i = 0; i < 7 && ri < ranked.length; i++) {
             const item = ranked[ri++]
             if (!seen.has(item.post.id)) {
@@ -271,17 +285,22 @@ export async function getFeedAction(params?: {
         }
     }
 
-    // ── 6. Paginate ───────────────────────────────────────────────────────────
+    // ── 6. Paginate & Fetch Suggestions ───────────────────────────────────────
     const paginated = merged.slice(skip, skip + limit)
     const total     = merged.length
+
+    let suggestedCreators: Awaited<ReturnType<typeof fetchSuggestedCreators>> = []
+    
+    // If no posts were found for this category among followed creators, provide suggestions
+    if (total === 0 && page === 1) {
+        suggestedCreators = await fetchSuggestedCreators()
+    }
 
     // ── 7. Resolve access for each post ───────────────────────────────────────
     const postsWithAccess = await Promise.all(
         paginated.map(async ({ post }) => {
             const accessLevel    = post.access?.accessLevel    ?? "PUBLIC"
             const allowedPlanIds = post.access?.allowedPlanIds ?? []
-
-            // Check if already purchased
             const alreadyPurchased = post.postPurchases.length > 0
 
             const { hasAccess, lockReason } = alreadyPurchased
@@ -306,30 +325,22 @@ export async function getFeedAction(params?: {
                 type:         post.type,
                 status:       post.status,
                 title:        post.title,
-                body:         hasAccess ? post.body         : null,
-                mediaUrls:    hasAccess ? post.mediaUrls    : [],
-                thumbnailUrl: post.thumbnailUrl, // always show thumbnail (blurred via CSS)
+                body:         hasAccess ? post.body      : null,
+                mediaUrls:    hasAccess ? post.mediaUrls : [],
+                thumbnailUrl: post.thumbnailUrl, 
                 videoDuration: post.videoDuration,
                 publishedAt:  post.publishedAt,
                 createdAt:    post.createdAt,
                 viewCount:    post.viewCount,
                 likeCount:    post._count.likes,
                 commentCount: post._count.comments,
-
-                // Fan's own interaction state
-                isLiked:     post.likes.length > 0,
-                isSaved:     post.postSaves.length > 0,
-                isPurchased: alreadyPurchased,
-
-                // Access
+                isLiked:      post.likes.length > 0,
+                isSaved:      post.postSaves.length > 0,
+                isPurchased:  alreadyPurchased,
                 hasAccess,
                 lockReason,
                 unlockPrice,
-
-                // Poll (only if accessible)
-                poll: hasAccess ? post.poll : null,
-
-                // Creator
+                poll:         hasAccess ? post.poll : null,
                 creator: {
                     id:          post.creator.id,
                     displayName: post.creator.displayName,
@@ -347,11 +358,11 @@ export async function getFeedAction(params?: {
         total,
         pages: Math.ceil(total / limit),
         page,
+        suggestedCreators, // Exported to the frontend
     }
 }
 
 // ── Shorts feed ───────────────────────────────────────────────────────────────
-// Videos with videoDuration <= 120 seconds from followed/subscribed creators
 
 export async function getShortsAction(params?: {
     page?:  number
@@ -406,7 +417,6 @@ export async function getShortsAction(params?: {
         }),
     ])
 
-    // Resolve access for each short
     const shortsWithAccess = await Promise.all(
         shorts.map(async (post) => {
             const accessLevel    = post.access?.accessLevel    ?? "PUBLIC"
@@ -462,7 +472,6 @@ export async function getShortsAction(params?: {
 }
 
 // ── Record post view ──────────────────────────────────────────────────────────
-// Fire-and-forget — increments viewCount + creates PostView record
 
 export async function recordPostViewAction(postId: string) {
     const session = await auth()

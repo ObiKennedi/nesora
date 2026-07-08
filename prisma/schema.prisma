@@ -72,9 +72,11 @@ enum StreamStatus {
 
 enum WithdrawalStatus {
   PENDING
+  PROCESSING
   APPROVED
   REJECTED
   PAID
+  FAILED
 }
 
 enum NotificationType {
@@ -90,6 +92,7 @@ enum NotificationType {
   SYSTEM
   INCOMING_CALL
   MISSED_CALL
+  WITHDRAWAL_REJECTED
 }
 
 enum Category {
@@ -202,8 +205,9 @@ model BankAccount {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  creator     Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  withdrawals Withdrawal[]
+  creator               Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  withdrawals           Withdrawal[]
+  paystackRecipientCode String?
 
   @@map("bank_accounts")
 }
@@ -464,27 +468,49 @@ model User {
   city        String?
 
   // Relations
-  wallet             UserWallet?
-  creator            Creator?
-  follows            Follow[]
-  subscriptions      Subscription[]
-  sentMessages       Message[]              @relation("MessageSender")
-  giftsSent          GiftTransaction[]      @relation("GiftSender")
-  accounts           Account[]
-  notifications      Notification[]
-  categoryInterests  UserCategoryInterest[]
-  fanRequests        FanRequest[]           @relation("FanRequestFrom")
-  fanRequest         FanRequest?            @relation(fields: [fanRequestId], references: [id])
-  fanRequestId       String?
-  messageRequests    MessageRequest[]
-  conversations      Conversation[]         @relation("ConversationSubscriber")
-  tipsSent           Tip[]                  @relation("TipSender")
-  fanInterestSignals FanInterestSignal[]
-  postPurchases      PostPurchase[]
-  liveStreamMessages LiveStreamMessage[]    @relation("LiveStreamMessageSender")
-  calls              Call[]                 @relation("CallFan")
+  wallet                UserWallet?
+  creator               Creator?
+  follows               Follow[]
+  subscriptions         Subscription[]
+  sentMessages          Message[]              @relation("MessageSender")
+  giftsSent             GiftTransaction[]      @relation("GiftSender")
+  accounts              Account[]
+  notifications         Notification[]
+  categoryInterests     UserCategoryInterest[]
+  fanRequests           FanRequest[]           @relation("FanRequestFrom")
+  fanRequest            FanRequest?            @relation(fields: [fanRequestId], references: [id])
+  fanRequestId          String?
+  messageRequests       MessageRequest[]
+  conversations         Conversation[]         @relation("ConversationSubscriber")
+  tipsSent              Tip[]                  @relation("TipSender")
+  fanInterestSignals    FanInterestSignal[]
+  postPurchases         PostPurchase[]
+  liveStreamMessages    LiveStreamMessage[]    @relation("LiveStreamMessageSender")
+  calls                 Call[]                 @relation("CallFan")
+  isSuspended           Boolean                @default(false)
+  suspendedAt           DateTime?
+  suspensionReason      String?
+  reviewedWithdrawals   Withdrawal[]           @relation("WithdrawalReviewer")
+  reviewedVerifications CreatorVerification[]  @relation("VerificationReviewer")
+  auditLogs             AuditLog[]
 
   @@map("users")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([adminId, createdAt])
+  @@map("audit_logs")
 }
 
 // Add to schema.prisma
@@ -681,7 +707,11 @@ model CreatorVerification {
 
   createdAt DateTime @default(now())
 
-  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator      Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  reviewedBy User? @relation("VerificationReviewer", fields: [reviewedById], references: [id])
 
   @@map("creator_verifications")
 }
@@ -860,6 +890,19 @@ model Withdrawal {
 
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNotes  String?
+  paidAt       DateTime?
+
+  transferReference    String? @unique
+  paystackTransferCode String?
+  failureReason        String?
+
+  reviewedBy User?   @relation("WithdrawalReviewer", fields: [reviewedById], references: [id])
+  userId     String?
+
+  @@index([status, createdAt])
   @@map("withdrawals")
 }
 

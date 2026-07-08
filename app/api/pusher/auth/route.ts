@@ -14,9 +14,6 @@ export async function POST(req: NextRequest) {
     const socketId     = params.get("socket_id")!
     const channelName  = params.get("channel_name")!
 
-    // Only allow users to auth for their own private channels
-    // Channel format: private-user-{userId}
-    // or private-conversation-{conversationId}
     const isOwnChannel = channelName === `private-user-${session.user.id}`
     const isConvChannel = channelName.startsWith("private-conversation-")
 
