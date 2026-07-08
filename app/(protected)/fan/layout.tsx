@@ -1,12 +1,13 @@
 // app/(fan)/layout.tsx
 "use client"
 
-import { useState }       from "react"
+import { useState, Suspense } from "react"
+import { useSession }     from "next-auth/react"
 import { FanTopBar }      from "@/component/fan/layout/FanTopBar"
 import { FanBottomNav }   from "@/component/fan/layout/FanBottomNav"
 import { WalletModal }    from "@/component/fan/wallet/WalletModal"
-import { Suspense }       from "react"
 import { Loader }         from "@/component/essentials/Loader"
+import { CallProvider }   from "@/component/calls/CallProvider"
 import "@/styles/fan/FanLayout.scss"
 
 export default function FanLayout({
@@ -14,25 +15,28 @@ export default function FanLayout({
 }: {
     children: React.ReactNode
 }) {
+    const { data: session } = useSession()
     const [walletOpen, setWalletOpen] = useState(false)
 
     return (
-        <div className="fan-shell">
+        <CallProvider role="fan" currentUserId={session?.user?.id ?? ""}>
+            <div className="fan-shell">
 
-            <FanTopBar />
+                <FanTopBar />
 
-            <main className="fan-content">
-                <Suspense fallback={<Loader />}>
-                    {children}
-                </Suspense>
-            </main>
+                <main className="fan-content">
+                    <Suspense fallback={<Loader />}>
+                        {children}
+                    </Suspense>
+                </main>
 
-            <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
+                <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
 
-            {walletOpen && (
-                <WalletModal onClose={() => setWalletOpen(false)} />
-            )}
+                {walletOpen && (
+                    <WalletModal onClose={() => setWalletOpen(false)} />
+                )}
 
-        </div>
+            </div>
+        </CallProvider>
     )
 }
