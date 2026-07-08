@@ -47,6 +47,7 @@ enum UserWalletTransactionType {
   GIFT_PURCHASE
   SUBSCRIPTION_PAYMENT
   REFUND
+  CALL_PAYMENT
 }
 
 enum CreatorWalletTransactionType {
@@ -54,6 +55,7 @@ enum CreatorWalletTransactionType {
   SUBSCRIPTION_RECEIVED
   WITHDRAWAL
   REFUND
+  CALL_RECEIVED
 }
 
 enum SubscriptionStatus {
@@ -86,6 +88,8 @@ enum NotificationType {
   PAYOUT_PROCESSED
   VERIFICATION_UPDATE
   SYSTEM
+  INCOMING_CALL
+  MISSED_CALL
 }
 
 enum Category {
@@ -163,12 +167,27 @@ enum MessageType {
   IMAGE
   VIDEO
   VOICE_NOTE
+  CALL_EVENT
 }
 
 enum MessageRequestStatus {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  RINGING
+  DECLINED
+  MISSED
+  IN_PROGRESS
+  ENDED
+  FAILED
 }
 
 model BankAccount {
@@ -216,6 +235,7 @@ model Message {
   isRead         Boolean     @default(false)
   readAt         DateTime?
   createdAt      DateTime    @default(now())
+  callId         String?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -234,6 +254,7 @@ model Conversation {
   creator    Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   subscriber User      @relation("ConversationSubscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
   messages   Message[]
+  calls      Call[]
 
   @@unique([creatorId, subscriberId])
   @@map("conversations")
@@ -461,6 +482,7 @@ model User {
   fanInterestSignals FanInterestSignal[]
   postPurchases      PostPurchase[]
   liveStreamMessages LiveStreamMessage[]    @relation("LiveStreamMessageSender")
+  calls              Call[]                 @relation("CallFan")
 
   @@map("users")
 }
@@ -529,22 +551,23 @@ model Creator {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verification      CreatorVerification?
-  wallet            CreatorWallet?
-  streams           LiveStream[]
-  followers         Follow[]
-  subscribers       Subscription[]
-  withdrawals       Withdrawal[]
-  giftTransactions  GiftTransaction[]    @relation("GiftRecipient")
-  conversations     Conversation[]
-  creatorCategories CreatorCategory[]
-  posts             Post[]
-  fanRequests       FanRequest[]
-  subscriptionPlans SubscriptionPlan[]
-  messageRequests   MessageRequest[]
-  bankAccounts      BankAccount[]
-  tips              Tip[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verification        CreatorVerification?
+  wallet              CreatorWallet?
+  streams             LiveStream[]
+  followers           Follow[]
+  subscribers         Subscription[]
+  withdrawals         Withdrawal[]
+  giftTransactions    GiftTransaction[]    @relation("GiftRecipient")
+  conversations       Conversation[]
+  creatorCategories   CreatorCategory[]
+  posts               Post[]
+  fanRequests         FanRequest[]
+  subscriptionPlans   SubscriptionPlan[]
+  messageRequests     MessageRequest[]
+  bankAccounts        BankAccount[]
+  tips                Tip[]
+  topFanFreeCallCount Int                  @default(10)
 
   trustScore        Int     @default(0)
   ivsChannelArn     String?
@@ -565,7 +588,52 @@ model Creator {
   profileTheme       ProfileTheme        @default(LIGHT)
   fanInterestSignals FanInterestSignal[]
 
+  voiceCallsEnabled Boolean  @default(false)
+  videoCallsEnabled Boolean  @default(false)
+  voiceCallRate     Decimal? @db.Decimal(10, 2)
+  videoCallRate     Decimal? @db.Decimal(10, 2)
+  availableForCalls Boolean  @default(false)
+
+  calls Call[]
+
   @@map("creators")
+}
+
+model Call {
+  id             String @id @default(cuid())
+  fanId          String
+  creatorId      String
+  conversationId String
+
+  type   CallType
+  status CallStatus @default(RINGING)
+
+  dailyRoomName String @unique
+  dailyRoomUrl  String
+
+  ratePerHour  Decimal @default(0) @db.Decimal(10, 2)
+  isFreeCall   Boolean @default(false)
+  isTopFanCall Boolean @default(false)
+
+  billedMinutes Int     @default(0)
+  billedAmount  Decimal @default(0) @db.Decimal(12, 2)
+  platformFee   Decimal @default(0) @db.Decimal(12, 2)
+
+  ringingAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fan          User         @relation("CallFan", fields: [fanId], references: [id], onDelete: Cascade)
+  creator      Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([status, ringingAt])
+  @@index([creatorId, status])
+  @@index([fanId, status])
+  @@map("calls")
 }
 
 model LiveStreamMessage {
@@ -613,13 +681,10 @@ model CreatorVerification {
 
   createdAt DateTime @default(now())
 
-  // Relations
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@map("creator_verifications")
 }
-
-// ─── Wallet System ────────────────────────────────────────────────────────────
 
 model UserWallet {
   id     String @id @default(cuid())
@@ -630,7 +695,6 @@ model UserWallet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions UserWalletTransaction[]
 
@@ -648,7 +712,6 @@ model UserWalletTransaction {
 
   createdAt DateTime @default(now())
 
-  // Relations
   wallet UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@map("user_wallet_transactions")
@@ -663,7 +726,6 @@ model CreatorWallet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   creator      Creator                    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   transactions CreatorWalletTransaction[]
 
@@ -681,7 +743,6 @@ model CreatorWalletTransaction {
 
   createdAt DateTime @default(now())
 
-  // Relations
   wallet CreatorWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@map("creator_wallet_transactions")
@@ -694,15 +755,13 @@ model Notification {
   title     String
   body      String
   read      Boolean          @default(false)
-  href      String? // optional deep link
+  href      String?
   createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
-
-// ─── Creator Economy ─────────────────────────────────────────────────────────
 
 model Gift {
   id    String @id @default(cuid())
@@ -733,7 +792,6 @@ model GiftTransaction {
 
   createdAt DateTime @default(now())
 
-  // Relations
   sender       User        @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
   creator      Creator     @relation("GiftRecipient", fields: [creatorId], references: [id], onDelete: Cascade)
   gift         Gift        @relation(fields: [giftId], references: [id])
@@ -760,7 +818,6 @@ model Subscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   creator            Creator           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
@@ -778,7 +835,6 @@ model Follow {
 
   createdAt DateTime @default(now())
 
-  // Relations
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
@@ -802,7 +858,6 @@ model Withdrawal {
   bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
   notes         String?
 
-  // Relations
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@map("withdrawals")
@@ -814,9 +869,9 @@ model SubscriptionPlan {
   name        String
   description String?
   price       Decimal  @db.Decimal(10, 2)
-  interval    String   @default("monthly") // monthly | yearly
+  interval    String   @default("monthly")
   isActive    Boolean  @default(true)
-  benefits    String[] // list of perks
+  benefits    String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -850,11 +905,10 @@ model PostSave {
   @@map("post_saves")
 }
 
-// Track post views with timestamp for "active hours" analytics
 model PostView {
   id        String   @id @default(cuid())
   postId    String
-  userId    String? // nullable for anonymous views
+  userId    String?
   createdAt DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -902,16 +956,14 @@ model LiveStream {
   isSubscriberOnly Boolean      @default(false)
   status           StreamStatus @default(SCHEDULED)
 
-  // ── IVS session (populated from EventBridge on go-live) ─────
-  ivsStreamId  String? // IVS stream session id
-  playbackUrl  String? // snapshot of channel playback url at go-live
-  recordingUrl String? // S3 url, set on ENDED if recording is enabled
+  ivsStreamId  String?
+  playbackUrl  String?
+  recordingUrl String?
 
-  // ── Stats (live viewer count lives in Redis, not here) ──────
   peakViewers Int @default(0)
 
-  scheduledFor DateTime? // planned time while SCHEDULED
-  startedAt    DateTime? // actual go-live time
+  scheduledFor DateTime?
+  startedAt    DateTime?
   endedAt      DateTime?
 
   createdAt DateTime @default(now())

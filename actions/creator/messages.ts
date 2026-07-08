@@ -9,15 +9,11 @@ import { redis, redisKeys } from "@/lib/redis"
 import { z }             from "zod"
 import { MessageType }   from "@prisma/client"
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 async function getCreatorOrThrow(userId: string) {
     const creator = await prisma.creator.findUnique({ where: { userId } })
     if (!creator) throw new Error("Creator profile not found")
-    return creator
+    return creator  
 }
-
-// ── Get conversations ─────────────────────────────────────────────────────────
 
 export async function getConversationsAction(filter?: "all" | "fans" | "subscribers") {
     const session = await auth()
@@ -65,7 +61,6 @@ export async function getConversationsAction(filter?: "all" | "fans" | "subscrib
         },
     })
 
-    // Get unread counts from Redis
     const withUnread = await Promise.all(
         conversations.map(async (conv) => {
             const unread = await redis.get<number>(
@@ -78,8 +73,6 @@ export async function getConversationsAction(filter?: "all" | "fans" | "subscrib
     return withUnread
 }
 
-// ── Get messages in a conversation ────────────────────────────────────────────
-
 export async function getMessagesAction(
     conversationId: string,
     params?: { page?: number; limit?: number }
@@ -91,7 +84,6 @@ export async function getMessagesAction(
     const limit = params?.limit ?? 30
     const skip  = (page - 1) * limit
 
-    // Verify membership
     const conversation = await prisma.conversation.findFirst({
         where: {
             id: conversationId,
@@ -124,10 +116,7 @@ export async function getMessagesAction(
         prisma.message.count({ where: { conversationId } }),
     ])
 
-    // Clear unread count in Redis when messages are fetched
     await redis.set(redisKeys.unreadCount(session.user.id, conversationId), 0)
-
-    // Mark unread messages as read
     await prisma.message.updateMany({
         where: {
             conversationId,
@@ -140,7 +129,6 @@ export async function getMessagesAction(
         },
     })
 
-    // Notify sender of read receipts via Pusher
     await pusherServer.trigger(
         `private-conversation-${conversationId}`,
         "messages-read",
@@ -154,8 +142,6 @@ export async function getMessagesAction(
         page,
     }
 }
-
-// ── Send message ──────────────────────────────────────────────────────────────
 
 const SendMessageSchema = z.object({
     conversationId: z.string().min(1),
@@ -177,13 +163,11 @@ export async function sendMessageAction(
 
     const { conversationId, type, content, mediaUrl, voiceNoteUrl, voiceDuration } = parsed.data
 
-    // Validate content
     if (type === "TEXT"       && !content?.trim())  return { error: "Message cannot be empty."      }
     if (type === "IMAGE"      && !mediaUrl)          return { error: "Image URL is required."        }
     if (type === "VIDEO"      && !mediaUrl)          return { error: "Video URL is required."        }
     if (type === "VOICE_NOTE" && !voiceNoteUrl)      return { error: "Voice note URL is required."   }
 
-    // Verify membership
     const conversation = await prisma.conversation.findFirst({
         where: {
             id: conversationId,
@@ -198,7 +182,6 @@ export async function sendMessageAction(
     })
     if (!conversation) return { error: "Conversation not found." }
 
-    // Create message
     const message = await prisma.message.create({
         data: {
             conversationId,
@@ -222,7 +205,6 @@ export async function sendMessageAction(
         },
     })
 
-    // Update conversation last message
     await prisma.conversation.update({
         where: { id: conversationId },
         data: {
@@ -236,19 +218,16 @@ export async function sendMessageAction(
         },
     })
 
-    // Determine recipient
     const recipientId = conversation.subscriberId === session.user.id
         ? conversation.creator.userId
         : conversation.subscriberId
 
-    // ── Pusher: push to conversation channel ──────────────────────────────────
     await pusherServer.trigger(
         `private-conversation-${conversationId}`,
         "new-message",
         { message }
     )
 
-    // ── Pusher: push to recipient's personal channel ──────────────────────────
     await pusherServer.trigger(
         `private-user-${recipientId}`,
         "new-conversation-message",
@@ -264,11 +243,9 @@ export async function sendMessageAction(
         }
     )
 
-    // ── Redis: increment unread count for recipient ───────────────────────────
     await redis.incr(redisKeys.unreadCount(recipientId, conversationId))
     await redis.incr(redisKeys.totalUnread(recipientId))
 
-    // ── Create DB notification ────────────────────────────────────────────────
     await prisma.notification.create({
         data: {
             userId: recipientId,
@@ -286,8 +263,6 @@ export async function sendMessageAction(
     return { success: true, message }
 }
 
-// ── Send typing indicator ─────────────────────────────────────────────────────
-
 export async function sendTypingAction(
     conversationId: string,
     isTyping:       boolean
@@ -301,8 +276,6 @@ export async function sendTypingAction(
         { userId: session.user.id, isTyping }
     )
 }
-
-// ── Get message requests ──────────────────────────────────────────────────────
 
 export async function getMessageRequestsAction() {
     const session = await auth()
@@ -329,10 +302,6 @@ export async function getMessageRequestsAction() {
     return requests
 }
 
-// ── Accept message request ────────────────────────────────────────────────────
-
-// ── Accept message request ────────────────────────────────────────────────────
-
 export async function acceptMessageRequestAction(requestId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -344,9 +313,7 @@ export async function acceptMessageRequestAction(requestId: string) {
     })
     if (!request) return { error: "Request not found." }
 
-    // Full transaction
     const { conversation } = await prisma.$transaction(async (tx) => {
-        // 1. Create conversation
         const conversation = await tx.conversation.create({
             data: {
                 creatorId:    creator.id,
@@ -354,13 +321,11 @@ export async function acceptMessageRequestAction(requestId: string) {
             },
         })
 
-        // 2. Accept the request
         await tx.messageRequest.update({
             where: { id: requestId },
             data:  { status: "ACCEPTED" },
         })
 
-        // 3. Create the first message
         await tx.message.create({
             data: {
                 conversationId: conversation.id,
@@ -370,7 +335,6 @@ export async function acceptMessageRequestAction(requestId: string) {
             },
         })
 
-        // 4. Send notification to the fan
         await tx.notification.create({
             data: {
                 userId: request.fromUserId,
@@ -384,7 +348,6 @@ export async function acceptMessageRequestAction(requestId: string) {
         return { conversation }
     })
 
-    // Notify fan via Pusher
     await pusherServer.trigger(
         `private-user-${request.fromUserId}`,
         "message-request-accepted",
@@ -393,8 +356,6 @@ export async function acceptMessageRequestAction(requestId: string) {
 
     return { success: true, conversationId: conversation.id }
 }
-
-// ── Decline message request ───────────────────────────────────────────────────
 
 export async function declineMessageRequestAction(requestId: string) {
     const session = await auth()
@@ -414,8 +375,6 @@ export async function declineMessageRequestAction(requestId: string) {
 
     return { success: true }
 }
-
-// ── Get total unread count ────────────────────────────────────────────────────
 
 export async function getTotalUnreadAction() {
     const session = await auth()

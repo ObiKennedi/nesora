@@ -1,3 +1,4 @@
+// components/fan/messages/FanChatWindow.tsx
 "use client"
 
 import {
@@ -6,7 +7,7 @@ import {
 } from "react"
 import Image from "next/image"
 import {
-    Send, Mic, ImagePlus, X,
+    Send, Mic, ImagePlus,
     Loader2, CheckCheck, Check,
     StopCircle, ArrowLeft,
 } from "lucide-react"
@@ -15,8 +16,10 @@ import {
     sendFanMessageAction,
     sendFanTypingAction,
 } from "@/actions/fan/messages"
-import { getPusherClient } from "@/lib/pusher-client"
-import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns"
+import { getPusherClient }   from "@/lib/pusher-client"
+import { format, isToday, isYesterday } from "date-fns"
+import { CallHeaderButtons } from "@/component/calls/CallHeaderButtons"
+import { CallEventBubble }   from "@/component/calls/CallEventBubble"
 import "@/styles/fan/messages/FanChatWindow.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,6 +31,7 @@ type Message = {
     mediaUrl:      string | null
     voiceNoteUrl:  string | null
     voiceDuration: number | null
+    callId:        string | null
     isRead:        boolean
     readAt:        Date   | null
     createdAt:     Date
@@ -301,6 +305,13 @@ export const FanChatWindow = ({
                         </p>
                     )}
                 </div>
+
+                {/* Sibling of header-info — .call-header-btns right-aligns
+                    itself via margin-left: auto */}
+                <CallHeaderButtons
+                    conversationId={conversation.id}
+                    counterpart={{ name: creatorName, image: creatorImage }}
+                />
             </div>
 
             {/* ── Messages ── */}
@@ -334,67 +345,76 @@ export const FanChatWindow = ({
                                         </div>
                                     )}
 
-                                    <div className={`fan-msg ${isMine ? "fan-msg--mine" : "fan-msg--theirs"}`}>
-                                        {/* Sender avatar (theirs only) */}
-                                        {!isMine && (
-                                            <div className="fan-msg__avatar">
-                                                {msg.sender.image ? (
-                                                    <Image
-                                                        src={msg.sender.image}
-                                                        alt=""
-                                                        width={28}
-                                                        height={28}
-                                                    />
-                                                ) : (
-                                                    <span>
-                                                        {(msg.sender.firstName ?? "?").charAt(0).toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Bubble */}
-                                        <div className="fan-msg__bubble">
-                                            {msg.type === "TEXT" && (
-                                                <p>{msg.content}</p>
-                                            )}
-                                            {msg.type === "IMAGE" && msg.mediaUrl && (
-                                                <img
-                                                    src={msg.mediaUrl}
-                                                    alt="Shared image"
-                                                    className="fan-msg__image"
-                                                />
-                                            )}
-                                            {msg.type === "VIDEO" && msg.mediaUrl && (
-                                                <video
-                                                    src={msg.mediaUrl}
-                                                    controls
-                                                    className="fan-msg__video"
-                                                />
-                                            )}
-                                            {msg.type === "VOICE_NOTE" && msg.voiceNoteUrl && (
-                                                <div className="fan-msg__voice">
-                                                    <Mic size={14} />
-                                                    <audio src={msg.voiceNoteUrl} controls />
+                                    {msg.type === "CALL_EVENT" ? (
+                                        /* Call events render as a centered chip,
+                                           outside the mine/theirs bubble layout */
+                                        <CallEventBubble
+                                            content={msg.content ?? "Call"}
+                                            createdAt={msg.createdAt}
+                                        />
+                                    ) : (
+                                        <div className={`fan-msg ${isMine ? "fan-msg--mine" : "fan-msg--theirs"}`}>
+                                            {/* Sender avatar (theirs only) */}
+                                            {!isMine && (
+                                                <div className="fan-msg__avatar">
+                                                    {msg.sender.image ? (
+                                                        <Image
+                                                            src={msg.sender.image}
+                                                            alt=""
+                                                            width={28}
+                                                            height={28}
+                                                        />
+                                                    ) : (
+                                                        <span>
+                                                            {(msg.sender.firstName ?? "?").charAt(0).toUpperCase()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
 
-                                            {/* Meta */}
-                                            <div className="fan-msg__meta">
-                                                <span className="fan-msg__time">
-                                                    {format(new Date(msg.createdAt), "h:mm a")}
-                                                </span>
-                                                {isMine && (
-                                                    <span className="fan-msg__read">
-                                                        {msg.isRead
-                                                            ? <CheckCheck size={12} className="read--done" />
-                                                            : <Check      size={12} />
-                                                        }
-                                                    </span>
+                                            {/* Bubble */}
+                                            <div className="fan-msg__bubble">
+                                                {msg.type === "TEXT" && (
+                                                    <p>{msg.content}</p>
                                                 )}
+                                                {msg.type === "IMAGE" && msg.mediaUrl && (
+                                                    <img
+                                                        src={msg.mediaUrl}
+                                                        alt="Shared image"
+                                                        className="fan-msg__image"
+                                                    />
+                                                )}
+                                                {msg.type === "VIDEO" && msg.mediaUrl && (
+                                                    <video
+                                                        src={msg.mediaUrl}
+                                                        controls
+                                                        className="fan-msg__video"
+                                                    />
+                                                )}
+                                                {msg.type === "VOICE_NOTE" && msg.voiceNoteUrl && (
+                                                    <div className="fan-msg__voice">
+                                                        <Mic size={14} />
+                                                        <audio src={msg.voiceNoteUrl} controls />
+                                                    </div>
+                                                )}
+
+                                                {/* Meta */}
+                                                <div className="fan-msg__meta">
+                                                    <span className="fan-msg__time">
+                                                        {format(new Date(msg.createdAt), "h:mm a")}
+                                                    </span>
+                                                    {isMine && (
+                                                        <span className="fan-msg__read">
+                                                            {msg.isRead
+                                                                ? <CheckCheck size={12} className="read--done" />
+                                                                : <Check      size={12} />
+                                                            }
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )
                         })}

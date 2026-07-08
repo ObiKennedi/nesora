@@ -154,7 +154,6 @@ export async function sendFanMessageAction(
     if (type === "VIDEO"      && !mediaUrl)          return { error: "Video URL is required."      }
     if (type === "VOICE_NOTE" && !voiceNoteUrl)      return { error: "Voice note URL is required." }
 
-    // Verify the fan belongs to this conversation
     const conversation = await prisma.conversation.findFirst({
         where: {
             id:           conversationId,
@@ -188,8 +187,6 @@ export async function sendFanMessageAction(
             },
         },
     })
-
-    // Update conversation
     await prisma.conversation.update({
         where: { id: conversationId },
         data: {
@@ -205,14 +202,12 @@ export async function sendFanMessageAction(
 
     const recipientId = conversation.creator.userId
 
-    // Pusher: conversation channel
     await pusherServer.trigger(
         `private-conversation-${conversationId}`,
         "new-message",
         { message }
     )
 
-    // Pusher: creator's personal channel
     await pusherServer.trigger(
         `private-user-${recipientId}`,
         "new-conversation-message",
@@ -228,11 +223,9 @@ export async function sendFanMessageAction(
         }
     )
 
-    // Redis unread
     await redis.incr(redisKeys.unreadCount(recipientId, conversationId))
     await redis.incr(redisKeys.totalUnread(recipientId))
 
-    // DB notification for the creator
     await prisma.notification.create({
         data: {
             userId: recipientId,
@@ -250,8 +243,6 @@ export async function sendFanMessageAction(
     return { success: true, message }
 }
 
-// ── Typing indicator ──────────────────────────────────────────────────────────
-
 export async function sendFanTypingAction(
     conversationId: string,
     isTyping:       boolean
@@ -265,8 +256,6 @@ export async function sendFanTypingAction(
         { userId: session.user.id, isTyping }
     )
 }
-
-// ── Send message request ──────────────────────────────────────────────────────
 
 const MessageRequestSchema = z.object({
     creatorId: z.string().min(1),
@@ -284,14 +273,12 @@ export async function sendMessageRequestAction(
 
     const { creatorId, message } = parsed.data
 
-    // Verify creator exists
     const creator = await prisma.creator.findUnique({
         where:  { id: creatorId },
         select: { id: true, userId: true, displayName: true },
     })
     if (!creator) return { error: "Creator not found." }
 
-    // Check for existing conversation
     const existingConversation = await prisma.conversation.findFirst({
         where: {
             creatorId:    creator.id,
@@ -302,7 +289,6 @@ export async function sendMessageRequestAction(
         return { error: "You already have a conversation with this creator." }
     }
 
-    // Check for existing pending request
     const existingRequest = await prisma.messageRequest.findFirst({
         where: {
             fromUserId:  session.user.id,
@@ -322,7 +308,6 @@ export async function sendMessageRequestAction(
         },
     })
 
-    // Notify creator via Pusher
     await pusherServer.trigger(
         `private-user-${creator.userId}`,
         "new-message-request",
@@ -336,7 +321,6 @@ export async function sendMessageRequestAction(
         }
     )
 
-    // DB notification for the creator
     await prisma.notification.create({
         data: {
             userId: creator.userId,
@@ -349,8 +333,6 @@ export async function sendMessageRequestAction(
 
     return { success: true, requestId: request.id }
 }
-
-// ── Get fan's sent message requests ───────────────────────────────────────────
 
 export async function getFanMessageRequestsAction() {
     const session = await auth()
@@ -374,8 +356,6 @@ export async function getFanMessageRequestsAction() {
     return requests
 }
 
-// ── Get followed creators (with subscription + conversation + request status) ─
-
 export async function getFollowedCreatorsAction() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
@@ -396,7 +376,6 @@ export async function getFollowedCreatorsAction() {
 
     const creatorIds = follows.map((f) => f.creator.id)
 
-    // Batch-fetch subscriptions (with plan details), conversations, and pending requests
     const [subscriptions, conversations, pendingRequests] = await Promise.all([
         prisma.subscription.findMany({
             where: {
@@ -457,13 +436,10 @@ export async function getFollowedCreatorsAction() {
     }))
 }
 
-// ── Start conversation (subscriber → creator, auto-create) ────────────────────
-
 export async function startConversationAction(creatorId: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    // Verify active subscription
     const subscription = await prisma.subscription.findFirst({
         where: {
             userId:    session.user.id,
@@ -475,7 +451,6 @@ export async function startConversationAction(creatorId: string) {
         return { error: "You must be subscribed to message this creator directly." }
     }
 
-    // Check for existing conversation
     const existing = await prisma.conversation.findFirst({
         where: {
             creatorId,
@@ -484,7 +459,6 @@ export async function startConversationAction(creatorId: string) {
     })
     if (existing) return { success: true, conversationId: existing.id }
 
-    // Create new conversation
     const conversation = await prisma.conversation.create({
         data: {
             creatorId,
@@ -492,7 +466,6 @@ export async function startConversationAction(creatorId: string) {
         },
     })
 
-    // Notify creator
     const creator = await prisma.creator.findUnique({
         where:  { id: creatorId },
         select: { userId: true },
@@ -507,8 +480,6 @@ export async function startConversationAction(creatorId: string) {
 
     return { success: true, conversationId: conversation.id }
 }
-
-// ── Get fan total unread ──────────────────────────────────────────────────────
 
 export async function getFanTotalUnreadAction() {
     const session = await auth()

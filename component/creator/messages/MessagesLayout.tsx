@@ -8,12 +8,12 @@ import {
     useCallback,
     SetStateAction
 } from "react"
-import { 
-    MessageCircle, 
-    Loader2, 
+import {
+    MessageCircle,
+    Loader2,
     Users,
     Star,
-    Inbox 
+    Inbox
 } from "lucide-react"
 import { getConversationsAction } from "@/actions/creator/messages"
 import { ConversationList } from "./ConversationList"

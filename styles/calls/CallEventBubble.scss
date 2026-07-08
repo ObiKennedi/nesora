@@ -1,0 +1,34 @@
+// styles/calls/CallEventBubble.scss
+
+.call-event {
+    display:         flex;
+    justify-content: center;
+    padding:         var(--space-2) 0;
+
+    &__chip {
+        display:       inline-flex;
+        align-items:   center;
+        gap:           var(--space-2);
+        padding:       var(--space-1) var(--space-3);
+        font-size:     var(--font-size-xs);
+        font-weight:   var(--font-weight-medium);
+        color:         var(--color-text-secondary);
+        background:    var(--color-bg-alt);
+        border:        var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-full);
+
+        svg { flex-shrink: 0; }
+
+        &--missed {
+            color: var(--color-error);
+
+            svg { color: var(--color-error); }
+        }
+    }
+
+    &__time {
+        font-size: var(--font-size-xs);
+        color:     var(--color-text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+}

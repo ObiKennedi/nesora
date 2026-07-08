@@ -1,10 +1,9 @@
-// actions/creator/notifications.ts
 "use server"
 
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { unstable_cache, revalidateTag } from "next/cache"  // ← top-level import
+import { unstable_cache, revalidateTag } from "next/cache"
 
 const fetchNotifications = unstable_cache(
     async (userId: string) => {
@@ -45,7 +44,7 @@ export async function markAllRead() {
         data: { read: true },
     })
 
-    revalidateTag("notifications", {})  // ← no dynamic import needed
+    revalidateTag("notifications", {}) 
 }
 
 export async function markOneRead(id: string) {
