@@ -1,24 +1,18 @@
 // actions/stories.ts
 "use server"
 
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { auth }             from "@/lib/auth"
+import { prisma }           from "@/lib/prisma"
 import { redis, redisKeys } from "@/lib/redis"
-import { pusherServer } from "@/lib/pusher"
-import { cloudinary } from "@/lib/cloudinary-server"
-import { redirect } from "next/navigation"
-import { z } from "zod"
-import { PostAccessLevel, StoryMediaType } from "@prisma/client"
+import { pusherServer }     from "@/lib/pusher"
+import { cloudinary }       from "@/lib/cloudinary-server"
+import { redirect }         from "next/navigation"
+import { z }                from "zod"
+import { PostAccessLevel }  from "@prisma/client"
+import { TEXT_CARD_BACKGROUNDS, TEXT_CARD_FONTS } from "@/lib/story-constants"
 
 const STORY_TTL_HOURS   = 24
 const MAX_VIDEO_SECONDS = 60
-
-// Text card presets — single source of truth, shared with the composer UI
-export const TEXT_CARD_BACKGROUNDS = [
-    "#c2622a", "#1a1a2e", "#0f3d2e", "#4a1942", "#8c2f39", "#2b4162",
-] as const
-
-export const TEXT_CARD_FONTS = ["classic", "bold", "mono"] as const
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -202,7 +196,7 @@ export async function getStoryViewersAction(storyId: string) {
     const creator = await getCreatorOrThrow(session.user.id)
 
     const story = await prisma.story.findFirst({
-        where: { id: storyId, creatorId: creator.id },
+        where:  { id: storyId, creatorId: creator.id },
         select: { id: true },
     })
     if (!story) return { error: "Story not found." as const }
@@ -271,7 +265,7 @@ export async function getStoriesRailAction() {
 
     const creators = await prisma.creator.findMany({
         where: {
-            id: { in: creatorIds },
+            id:      { in: creatorIds },
             stories: { some: unexpired() },
         },
         select: {
@@ -343,7 +337,8 @@ export async function recordStoryViewAction(storyId: string) {
 
     // Creators viewing their own story don't count
     const ownCreator = await prisma.creator.findUnique({
-        where: { userId }, select: { id: true },
+        where:  { userId },
+        select: { id: true },
     })
     if (ownCreator?.id === story.creatorId) return { success: true }
 
@@ -361,8 +356,6 @@ export async function recordStoryViewAction(storyId: string) {
 
     return { success: true }
 }
-
-// ── Fan: Reply to Story ───────────────────────────────────────────────────────
 
 // ── Fan: Reply to Story ───────────────────────────────────────────────────────
 
@@ -480,7 +473,7 @@ export async function replyToStoryAction(storyId: string, content: string) {
         return { success: true, delivered: "MESSAGE" as const }
     }
 
-    // ── Message request path (follower, non-subscriber) ──────────────────────
+    // ── Message request path (follower, non-subscriber) ───────────────────────
     const pendingRequest = await prisma.messageRequest.findFirst({
         where: {
             fromUserId:  userId,

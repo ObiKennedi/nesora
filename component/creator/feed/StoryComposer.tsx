@@ -6,7 +6,8 @@ import {
     X, ImageIcon, Video, Type, Loader2, Eye,
 } from "lucide-react"
 import { PostAccessLevel } from "@prisma/client"
-import { createStoryAction, TEXT_CARD_BACKGROUNDS, TEXT_CARD_FONTS } from "@/actions/stories"
+import { createStoryAction } from "@/actions/stories"
+import { TEXT_CARD_BACKGROUNDS, TEXT_CARD_FONTS } from "@/lib/story-constants"
 import { uploadToCloudinaryWithId } from "@/lib/cloudinary-client"
 import { AccessPicker } from "./AccessPicker"
 import "@/styles/creator/feed/StoryComposer.scss"
