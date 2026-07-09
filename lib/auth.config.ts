@@ -53,6 +53,7 @@ export default {
 
                 if (!user || !user.password) return null
                 if (!user.emailVerified) return null
+                if (user.isSuspended) return null 
 
                 const valid = await bcrypt.compare(credentials.password as string, user.password)
                 if (!valid) return null
