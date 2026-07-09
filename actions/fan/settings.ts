@@ -27,6 +27,7 @@ export async function getFanSettingsAction() {
             password:      true,
             accounts:      { select: { provider: true } },
             categoryInterests: { select: { category: true } },
+            creator:       { select: { handle: true } },
         },
     })
 
@@ -34,6 +35,7 @@ export async function getFanSettingsAction() {
 
     const isGoogleAccount = user.accounts.some((a) => a.provider === "google")
     const hasPassword     = !!user.password
+    const isCreator       = !!user.creator?.handle
 
     return {
         user: {
@@ -47,6 +49,7 @@ export async function getFanSettingsAction() {
         interests:       user.categoryInterests.map((c) => c.category),
         isGoogleAccount,
         hasPassword,
+        isCreator,
     }
 }
 
@@ -335,4 +338,37 @@ export async function deleteFanAccountAction(password?: string) {
 
     await prisma.user.delete({ where: { id: session.user.id } })
     await signOut({ redirectTo: "/" })
+}
+
+// ── Switch to creator mode ────────────────────────────────────────────────────
+
+type SwitchToCreatorResult =
+    | { success: true;  destination: "dashboard" | "onboarding" }
+    | { success: false; error: string }
+
+export async function switchToCreatorAction(): Promise<SwitchToCreatorResult> {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Not authenticated." }
+
+    const user = await prisma.user.findUnique({
+        where:  { id: session.user.id },
+        select: {
+            onboardingType: true,
+            creator: { select: { id: true, handle: true } },
+        },
+    })
+    if (!user) return { success: false, error: "User not found." }
+
+    // Fully onboarded creator just browsing fan mode
+    if (user.creator?.handle) return { success: true, destination: "dashboard" }
+
+    // New creator, or one who bailed mid-onboarding — flip intent, resume flow
+    if (user.onboardingType !== "CREATOR") {
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data:  { onboardingType: "CREATOR" },
+        })
+    }
+
+    return { success: true, destination: "onboarding" }
 }

@@ -3,11 +3,12 @@
 
 import { useState, useTransition, useRef, useEffect } from "react"
 import Image                                            from "next/image"
+import { useRouter }                                    from "next/navigation"
 import { signOut, useSession }                          from "next-auth/react"
 import {
     User, AtSign, Lock, Heart, Bell, Trash2,
     Loader2, Camera, CheckCircle, XCircle, LogOut,
-    AlertTriangle, X,
+    AlertTriangle, ArrowRightLeft,
 } from "lucide-react"
 import {
     updateFanAccountAction,
@@ -19,10 +20,16 @@ import {
     getFanNotificationPrefsAction,
     updateFanNotificationPrefsAction,
     deleteFanAccountAction,
+    switchToCreatorAction,
 } from "@/actions/fan/settings"
 import { CATEGORIES }   from "@/lib/categories"
 import { Category }     from "@prisma/client"
 import "@/styles/fan/Settings.scss"
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+const CREATOR_DASHBOARD = "/creator/dashboard"   // ← adjust to your actual route
+const ONBOARDING        = "/onboarding"          // ← adjust to your actual route
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,17 +47,18 @@ type Props = {
     interests:       Category[]
     isGoogleAccount: boolean
     hasPassword:     boolean
+    isCreator:       boolean   // ← new: true when user has a Creator row with a handle
 }
 
 type Tab = "account" | "username" | "password" | "interests" | "notifications" | "danger"
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "account",       label: "Account",       icon: <User    size={16} /> },
-    { id: "username",      label: "Username",      icon: <AtSign  size={16} /> },
-    { id: "password",      label: "Password",      icon: <Lock    size={16} /> },
-    { id: "interests",     label: "Interests",     icon: <Heart   size={16} /> },
-    { id: "notifications", label: "Notifications", icon: <Bell    size={16} /> },
-    { id: "danger",        label: "Account",       icon: <Trash2  size={16} /> },
+    { id: "account",       label: "Account",        icon: <User    size={16} /> },
+    { id: "username",      label: "Username",       icon: <AtSign  size={16} /> },
+    { id: "password",      label: "Password",       icon: <Lock    size={16} /> },
+    { id: "interests",     label: "Interests",      icon: <Heart   size={16} /> },
+    { id: "notifications", label: "Notifications",  icon: <Bell    size={16} /> },
+    { id: "danger",        label: "Delete Account", icon: <Trash2  size={16} /> },
 ]
 
 // ── Cloudinary upload ─────────────────────────────────────────────────────────
@@ -72,15 +80,37 @@ async function uploadAvatar(file: File): Promise<string> {
 
 // ── FanSettingsClient ─────────────────────────────────────────────────────────
 
-export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPassword }: Props) => {
+export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPassword, isCreator }: Props) => {
     const { update: updateSession } = useSession()
+    const router = useRouter()
 
     const [activeTab, setActiveTab] = useState<Tab>("account")
     const [toast,     setToast]     = useState<{ msg: string; type: "success" | "error" } | null>(null)
+    const [isSwitching, startSwitch] = useTransition()
 
     const showToast = (msg: string, type: "success" | "error" = "success") => {
         setToast({ msg, type })
         setTimeout(() => setToast(null), 3000)
+    }
+
+    const handleSwitchToCreator = () => {
+        // Fully onboarded creator browsing fan mode — plain navigation, no server work
+        if (isCreator) {
+            router.push(CREATOR_DASHBOARD)
+            return
+        }
+
+        // Not a creator yet (or bailed mid-onboarding) — flip intent, resume flow
+        startSwitch(async () => {
+            const res = await switchToCreatorAction()
+            if (!res.success) {
+                showToast(res.error, "error")
+                return
+            }
+            // Refresh the JWT so middleware sees the new onboardingType before navigating
+            await updateSession?.()
+            router.push(res.destination === "dashboard" ? CREATOR_DASHBOARD : ONBOARDING)
+        })
     }
 
     return (
@@ -103,9 +133,19 @@ export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPasswor
                             onClick={() => setActiveTab(tab.id)}
                         >
                             {tab.icon}
-                            <span>{tab.id === "danger" ? "Delete Account" : tab.label}</span>
+                            <span>{tab.label}</span>
                         </button>
                     ))}
+
+                    <button
+                        type="button"
+                        className="fan-settings-tab fan-settings-tab--creator"
+                        onClick={handleSwitchToCreator}
+                        disabled={isSwitching}
+                    >
+                        {isSwitching ? <Loader2 size={16} className="spin" /> : <ArrowRightLeft size={16} />}
+                        <span>{isCreator ? "Creator Dashboard" : "Become a Creator"}</span>
+                    </button>
 
                     <button
                         type="button"
@@ -580,7 +620,7 @@ const DangerTab = ({
                             className="settings-delete-btn settings-delete-btn--final"
                             onClick={handleDelete}
                             disabled={isPending || (hasPassword && !password)}
-                        >
+                        >                            
                             {isPending ? <><Loader2 size={15} className="spin" /> Deleting…</> : "Permanently Delete"}
                         </button>
                         <button

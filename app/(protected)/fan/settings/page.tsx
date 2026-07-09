@@ -19,6 +19,7 @@ export default async function FanSettingsPage() {
                 interests={data.interests}
                 isGoogleAccount={data.isGoogleAccount}
                 hasPassword={data.hasPassword}
+                isCreator={data.isCreator}
             />
         </Suspense>
     )

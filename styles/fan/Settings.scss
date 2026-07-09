@@ -521,3 +521,16 @@
 
     .settings-grid { grid-template-columns: 1fr }
 }
+
+.fan-settings-tab--creator {
+    color: var(--color-primary); // your terracotta token
+
+    &:hover {
+        background: rgba(194, 98, 42, 0.08);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
