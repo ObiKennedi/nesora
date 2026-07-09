@@ -3,7 +3,7 @@ import {
     LayoutDashboard, FileText, Users,
     Radio, MessageCircle, BarChart2,
     Wallet, BadgeDollarSign, UserCircle,
-    ShieldCheck, Settings,
+    ShieldCheck, Settings, Phone
 } from "lucide-react"
 
 export type NavChild = { label: string; href: string }
@@ -29,6 +29,11 @@ export const NAV: NavItem[] = [
             { label: "Drafts", href: "/creator/content/drafts" },
             { label: "Scheduled", href: "/creator/content/scheduled" },
         ],
+    },
+    {
+        label: "Calls",
+        href:"/creator/calls",
+        icon: <Phone size={18}/>,
     },
     {
         label: "Audience",

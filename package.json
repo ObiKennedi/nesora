@@ -23,6 +23,7 @@
     "amazon-ivs-web-broadcast": "^1.37.0",
     "aos": "^2.3.4",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",

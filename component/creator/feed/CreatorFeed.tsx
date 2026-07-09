@@ -6,6 +6,7 @@ import { PenLine, Loader2 } from "lucide-react"
 import { PostCard } from "./PostCard"
 import { FeedFilters } from "./FeedFilters"
 import { CreatePostModal } from "./CreatePostModal"
+import { StoriesRow } from "./StoriesRow"
 import { getCreatorPostsAction } from "@/actions/creator/posts"
 import { PostStatus, PostType } from "@prisma/client"
 import { useSearchParams } from "next/navigation"
@@ -62,6 +63,7 @@ export const CreatorFeed = () => {
 
     return (
         <div className="creator-feed">
+            <StoriesRow />
 
             {/* ── Toolbar ── */}
             <div className="creator-feed__toolbar">

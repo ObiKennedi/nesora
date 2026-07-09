@@ -11,8 +11,6 @@ import {
     PostAccessLevel,
 } from "@prisma/client"
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
-
 const PollSchema = z.object({
     question:  z.string().min(1, "Poll question is required"),
     options:   z.array(z.string().min(1)).min(2, "At least 2 options required").max(6),

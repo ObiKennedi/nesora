@@ -193,6 +193,63 @@ enum CallStatus {
   FAILED
 }
 
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum StoryMediaType {
+  PHOTO
+  VIDEO
+  TEXT_CARD
+}
+
+// ── Story ─────────────────────────────────────────────────────────────────────
+
+model Story {
+  id        String @id @default(cuid())
+  creatorId String
+
+  mediaType StoryMediaType
+
+  mediaUrl           String?
+  thumbnailUrl       String?
+  cloudinaryPublicId String?
+  duration           Int?
+
+  body            String?
+  backgroundColor String?
+  fontStyle       String?
+
+  caption String?
+
+  accessLevel    PostAccessLevel @default(PUBLIC)
+  allowedPlanIds String[]
+
+  viewCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  creator Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  views   StoryView[]
+  replies Message[]
+
+  @@index([creatorId, expiresAt])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+model StoryView {
+  id      String @id @default(cuid())
+  storyId String
+  userId  String
+
+  createdAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@map("story_views")
+}
+
 model BankAccount {
   id            String            @id @default(cuid())
   creatorId     String
@@ -212,7 +269,6 @@ model BankAccount {
   @@map("bank_accounts")
 }
 
-// Add Tip model — not in V1 schema but needed for earnings
 model Tip {
   id         String   @id @default(cuid())
   fromUserId String
@@ -241,8 +297,12 @@ model Message {
   createdAt      DateTime    @default(now())
   callId         String?
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User            @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  story          Story?          @relation(fields: [storyId], references: [id])
+  storyId        String?
+  storyCaption   String?
+  storyMediaType StoryMediaType?
 
   @@map("messages")
 }
@@ -356,7 +416,6 @@ model Poll {
   question  String
   expiresAt DateTime?
 
-  // Relations
   post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
   options PollOption[]
 
@@ -370,7 +429,6 @@ model PollOption {
   text      String
   voteCount Int    @default(0)
 
-  // Relations
   poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes PollVote[]
 
@@ -384,7 +442,6 @@ model PollVote {
 
   createdAt DateTime @default(now())
 
-  // Relations
   option PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
   @@unique([pollOptionId, userId])
@@ -398,7 +455,6 @@ model PostLike {
 
   createdAt DateTime @default(now())
 
-  // Relations
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
@@ -620,7 +676,8 @@ model Creator {
   videoCallRate     Decimal? @db.Decimal(10, 2)
   availableForCalls Boolean  @default(false)
 
-  calls Call[]
+  calls   Call[]
+  stories Story[]
 
   @@map("creators")
 }
