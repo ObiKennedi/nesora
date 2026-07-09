@@ -7,7 +7,7 @@ import { getPusherClient } from "@/lib/pusher-client"
 import { getStreamForWatchAction } from "@/actions/fan/live"
 import LiveChat from "@/component/creator/live/LiveChat"
 import LiveGiftWallet from "@/component/creator/live/LiveGiftWallet"
-import { GiftModal } from "@/component/fan/feed/GiftModal"
+import { GiftPanel } from "@/component/fan/feed/GiftPanel"
 import "@/styles/creator/live.scss"
 import "@/styles/fan/Watch.scss"
 
@@ -133,7 +133,7 @@ export default function WatchClient({ data, currentUserId }: { data: WatchData; 
             )}
 
             {showGift && (
-                <GiftModal
+                <GiftPanel
                     creatorId={creator.id}
                     liveStreamId={stream.id}
                     onClose={() => setShowGift(false)}
