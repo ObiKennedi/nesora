@@ -1,0 +1,256 @@
+// styles/creator/feed/StoriesRow.scss
+.stories-row {
+  margin-bottom: var(--space-5, 1.5rem);
+
+  &__scroll {
+    display: flex;
+    gap: var(--space-3, 0.75rem);
+    overflow-x: auto;
+    padding-bottom: var(--space-2, 0.5rem);
+    scrollbar-width: thin;
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    padding: var(--space-4, 1rem);
+    color: var(--text-tertiary, #999);
+  }
+}
+
+.story-tile {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  &__frame {
+    position: relative;
+    width: 84px;
+    height: 132px;
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+    border: 2px solid var(--color-primary, #c2622a);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__text-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2, 0.5rem);
+
+    span {
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  &__views {
+    position: absolute;
+    bottom: var(--space-1, 0.25rem);
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: var(--radius-full, 999px);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+
+  &__expiry {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    color: var(--text-tertiary, #999);
+  }
+
+  &--add {
+    .story-tile__add-circle {
+      width: 84px;
+      height: 132px;
+      border-radius: var(--radius-lg, 12px);
+      border: 2px dashed var(--border-color, #e0e0e0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-primary, #c2622a);
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    span {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-secondary, #666);
+    }
+
+    &:hover .story-tile__add-circle {
+      border-color: var(--color-primary, #c2622a);
+      background: color-mix(
+        in srgb,
+        var(--color-primary, #c2622a) 6%,
+        transparent
+      );
+    }
+  }
+}
+
+// ── Viewers sheet ─────────────────────────────────────────────────────────────
+
+.story-viewers-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+
+  @media (min-width: 640px) {
+    align-items: center;
+  }
+}
+
+.story-viewers {
+  width: 100%;
+  max-width: 420px;
+  max-height: 70vh;
+  background: var(--bg-surface, #fff);
+  border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 640px) {
+    border-radius: var(--radius-xl, 16px);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4, 1rem);
+    border-bottom: 1px solid var(--border-color, #eee);
+
+    h3 {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 0.5rem);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 0.5rem);
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary, #666);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+  }
+
+  &__delete {
+    color: var(--color-danger, #c0392b) !important;
+    font-weight: 600;
+  }
+
+  &__list {
+    overflow-y: auto;
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+  }
+
+  &__loading,
+  &__empty {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-6, 2rem);
+    color: var(--text-tertiary, #999);
+    font-size: 0.8rem;
+  }
+}
+
+.story-viewer-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-2, 0.5rem) 0;
+
+  img,
+  &__initial {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary, #c2622a);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__handle {
+    font-size: 0.7rem;
+    color: var(--text-tertiary, #999);
+  }
+
+  &__time {
+    margin-left: auto;
+    font-size: 0.68rem;
+    color: var(--text-tertiary, #999);
+    flex-shrink: 0;
+  }
+}
