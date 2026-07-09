@@ -2,12 +2,15 @@
 "use client"
 
 import { useState, Suspense } from "react"
-import { useSession }     from "next-auth/react"
-import { FanTopBar }      from "@/component/fan/layout/FanTopBar"
-import { FanBottomNav }   from "@/component/fan/layout/FanBottomNav"
-import { WalletModal }    from "@/component/fan/wallet/WalletModal"
-import { Loader }         from "@/component/essentials/Loader"
-import { CallProvider }   from "@/component/calls/CallProvider"
+import { useSession }         from "next-auth/react"
+import { FanTopBar }          from "@/component/fan/layout/FanTopBar"
+import { FanSideNav }         from "@/component/fan/layout/FanSideNav"
+import { FanBottomNav }       from "@/component/fan/layout/FanBottomNav"
+import { WalletModal }        from "@/component/fan/wallet/WalletModal"
+import { Loader }             from "@/component/essentials/Loader"
+import { CallProvider }       from "@/component/calls/CallProvider"
+import { MessagesProvider }   from "@/component/fan/messages/MessagesProvider"
+import { ChatDock }           from "@/component/fan/messages/ChatDock"
 import "@/styles/fan/FanLayout.scss"
 
 export default function FanLayout({
@@ -18,25 +21,39 @@ export default function FanLayout({
     const { data: session } = useSession()
     const [walletOpen, setWalletOpen] = useState(false)
 
+    const userId = session?.user?.id ?? ""
+
     return (
-        <CallProvider role="fan" currentUserId={session?.user?.id ?? ""}>
-            <div className="fan-shell">
+        // CallProvider stays outermost and OUTSIDE Suspense — it subscribes to
+        // `user-${id}` first, which MessagesProvider then shares.
+        <CallProvider role="fan" currentUserId={userId}>
+            <MessagesProvider currentUserId={userId}>
+                <div className="fan-shell">
 
-                <FanTopBar />
+                    {/* Desktop only */}
+                    <FanSideNav onWalletOpen={() => setWalletOpen(true)} />
 
-                <main className="fan-content">
-                    <Suspense fallback={<Loader />}>
-                        {children}
-                    </Suspense>
-                </main>
+                    {/* Mobile only */}
+                    <FanTopBar />
 
-                <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
+                    <main className="fan-content">
+                        <Suspense fallback={<Loader />}>
+                            {children}
+                        </Suspense>
+                    </main>
 
-                {walletOpen && (
-                    <WalletModal onClose={() => setWalletOpen(false)} />
-                )}
+                    {/* Mobile only */}
+                    <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
 
-            </div>
+                    {/* Desktop only — persists across route changes */}
+                    <ChatDock currentUserId={userId} />
+
+                    {walletOpen && (
+                        <WalletModal onClose={() => setWalletOpen(false)} />
+                    )}
+
+                </div>
+            </MessagesProvider>
         </CallProvider>
     )
 }

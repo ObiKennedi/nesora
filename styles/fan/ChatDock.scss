@@ -1,0 +1,223 @@
+// styles/fan/ChatDock.scss
+//
+// Desktop only. Below 1024px the dock is hidden entirely — mobile users reach
+// messages through the bottom nav and the /fan/messages route.
+
+$dock-width:  340px;
+$dock-height: 480px;
+
+// ─── Collapsed pill ───────────────────────────────────────────────────────────
+
+.chat-dock__pill {
+    display: none;
+
+    @media (min-width: 1024px) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        position: fixed;
+        right: var(--space-6);
+        bottom: var(--space-6);
+        z-index: var(--z-sticky);
+        padding: var(--space-3) var(--space-5);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-full);
+        background-color: var(--color-surface);
+        box-shadow: var(--shadow-lg);
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        cursor: pointer;
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+
+        &:hover  { transform: translateY(-2px); box-shadow: var(--shadow-xl) }
+        &:active { transform: translateY(0) }
+    }
+
+    &-label { white-space: nowrap }
+
+    &-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: 10px;
+        font-weight: var(--font-weight-bold);
+    }
+}
+
+// ─── Expanded dock ────────────────────────────────────────────────────────────
+
+.chat-dock {
+    display: none;
+
+    @media (min-width: 1024px) {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        right: var(--space-6);
+        bottom: 0;
+        z-index: var(--z-sticky);
+        width: #{$dock-width};
+        height: #{$dock-height};
+        max-height: calc(100svh - var(--space-8));
+        background-color: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-bottom: none;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+        animation: chat-dock-in 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    // ── Header ────────────────────────────────────────────────────────────────
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-shrink: 0;
+        padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+        border-bottom: var(--border-width) solid var(--color-border);
+        background-color: var(--color-surface);
+    }
+
+    &__header-icon { color: var(--color-primary); flex-shrink: 0 }
+
+    &__back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: var(--radius-full);
+        background: none;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-base);
+        cursor: pointer;
+        transition: background-color var(--transition-fast);
+
+        &:hover { background-color: var(--color-bg-alt) }
+    }
+
+    &__title {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__title-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: 10px;
+        font-weight: var(--font-weight-bold);
+    }
+
+    &__header-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    &__icon-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: var(--radius-full);
+        background: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+
+        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
+    }
+
+    // ── Body ──────────────────────────────────────────────────────────────────
+    // FanChatWindow / FanConversationList fill this box. Both need to be
+    // height:100% and manage their own internal scrolling.
+    &__body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        > * {
+            flex: 1;
+            min-height: 0;
+        }
+    }
+
+    &__loading {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-muted);
+
+        .spin { animation: chat-dock-spin 0.7s linear infinite }
+    }
+
+    &__empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        padding: var(--space-6);
+        text-align: center;
+
+        svg { color: var(--color-text-muted); opacity: 0.5 }
+
+        p {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+    }
+
+    &__empty-link {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+        text-decoration: none;
+
+        &:hover { opacity: 0.75 }
+    }
+}
+
+@keyframes chat-dock-in {
+    from { transform: translateY(100%); opacity: 0.6 }
+    to   { transform: translateY(0);    opacity: 1   }
+}
+
+@keyframes chat-dock-spin { to { transform: rotate(360deg) } }

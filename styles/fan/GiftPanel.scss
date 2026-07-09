@@ -1,0 +1,315 @@
+// styles/fan/GiftPanel.scss
+//
+// Replaces GiftModal.scss. The %slide-backdrop / %slide-modal placeholders,
+// header, close button and toast are gone — SidePanel.scss provides all of it.
+
+// ─── Subheader (creator + balance) ────────────────────────────────────────────
+
+.gift-panel__subheader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.gift-panel__to {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.gift-panel__creator-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+}
+
+.gift-panel__creator-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+}
+
+.gift-panel__creator-name {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-dark);
+}
+
+.gift-panel__verified { color: var(--color-primary) }
+
+.gift-panel__balance {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+
+    strong { color: var(--color-dark) }
+}
+
+// ─── Gift grid ────────────────────────────────────────────────────────────────
+
+.gift-panel__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+}
+
+.gift-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-2);
+    background-color: var(--color-bg-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+
+    &:hover {
+        border-color: var(--color-primary);
+        background-color: rgba(194, 98, 42, 0.04);
+        transform: translateY(-2px);
+    }
+
+    &--selected {
+        border-color: var(--color-primary);
+        background-color: rgba(194, 98, 42, 0.08);
+        box-shadow: 0 0 0 3px rgba(194, 98, 42, 0.15);
+    }
+
+    &__emoji { font-size: 2rem; line-height: 1 }
+    &__name  { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-dark) }
+    &__value { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-primary) }
+}
+
+// ─── Footer (quantity + total + send) ─────────────────────────────────────────
+
+.gift-panel__footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.gift-panel__quantity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.gift-qty-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--color-border);
+    background: none;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-dark);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+
+    &:hover:not(:disabled) { border-color: var(--color-primary); background-color: rgba(194, 98, 42, 0.06) }
+    &:disabled { opacity: 0.35; cursor: not-allowed }
+}
+
+.gift-qty-val {
+    min-width: 24px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-dark);
+}
+
+.gift-panel__total {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    span   { font-size: var(--font-size-xs); color: var(--color-text-muted) }
+    strong { font-size: var(--font-size-base); color: var(--color-dark) }
+}
+
+.gift-panel__send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: #fff;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+
+    &:hover:not(:disabled) { background-color: #a8521f; transform: translateY(-1px) }
+    &:disabled { opacity: 0.45; cursor: not-allowed; transform: none }
+
+    &--topup { background-color: #16a34a }
+    &--topup:hover:not(:disabled) { background-color: #15803d }
+
+    .spin { animation: gift-spin 0.7s linear infinite }
+}
+
+// ─── Top-up view ──────────────────────────────────────────────────────────────
+
+.gift-panel__topup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.gift-panel__topup-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.gift-panel__back {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    transition: opacity var(--transition-fast);
+
+    &:hover { opacity: 0.7 }
+}
+
+.gift-panel__topup-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-dark);
+    margin: 0;
+}
+
+.gift-panel__topup-hint {
+    padding: var(--space-3) var(--space-4);
+    background-color: rgba(194, 98, 42, 0.06);
+    border: 1px solid rgba(194, 98, 42, 0.15);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+
+    strong { color: var(--color-dark) }
+}
+
+.gift-panel__presets {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.gift-preset {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    background: none;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+
+    &:hover { border-color: var(--color-primary); color: var(--color-primary) }
+
+    &--active {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #fff;
+    }
+}
+
+.gift-panel__custom-amount {
+    display: flex;
+    align-items: center;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color var(--transition-fast);
+
+    &:focus-within { border-color: var(--color-primary) }
+}
+
+.gift-panel__currency {
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-alt);
+    border-right: var(--border-width) solid var(--color-border);
+}
+
+.gift-panel__amount-input {
+    flex: 1;
+    padding: var(--space-3) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    color: var(--color-dark);
+    background: none;
+    border: none;
+    outline: none;
+}
+
+.gift-panel__pay-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-4);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: #fff;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+
+    &:hover:not(:disabled) { background-color: #a8521f }
+    &:disabled { opacity: 0.45; cursor: not-allowed }
+
+    .spin { animation: gift-spin 0.7s linear infinite }
+}
+
+@keyframes gift-spin { to { transform: rotate(360deg) } }
+
+// ─── Desktop: the drawer is narrow, so the gift grid drops to 2 columns ──────
+
+@media (min-width: 1024px) and (max-width: 1400px) {
+    .gift-panel__grid { grid-template-columns: repeat(2, 1fr) }
+}

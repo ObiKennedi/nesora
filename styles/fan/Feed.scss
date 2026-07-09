@@ -1,52 +1,59 @@
 // styles/fan/Feed.scss
+//
+// The feed page sits INSIDE .fan-content, which is already offset by the
+// sidebar on desktop. So this file only centres [feed 600px] + [rail 320px].
+// Post card styles live entirely in PostCard.scss.
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 .feed-layout {
     display: flex;
     align-items: flex-start;
-    max-width: 1080px;
+    justify-content: center;
+    gap: var(--space-8);
+    max-width: 1000px;
     margin: 0 auto;
     padding: 0 var(--space-4);
     width: 100%;
 }
 
 .feed-main {
-    flex: 1;
+    flex: 0 1 600px;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    padding: var(--space-4) 0 var(--space-4) var(--space-6);
-    max-width: 680px;
+    padding: var(--space-4) 0;
 }
 
-// ─── Side nav ─────────────────────────────────────────────────────────────────
+// ─── Mobile section tabs (Feed / Shorts / Live) ──────────────────────────────
 
-.feed-sidenav {
-    width: 120px;
-    flex-shrink: 0;
-    position: sticky;
-    top: calc(56px + var(--space-4));
+.feed-toptabs {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    padding: var(--space-4) 0;
+    align-items: center;
+    position: sticky;
+    top: 56px; // sits directly under the mobile topbar
+    z-index: 20;
+    margin: 0 calc(var(--space-3) * -1);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--color-bg);
+    border-bottom: var(--border-width) solid var(--color-border);
+
+    @media (min-width: 1024px) { display: none } // sidebar covers this
 
     &__item {
+        flex: 1;
         display: flex;
         align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-3);
+        justify-content: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-2);
         border-radius: var(--radius-md);
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-xs);
         font-weight: var(--font-weight-medium);
         color: var(--color-text-secondary);
         text-decoration: none;
-        position: relative;
         transition: background-color var(--transition-fast), color var(--transition-fast);
-
-        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
 
         &--active {
             background-color: rgba(194, 98, 42, 0.08);
@@ -59,39 +66,260 @@
         position: relative;
         display: flex;
         align-items: center;
-        flex-shrink: 0;
     }
 
-    &__label { white-space: nowrap }
-
-    &__badge {
+    &__dot {
         position: absolute;
-        top: -5px; right: -6px;
-        min-width: 16px; height: 16px;
-        padding: 0 3px;
-        border-radius: var(--radius-full);
-        background-color: var(--color-primary);
-        color: #fff;
-        font-size: 9px;
-        font-weight: var(--font-weight-bold);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1.5px solid var(--color-bg);
-    }
-
-    &__live-dot {
-        width: 7px; height: 7px;
+        top: -2px;
+        right: -4px;
+        width: 7px;
+        height: 7px;
         border-radius: var(--radius-full);
         background-color: #ef4444;
-        margin-left: auto;
-        animation: live-dot-pulse 1.4s ease-in-out infinite;
+        animation: feed-live-pulse 1.4s ease-in-out infinite;
     }
 }
 
-@keyframes live-dot-pulse {
-    0%, 100% { opacity: 1; transform: scale(1) }
+@keyframes feed-live-pulse {
+    0%, 100% { opacity: 1;   transform: scale(1)   }
     50%       { opacity: 0.4; transform: scale(0.7) }
+}
+
+// ─── Live rail (top of feed, stories-style) ──────────────────────────────────
+
+.live-rail {
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) 0 var(--space-3);
+
+    &__track {
+        display: flex;
+        gap: var(--space-4);
+        overflow-x: auto;
+        padding: 0 var(--space-4) var(--space-1);
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none }
+    }
+}
+
+.live-bubble {
+    flex-shrink: 0;
+    width: 74px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+
+    &__ring {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 70px;
+        height: 70px;
+        border-radius: var(--radius-full);
+        // Live ring: terracotta → red gradient, the visual signature of "on air"
+        background: conic-gradient(from 180deg, var(--color-primary), #ef4444, var(--color-primary));
+        transition: transform var(--transition-fast);
+    }
+
+    &:hover &__ring { transform: scale(1.04) }
+
+    &__avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 62px;
+        height: 62px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background-color: var(--color-bg-alt);
+        border: 2.5px solid var(--color-surface);
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    &__fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-bold);
+    }
+
+    &__tag {
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1px 6px;
+        border-radius: var(--radius-full);
+        border: 2px solid var(--color-surface);
+        background-color: #ef4444;
+        color: #fff;
+        font-size: 8px;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.06em;
+    }
+
+    &__name {
+        width: 100%;
+        font-size: 11px;
+        color: var(--color-text-secondary);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+// ─── Right rail ───────────────────────────────────────────────────────────────
+
+.feed-rail {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+}
+
+.rail-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    &__title {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-bold);
+        letter-spacing: var(--letter-spacing-wide);
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+    }
+
+    &__see-all {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: opacity var(--transition-fast);
+        &:hover { opacity: 0.75 }
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+}
+
+.rail-creator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    &__link {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        text-decoration: none;
+        flex: 1;
+        min-width: 0;
+    }
+
+    &__avatar {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background-color: var(--color-bg-alt);
+
+        img { width: 100%; height: 100%; object-fit: cover }
+
+        span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-primary);
+            color: #fff;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-bold);
+        }
+    }
+
+    &__meta {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    &__name {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__verified { color: var(--color-primary); flex-shrink: 0 }
+
+    &__sub {
+        font-size: 11px;
+        color: var(--color-text-muted);
+    }
+
+    &__follow {
+        flex-shrink: 0;
+        padding: var(--space-1) var(--space-3);
+        border: none;
+        border-radius: var(--radius-full);
+        background: none;
+        font-family: var(--font-body);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+        cursor: pointer;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+
+        &:hover:not(:disabled) { background-color: rgba(194, 98, 42, 0.08) }
+        &:disabled { opacity: 0.5; cursor: not-allowed }
+
+        &--following {
+            color: var(--color-text-muted);
+            &:hover:not(:disabled) { background-color: var(--color-bg-alt) }
+        }
+    }
 }
 
 // ─── Category chips ───────────────────────────────────────────────────────────
@@ -125,7 +353,7 @@
     &--active:hover { color: #fff }
 }
 
-// ─── Shorts rail ──────────────────────────────────────────────────────────────
+// ─── Shorts rail (injected between posts) ────────────────────────────────────
 
 .shorts-rail {
     display: flex;
@@ -137,32 +365,57 @@
     padding: var(--space-4);
 
     &__header { display: flex; align-items: center; justify-content: space-between }
-    &__title { font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-dark) }
+
+    &__title {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+    }
+
     &__see-all {
-        font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
-        color: var(--color-primary); text-decoration: none;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-body);
         &:hover { opacity: 0.75 }
     }
+
     &__track {
-        display: flex; gap: var(--space-3);
-        overflow-x: auto; padding-bottom: var(--space-1);
+        display: flex;
+        gap: var(--space-3);
+        overflow-x: auto;
+        padding-bottom: var(--space-1);
         scrollbar-width: none;
         &::-webkit-scrollbar { display: none }
     }
 }
 
 .short-card {
-    flex-shrink: 0; width: 110px;
-    display: flex; flex-direction: column; gap: var(--space-2);
+    flex-shrink: 0;
+    width: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
     text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
 
     &__thumb {
-        position: relative; width: 110px; height: 170px;
-        border-radius: var(--radius-md); overflow: hidden;
+        position: relative;
+        width: 110px;
+        height: 170px;
+        border-radius: var(--radius-md);
+        overflow: hidden;
         background-color: var(--color-bg-alt);
     }
 
-    &__img { object-fit: cover; transition: transform var(--transition-base) }
+    &__img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-base) }
     &__img--blur { filter: blur(8px); transform: scale(1.05) }
     &:hover &__img:not(.short-card__img--blur) { transform: scale(1.03) }
     &__placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, var(--color-bg-alt) 0%, var(--color-border) 100%) }
@@ -201,17 +454,25 @@
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
-.feed-posts { display: flex; flex-direction: column; gap: var(--space-4) }
+.feed-posts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6); // the ONLY source of vertical rhythm between cards
+}
 
 .feed-empty {
-    text-align: center; padding: var(--space-16) var(--space-4);
+    text-align: center;
+    padding: var(--space-16) var(--space-4);
     color: var(--color-text-muted);
+
     p { margin: 0; font-size: var(--font-size-sm); line-height: var(--line-height-relaxed) }
     p:first-child { font-weight: var(--font-weight-semibold); color: var(--color-text-secondary) }
 }
 
 .feed-load-more {
-    display: flex; justify-content: center; padding: var(--space-4) 0;
+    display: flex;
+    justify-content: center;
+    padding: var(--space-4) 0;
 
     &__btn {
         display: inline-flex; align-items: center; gap: var(--space-2);
@@ -229,399 +490,7 @@
 
 @keyframes spin { to { transform: rotate(360deg) } }
 
-.feed-backdrop {
-    position: fixed; inset: 0;
-    background-color: rgba(0,0,0,0.5);
-    z-index: var(--z-overlay);
-    backdrop-filter: blur(3px);
-    animation: backdrop-in 0.2s ease;
-}
-@keyframes backdrop-in { from { opacity: 0 } to { opacity: 1 } }
-
-// ─── Creator avatar with pulsing LIVE glow ────────────────────────────────────
-
-.post-avatar {
-    position: relative; flex-shrink: 0; width: 40px; height: 40px;
-
-    &__img-wrap {
-        width: 40px; height: 40px; border-radius: var(--radius-full); overflow: hidden;
-        border: 2px solid var(--color-border); position: relative; z-index: 1;
-    }
-
-    &__img { width: 100%; height: 100%; object-fit: cover }
-
-    &__fallback {
-        width: 100%; height: 100%;
-        display: flex; align-items: center; justify-content: center;
-        background-color: var(--color-primary); color: #fff;
-        font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);
-        text-transform: uppercase;
-    }
-
-    &__ring {
-        position: absolute; inset: -3px; border-radius: var(--radius-full);
-        border: 2px solid var(--color-primary); z-index: 0;
-        &--1 { animation: live-ring 1.6s ease-out infinite }
-        &--2 { animation: live-ring 1.6s ease-out 0.6s infinite }
-    }
-
-    &__live-tag {
-        position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
-        font-size: 8px; font-weight: var(--font-weight-bold);
-        letter-spacing: 0.05em; color: #fff; background-color: #ef4444;
-        border-radius: var(--radius-full); padding: 1px 5px; white-space: nowrap;
-        z-index: 2; border: 1.5px solid var(--color-surface);
-    }
-
-    &--live &__img-wrap {
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(194, 98, 42, 0.3);
-    }
-}
-
-@keyframes live-ring {
-    0%   { transform: scale(1);    opacity: 0.85 }
-    70%  { transform: scale(1.6);  opacity: 0 }
-    100% { transform: scale(1.6);  opacity: 0 }
-}
-
-// ─── Post card ────────────────────────────────────────────────────────────────
-
-.post-card {
-    background-color: var(--color-surface);
-    border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    transition: box-shadow var(--transition-fast);
-    &:hover { box-shadow: var(--shadow-sm) }
-
-    &__header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: var(--space-4);
-    }
-
-    &__creator-link {
-        display: flex; align-items: center; gap: var(--space-3);
-        text-decoration: none; flex: 1; min-width: 0;
-    }
-
-    &__creator-meta {
-        display: flex; flex-direction: column; gap: 2px;
-        min-width: 0; padding-top: 4px;
-    }
-
-    &__creator-name {
-        display: flex; align-items: center; gap: var(--space-1);
-        font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
-        color: var(--color-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    &__verified {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 15px; height: 15px; border-radius: var(--radius-full);
-        background-color: var(--color-primary); color: #fff;
-        font-size: 8px; font-weight: var(--font-weight-bold); flex-shrink: 0;
-    }
-
-    &__creator-handle { font-size: var(--font-size-xs); color: var(--color-text-muted) }
-
-    &__header-right { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0 }
-    &__time { font-size: var(--font-size-xs); color: var(--color-text-muted) }
-
-    &__more {
-        display: flex; align-items: center; justify-content: center;
-        width: 28px; height: 28px; background: none; border: none;
-        border-radius: var(--radius-full); cursor: pointer; color: var(--color-text-muted);
-        transition: background-color var(--transition-fast), color var(--transition-fast);
-        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
-    }
-
-    &__title {
-        font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);
-        color: var(--color-dark); margin: 0; padding: 0 var(--space-4) var(--space-2);
-        line-height: var(--line-height-snug);
-    }
-
-    &__body {
-        font-size: var(--font-size-sm); line-height: var(--line-height-relaxed);
-        color: var(--color-text-secondary); margin: 0;
-        padding: 0 var(--space-4) var(--space-3); white-space: pre-wrap;
-    }
-
-    &__media-wrap { position: relative; width: 100% }
-
-    &__locked-text-wrap {
-        margin: 0 var(--space-4) var(--space-3);
-        border: var(--border-width) solid var(--color-border);
-        border-radius: var(--radius-md); overflow: hidden;
-        min-height: 120px; display: flex; align-items: center; justify-content: center;
-        background-color: var(--color-bg-alt); position: relative;
-    }
-
-    &__actions {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: var(--space-3) var(--space-4);
-        border-top: var(--border-width) solid var(--color-border);
-    }
-
-    &__actions-left, &__actions-right { display: flex; align-items: center; gap: var(--space-1) }
-
-    &__btn {
-        display: inline-flex; align-items: center; gap: var(--space-1);
-        padding: var(--space-2) var(--space-3);
-        font-size: var(--font-size-xs); font-weight: var(--font-weight-medium);
-        color: var(--color-text-secondary); background: none; border: none;
-        border-radius: var(--radius-md); cursor: pointer;
-        transition: background-color var(--transition-fast), color var(--transition-fast);
-
-        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
-        &:disabled { opacity: 0.5; cursor: not-allowed }
-
-        &--liked       { color: #ef4444 }
-        &--liked:hover { background-color: rgba(239,68,68,0.08); color: #ef4444 }
-        &--saved       { color: var(--color-primary) }
-        &--saved:hover { background-color: rgba(194,98,42,0.08); color: var(--color-primary) }
-        &--gift        { color: #d97706 }
-        &--gift:hover  { background-color: rgba(217,119,6,0.08); color: #d97706 }
-    }
-}
-
-// ─── Media ────────────────────────────────────────────────────────────────────
-
-.post-media {
-    position: relative; width: 100%; aspect-ratio: 16 / 9;
-    overflow: hidden; background-color: var(--color-bg-alt);
-    &--video { cursor: pointer }
-
-    &__img { object-fit: cover }
-    &__img--blur { filter: blur(18px); transform: scale(1.08) }
-
-    &__play {
-        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.3);
-    }
-
-    &__duration {
-        position: absolute; bottom: var(--space-2); right: var(--space-2);
-        font-size: 11px; font-weight: var(--font-weight-semibold);
-        color: #fff; background: rgba(0,0,0,0.6);
-        border-radius: var(--radius-sm); padding: 2px 6px;
-    }
-
-    &__multi {
-        position: absolute; top: var(--space-2); right: var(--space-2);
-        font-size: 11px; font-weight: var(--font-weight-bold);
-        color: #fff; background: rgba(0,0,0,0.6);
-        border-radius: var(--radius-sm); padding: 2px 6px;
-    }
-}
-
-.post-audio {
-    display: flex; align-items: center; gap: var(--space-4);
-    padding: var(--space-4); background-color: var(--color-bg-alt);
-    &__icon { font-size: var(--font-size-xl) }
-    &__player { flex: 1; height: 36px }
-}
-
-// ─── Locked overlay ───────────────────────────────────────────────────────────
-
-.post-locked {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: var(--space-3);
-    background: rgba(26, 26, 26, 0.72); backdrop-filter: blur(2px); padding: var(--space-4);
-
-    &__icon { color: rgba(255,255,255,0.7) }
-    &__label { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: #fff; margin: 0; text-align: center }
-
-    &__actions {
-        display: flex; flex-direction: column; align-items: center;
-        gap: var(--space-2); width: 100%; max-width: 240px;
-    }
-
-    &__btn {
-        display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
-        width: 100%; padding: var(--space-2) var(--space-4);
-        font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
-        border-radius: var(--radius-full); text-decoration: none; cursor: pointer;
-        transition: opacity var(--transition-fast);
-        &:hover { opacity: 0.88 }
-
-        &--primary  { background-color: var(--color-primary); color: #fff; border: none }
-        &--secondary { background-color: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25) }
-    }
-}
-
-// ─── Poll ─────────────────────────────────────────────────────────────────────
-
-.post-poll {
-    display: flex; flex-direction: column; gap: var(--space-2);
-    padding: 0 var(--space-4) var(--space-3);
-
-    &__question { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-dark); margin: 0 }
-    &__options  { display: flex; flex-direction: column; gap: var(--space-2) }
-    &__total    { font-size: var(--font-size-xs); color: var(--color-text-muted) }
-}
-
-.poll-opt {
-    position: relative; display: flex; align-items: center; justify-content: space-between;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md); border: var(--border-width) solid var(--color-border);
-    overflow: hidden; background-color: var(--color-bg-alt);
-
-    &__bar {
-        position: absolute; left: 0; top: 0; bottom: 0;
-        background-color: rgba(194, 98, 42, 0.12);
-        border-radius: var(--radius-md); transition: width var(--transition-slow);
-    }
-
-    &__text { position: relative; z-index: 1; font-size: var(--font-size-sm); color: var(--color-dark) }
-    &__pct  { position: relative; z-index: 1; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-primary) }
-}
-
-// ─── Live coming soon ─────────────────────────────────────────────────────────
-
-.feed-live-soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-4);
-    min-height: 420px;
-    padding: var(--space-8);
-    text-align: center;
-
-    &__icon {
-        width: 80px;
-        height: 80px;
-        border-radius: var(--radius-full);
-        background-color: rgba(194, 98, 42, 0.08);
-        border: 1.5px solid rgba(194, 98, 42, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-primary);
-        animation: live-soon-pulse 2.4s ease-in-out infinite;
-    }
-
-    h3 {
-        font-size: var(--font-size-lg);
-        font-weight: var(--font-weight-bold);
-        color: var(--color-dark);
-        margin: 0;
-    }
-
-    p {
-        font-size: var(--font-size-sm);
-        color: var(--color-text-secondary);
-        line-height: var(--line-height-relaxed);
-        margin: 0;
-        max-width: 320px;
-    }
-}
-
-@keyframes live-soon-pulse {
-    0%, 100% { box-shadow: 0 0 0 0   rgba(194, 98, 42, 0.2) }
-    50%       { box-shadow: 0 0 0 12px rgba(194, 98, 42, 0)   }
-}
-
-// ─── Responsive ───────────────────────────────────────────────────────────────
-
-@media (max-width: 768px) {
-    .feed-layout {
-        display: flex;
-        flex-direction: column;
-        padding: 0;
-    }
-
-    .feed-sidenav {
-        position: sticky;
-        top: 1px; // navbar height
-        left: 0;
-
-        width: 100%;
-        z-index: 20;
-
-        flex-direction: row;
-        justify-content: space-around;
-        align-items: center;
-
-        gap: 0;
-        padding: var(--space-2);
-
-        background: var(--color-bg);
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .feed-sidenav__item {
-        flex: 1;
-        justify-content: center;
-        padding: var(--space-3) var(--space-2);
-        border-radius: var(--radius-md);
-    }
-
-    .feed-sidenav__label {
-        display: none;
-    }
-
-    .feed-sidenav__badge {
-        top: -2px;
-        right: 6px;
-    }
-
-    .feed-main {
-        width: 100%;
-        max-width: 100%;
-        padding: var(--space-3);
-    }
-
-    .feed-chips {
-        margin-top: var(--space-2);
-    }
-}
-
-// ─── Live coming soon ─────────────────────────────────────────────────────────
-
-.live-coming-soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-4);
-    min-height: 420px;
-    padding: var(--space-8) var(--space-6);
-    text-align: center;
-
-    &__icon {
-        width: 80px;
-        height: 80px;
-        border-radius: var(--radius-full);
-        background-color: rgba(194, 98, 42, 0.08);
-        border: 1.5px solid rgba(194, 98, 42, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-primary);
-    }
-
-    h3 {
-        font-size: var(--font-size-lg);
-        font-weight: var(--font-weight-bold);
-        color: var(--color-dark);
-        margin: 0;
-        letter-spacing: var(--letter-spacing-tight);
-    }
-
-    p {
-        font-size: var(--font-size-sm);
-        line-height: var(--line-height-relaxed);
-        color: var(--color-text-secondary);
-        margin: 0;
-        max-width: 340px;
-    }
-}
-
-// ─── Live coming soon ─────────────────────────────────────────────────────────
+// ─── Live grid empty state (/fan/live) ───────────────────────────────────────
 
 .feed-live-soon {
     display: flex;
@@ -661,12 +530,37 @@
     }
 }
 
-// ─── Short card button reset (was <Link>, now <button>) ───────────────────────
+// ─── Responsive ───────────────────────────────────────────────────────────────
 
-.short-card {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    text-align: left;
+// Right rail drops first — the feed column keeps its width
+@media (max-width: 1180px) {
+    .feed-rail { display: none }
+}
+
+@media (max-width: 768px) {
+    .feed-layout {
+        padding: 0;
+    }
+
+    .feed-main {
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: 100%;
+        padding: 0 0 var(--space-3); // cards run full-bleed
+    }
+
+    // Elements that shouldn't go full-bleed carry their own gutters
+    .feed-chips {
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
+    }
+
+    .live-rail,
+    .shorts-rail {
+        margin: 0 var(--space-3);
+    }
+
+    .feed-posts {
+        gap: var(--space-3);
+    }
 }

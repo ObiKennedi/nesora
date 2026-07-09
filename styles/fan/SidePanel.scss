@@ -1,0 +1,220 @@
+// styles/fan/SidePanel.scss
+//
+// Mobile-first: bottom sheet. At ≥1024px it becomes a right-edge drawer.
+// Content supplies `.side-panel__scroll` and (optionally) `.side-panel__footer`.
+
+$side-panel-width: 420px;
+
+// ─── Scrim ────────────────────────────────────────────────────────────────────
+
+.side-panel__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background-color: rgba(0, 0, 0, 0);
+    transition: background-color 0.28s ease;
+    pointer-events: none;
+
+    &--visible {
+        background-color: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(3px);
+        pointer-events: auto;
+    }
+
+    // Desktop: the drawer sits beside content, so the scrim is a hint,
+    // not a curtain.
+    @media (min-width: 1024px) {
+        &--visible {
+            background-color: rgba(0, 0, 0, 0.28);
+            backdrop-filter: none;
+        }
+    }
+}
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
+.side-panel {
+    position: fixed;
+    z-index: var(--z-modal);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-surface);
+
+    // ── Mobile: bottom sheet ──────────────────────────────────────────────────
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 85svh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.14);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+
+    &--visible { transform: translateY(0) }
+
+    // ── Desktop: right drawer ─────────────────────────────────────────────────
+    @media (min-width: 1024px) {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: auto;
+        width: #{$side-panel-width};
+        max-height: none;
+        height: 100svh;
+        border-radius: 0;
+        border-left: var(--border-width) solid var(--color-border);
+        box-shadow: -8px 0 40px rgba(0, 0, 0, 0.10);
+        transform: translateX(100%);
+        transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+
+        &--visible { transform: translateX(0) }
+    }
+
+    // ── Drag handle (mobile sheet affordance) ─────────────────────────────────
+    &__handle {
+        width: 40px;
+        height: 4px;
+        flex-shrink: 0;
+        margin: var(--space-3) auto var(--space-1);
+        border-radius: var(--radius-full);
+        background-color: var(--color-border);
+
+        @media (min-width: 1024px) { display: none }
+    }
+
+    // ── Header ────────────────────────────────────────────────────────────────
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-shrink: 0;
+        padding: var(--space-2) var(--space-4) var(--space-3);
+        border-bottom: var(--border-width) solid var(--color-border);
+
+        @media (min-width: 1024px) {
+            padding: var(--space-4) var(--space-4);
+        }
+    }
+
+    &__header-left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+
+        svg { color: var(--color-text-secondary); flex-shrink: 0 }
+    }
+
+    &__title {
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-dark);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        span {
+            font-weight: var(--font-weight-regular);
+            color: var(--color-text-muted);
+        }
+    }
+
+    &__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        border: none;
+        border-radius: var(--radius-full);
+        background: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+
+        &:hover { background-color: var(--color-bg-alt); color: var(--color-dark) }
+    }
+
+    // ── Subheader ─────────────────────────────────────────────────────────────
+    &__subheader {
+        flex-shrink: 0;
+        padding: var(--space-3) var(--space-4);
+        border-bottom: var(--border-width) solid var(--color-border);
+        background-color: var(--color-bg-alt);
+    }
+
+    // ── Content shell ─────────────────────────────────────────────────────────
+    // Owns the remaining height; children split it into scroll + footer.
+    &__content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    // ── Scroll region (used by content) ───────────────────────────────────────
+    &__scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: var(--space-4);
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border) transparent;
+    }
+
+    // ── Pinned footer (used by content) ───────────────────────────────────────
+    &__footer {
+        flex-shrink: 0;
+        padding: var(--space-3) var(--space-4);
+        padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+        border-top: var(--border-width) solid var(--color-border);
+        background-color: var(--color-surface);
+
+        @media (min-width: 1024px) {
+            padding-bottom: var(--space-4);
+        }
+    }
+
+    // ── Loading / empty ───────────────────────────────────────────────────────
+    &__loading {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        color: var(--color-text-muted);
+
+        .spin { animation: side-panel-spin 0.7s linear infinite }
+    }
+
+    // ── Toast (anchored inside the panel) ─────────────────────────────────────
+    &__toast {
+        position: absolute;
+        bottom: var(--space-6);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        white-space: nowrap;
+        padding: var(--space-2) var(--space-5);
+        border-radius: var(--radius-full);
+        color: #fff;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        box-shadow: var(--shadow-md);
+        animation: side-panel-toast-in 0.2s ease;
+
+        &--success { background-color: #16a34a }
+        &--error   { background-color: var(--color-error) }
+    }
+}
+
+@keyframes side-panel-spin { to { transform: rotate(360deg) } }
+
+@keyframes side-panel-toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px) }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) }
+}

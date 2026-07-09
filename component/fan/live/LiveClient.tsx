@@ -24,7 +24,6 @@ export default function WatchClient({ data, currentUserId }: { data: WatchData; 
     const videoRef  = useRef<HTMLVideoElement | null>(null)
     const playerRef = useRef<any>(null)
 
-    // React to go-live / end events on the creator channel.
     useEffect(() => {
         const pusher  = getPusherClient()
         const channel = pusher.subscribe(`creator-${creator.id}-live`)

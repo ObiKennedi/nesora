@@ -2,7 +2,8 @@
 "use client"
 
 import { useState, useEffect, useTransition, useCallback } from "react"
-import { Loader2, ExternalLink }                           from "lucide-react"
+import Link                                                from "next/link"
+import { Loader2, ExternalLink, Repeat }                   from "lucide-react"
 import { getCreatorProfileAction }                         from "@/actions/creator/profile"
 import { AvatarBannerSection }  from "./AvatarBannerSection"
 import { BasicInfoForm }        from "./BasicInfoForm"
@@ -49,15 +50,21 @@ export const ProfilePage = () => {
                     <h2>Profile Management</h2>
                     <p>Manage how you appear to your audience</p>
                 </div>
-                <a
-                    href={profileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="profile-page__view-btn"
-                >
-                    <ExternalLink size={14} />
-                    View Public Profile
-                </a>
+                <div className="profile-page__header-actions">
+                    <Link href="/fan/feed" className="profile-page__fan-btn">
+                        <Repeat size={14} />
+                        Switch to Fan Mode
+                    </Link>
+                    <a
+                        href={profileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="profile-page__view-btn"
+                    >
+                        <ExternalLink size={14} />
+                        View Public Profile
+                    </a>
+                </div>
             </div>
 
             <div className="profile-page__body">

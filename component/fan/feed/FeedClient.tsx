@@ -5,21 +5,20 @@ import {
     useState,
     useTransition,
     useCallback,
-    useEffect,
+    Fragment,
 } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Category, PostType } from "@prisma/client"
-import { Loader2, Radio } from "lucide-react"
-import { getFeedAction } from "@/actions/fan/feed"
-import { FeedSideNav, FeedTab } from "./FeedSideNav"
-import { ShortsRail } from "./ShortsRail"
-import { PostCard } from "./PostCard"
-import { ShortsPlayer } from "./ShortsPlayer"
-import { CommentModal } from "./CommentModal"
-import { GiftModal } from "./GiftModal"
-import { FanMessagesClient } from "@/component/fan/messages/FanMessagesClient"
-import { CATEGORIES } from "@/lib/categories"
-import { LiveGrid } from "./LiveGrid"
+import { useRouter }            from "next/navigation"
+import { Category, PostType }   from "@prisma/client"
+import { Loader2 }              from "lucide-react"
+import { getFeedAction }        from "@/actions/fan/feed"
+import { LiveRail }             from "./LiveRail"
+import { FeedTopTabs }          from "./FeedTopTabs"
+import { ShortsRail }           from "./ShortsRail"
+import { PostCard }             from "./PostCard"
+import { CommentPanel }         from "./CommentPanel"
+import { GiftPanel }            from "./GiftPanel"
+import { FeedRightRail, RailCreator } from "./FeedRightRail"
+import { CATEGORIES }           from "@/lib/categories"
 import "@/styles/fan/Feed.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -41,51 +40,32 @@ type FeedShort = {
     id:            string
     type:          PostType
     title:         string | null
-    body:          string | null
-    mediaUrls:     string[]
     thumbnailUrl:  string | null
     videoDuration: number | null
-    publishedAt:   Date | string | null
-    likeCount:     number
-    commentCount:  number
-    isLiked:       boolean
-    isSaved:       boolean
-    isPurchased:   boolean
     hasAccess:     boolean
-    lockReason:    string | null
-    unlockPrice:   number | null
     creator: {
         id:          string
         displayName: string
         handle:      string | null
-        isVerified:  boolean
         image:       string | null
-        isLive?:     boolean
     }
 }
 
 type Props = {
-    initialPosts:  FeedPost[]
-    initialShorts: FeedShort[]
-    liveStreams:   LiveStream[]
-    fanCategories: Category[]
-    currentUserId: string
+    initialPosts:       FeedPost[]
+    initialShorts:      FeedShort[]
+    liveStreams:        LiveStream[]
+    fanCategories:      Category[]
+    currentUserId:      string
+    suggestedCreators?: RailCreator[]
 }
 
-// ── Coming Soon placeholder ───────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const LiveComingSoon = () => (
-    <div className="feed-live-soon">
-        <div className="feed-live-soon__icon">
-            <Radio size={40} />
-        </div>
-        <h3>Live is coming soon</h3>
-        <p>
-            We're building real-time streaming for NESORA creators.
-            Follow your favourite creators to get notified when they go live.
-        </p>
-    </div>
-)
+/** Inject a shorts rail after every N posts. */
+const SHORTS_INTERVAL = 5
+/** Shorts shown per injected rail. */
+const SHORTS_PER_RAIL = 8
 
 // ── FeedClient ────────────────────────────────────────────────────────────────
 
@@ -95,18 +75,9 @@ export const FeedClient = ({
     liveStreams,
     fanCategories,
     currentUserId,
+    suggestedCreators = [],
 }: Props) => {
-    const router       = useRouter()
-    const searchParams = useSearchParams()
-
-    // ── Tab — read from ?tab= on mount ────────────────────────────────────────
-    const [activeTab, setActiveTab] = useState<FeedTab>(() => {
-        const t = searchParams.get("tab")
-        return (t === "shorts" || t === "live" || t === "chat") ? t : "feed"
-    })
-
-    // ── Shorts player ─────────────────────────────────────────────────────────
-    const [shortsStartIndex, setShortsStartIndex] = useState(0)
+    const router = useRouter()
 
     // ── Feed pagination ───────────────────────────────────────────────────────
     const [posts,          setPosts]          = useState<FeedPost[]>(initialPosts)
@@ -115,10 +86,9 @@ export const FeedClient = ({
     const [activeCategory, setActiveCategory] = useState<Category | "ALL">("ALL")
     const [loadingMore,    setLoadingMore]    = useState(false)
 
-    // ── Modal state ───────────────────────────────────────────────────────────
+    // ── Panel state (becomes SidePanel in phase 2) ────────────────────────────
     const [commentPostId, setCommentPostId] = useState<string | null>(null)
     const [giftCreatorId, setGiftCreatorId] = useState<string | null>(null)
-    const [unlockPost,    setUnlockPost]    = useState<FeedPost | null>(null)
 
     const [, startTransition] = useTransition()
 
@@ -128,31 +98,6 @@ export const FeedClient = ({
     const handlePostUpdate = useCallback((id: string, updates: Partial<FeedPost>) => {
         setPosts((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p))
     }, [])
-
-    // ── Sync active tab → URL ─────────────────────────────────────────────────
-    useEffect(() => {
-        const params = new URLSearchParams(searchParams.toString())
-        if (activeTab === "feed") {
-            params.delete("tab")
-        } else {
-            params.set("tab", activeTab)
-        }
-        const query = params.toString()
-        router.replace(`/fan/feed${query ? `?${query}` : ""}`, { scroll: false })
-    }, [activeTab])
-
-    // ── Tab change ────────────────────────────────────────────────────────────
-    const handleTabChange = (tab: FeedTab) => {
-        setActiveTab(tab)
-        if (tab === "feed") setShortsStartIndex(0)
-    }
-
-    // ── Short thumbnail clicked from rail → open shorts player at that index ──
-    const handleShortClick = (shortId: string) => {
-        const idx = initialShorts.findIndex((s) => s.id === shortId)
-        setShortsStartIndex(idx >= 0 ? idx : 0)
-        setActiveTab("shorts")
-    }
 
     // ── Category chip ─────────────────────────────────────────────────────────
     const handleCategoryChange = (cat: Category | "ALL") => {
@@ -182,124 +127,122 @@ export const FeedClient = ({
         setLoadingMore(false)
     }, [loadingMore, hasMore, page, activeCategory])
 
+    // ── Shorts navigation ─────────────────────────────────────────────────────
+    const handleShortClick = (shortId: string) => router.push(`/fan/shorts/${shortId}`)
+    const handleSeeAllShorts = ()               => router.push("/fan/shorts")
+
     // ── Category chips list ───────────────────────────────────────────────────
     const chips = [
         { value: "ALL" as const, label: "All", emoji: "✨" },
         ...CATEGORIES.filter((c) => fanCategories.includes(c.value)),
     ]
 
-    // ── Inject isLive flag into posts ─────────────────────────────────────────
     const postsWithLive = posts.map((post) => ({
         ...post,
         creator: { ...post.creator, isLive: liveCreatorIds.has(post.creator.id) },
     }))
 
-    // ── Inject isLive flag into shorts + normalise publishedAt to Date ────────
-    const shortsWithLive: FeedShort[] = initialShorts.map((s) => ({
-        ...s,
-        publishedAt: s.publishedAt ? new Date(s.publishedAt) : null,
-        creator:     { ...s.creator, isLive: liveCreatorIds.has(s.creator.id) },
-    }))
+    const shortsForBlock = (blockIndex: number): FeedShort[] => {
+        if (initialShorts.length === 0) return []
+        const offset = (blockIndex * SHORTS_PER_RAIL) % initialShorts.length
+        const window: FeedShort[] = []
+        for (let i = 0; i < Math.min(SHORTS_PER_RAIL, initialShorts.length); i++) {
+            window.push(initialShorts[(offset + i) % initialShorts.length])
+        }
+        return window
+    }
 
     return (
         <div className="feed-layout">
 
-            {/* ── Side nav ────────────────────────────────────────────────── */}
-            <FeedSideNav
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                liveCount={liveStreams.length}
-            />
-
             {/* ── Main column ─────────────────────────────────────────────── */}
             <div className="feed-main">
 
-                {/* FEED ───────────────────────────────────────────────────── */}
-                {activeTab === "feed" && (
-                    <>
-                        {/* Category chips */}
-                        <div className="feed-chips">
-                            {chips.map((chip) => (
-                                <button
-                                    key={chip.value}
-                                    type="button"
-                                    className={`feed-chip ${activeCategory === chip.value ? "feed-chip--active" : ""}`}
-                                    onClick={() => handleCategoryChange(chip.value)}
-                                >
-                                    <span>{chip.emoji}</span>
-                                    <span>{chip.label}</span>
-                                </button>
-                            ))}
+                {/* Mobile-only section tabs */}
+                <FeedTopTabs liveCount={liveStreams.length} />
+
+                {/* Live rail — stories-style, top of feed */}
+                <LiveRail streams={liveStreams} />
+
+                {/* Category chips */}
+                <div className="feed-chips">
+                    {chips.map((chip) => (
+                        <button
+                            key={chip.value}
+                            type="button"
+                            className={`feed-chip ${activeCategory === chip.value ? "feed-chip--active" : ""}`}
+                            onClick={() => handleCategoryChange(chip.value)}
+                        >
+                            <span>{chip.emoji}</span>
+                            <span>{chip.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Post list, with a shorts rail every SHORTS_INTERVAL posts */}
+                <div className="feed-posts">
+                    {postsWithLive.length === 0 && (
+                        <div className="feed-empty">
+                            <p>No posts yet in this category.</p>
+                            <p>Follow more creators to fill your feed.</p>
                         </div>
+                    )}
 
-                        {/* Shorts rail */}
-                        <ShortsRail
-                            shorts={initialShorts}
-                            onShortClick={handleShortClick}
-                            onSeeAll={() => handleTabChange("shorts")}
-                        />
+                    {postsWithLive.map((post, i) => {
+                        const postNumber = i + 1
+                        // Rail goes after posts 5, 10, 15… but never trailing the last post
+                        const showRail =
+                            postNumber % SHORTS_INTERVAL === 0 &&
+                            postNumber < postsWithLive.length &&
+                            initialShorts.length > 0
 
-                        {/* Post list */}
-                        <div className="feed-posts">
-                            {postsWithLive.length === 0 && (
-                                <div className="feed-empty">
-                                    <p>No posts yet in this category.</p>
-                                    <p>Follow more creators to fill your feed.</p>
-                                </div>
-                            )}
+                        const blockIndex = postNumber / SHORTS_INTERVAL - 1
 
-                            {postsWithLive.map((post) => (
+                        return (
+                            <Fragment key={post.id}>
                                 <PostCard
-                                    key={post.id}
                                     post={post as any}
                                     userId={currentUserId}
                                     onUpdate={handlePostUpdate}
                                     onCommentOpen={(id) => setCommentPostId(id)}
                                     onGiftOpen={(id)    => setGiftCreatorId(id)}
-                                    onUnlockOpen={(p)   => setUnlockPost(p as any)}
                                 />
-                            ))}
 
-                            {hasMore && (
-                                <div className="feed-load-more">
-                                    <button
-                                        type="button"
-                                        className="feed-load-more__btn"
-                                        onClick={loadMore}
-                                        disabled={loadingMore}
-                                    >
-                                        {loadingMore
-                                            ? <><Loader2 size={16} className="spin" /> Loading…</>
-                                            : "Load more"
-                                        }
-                                    </button>
-                                </div>
-                            )}
+                                {showRail && (
+                                    <ShortsRail
+                                        shorts={shortsForBlock(blockIndex)}
+                                        onShortClick={handleShortClick}
+                                        onSeeAll={handleSeeAllShorts}
+                                    />
+                                )}
+                            </Fragment>
+                        )
+                    })}
+
+                    {hasMore && (
+                        <div className="feed-load-more">
+                            <button
+                                type="button"
+                                className="feed-load-more__btn"
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore
+                                    ? <><Loader2 size={16} className="spin" /> Loading…</>
+                                    : "Load more"
+                                }
+                            </button>
                         </div>
-                    </>
-                )}
-
-                {/* SHORTS ─────────────────────────────────────────────────── */}
-                {activeTab === "shorts" && (
-                    <ShortsPlayer
-                        initialShorts={shortsWithLive as any}
-                        startIndex={shortsStartIndex}
-                    />
-                )}
-
-                {/* LIVE ───────────────────────────────────────────────────── */}
-                {activeTab === "live" && <LiveGrid streams={liveStreams} />}
-
-                {/* CHAT ───────────────────────────────────────────────────── */}
-                {activeTab === "chat" && (
-                    <FanMessagesClient currentUserId={currentUserId} />
-                )}
-
+                    )}
+                </div>
             </div>
 
-            {/* ── Comment modal ───────────────────────────────────────────── */}
+            {/* ── Right rail  ── */}
+            <FeedRightRail suggested={suggestedCreators} />
+
+            {/* ── Comments / gift (become SidePanel in phase 2) ───────────── */}
             {commentPostId && (
-                <CommentModal
+                <CommentPanel
                     postId={commentPostId}
                     currentUserId={currentUserId}
                     onClose={() => setCommentPostId(null)}
@@ -311,21 +254,11 @@ export const FeedClient = ({
                 />
             )}
 
-            {/* ── Gift modal ───────────────────────────────────────────────── */}
             {giftCreatorId && (
-                <GiftModal
+                <GiftPanel
                     creatorId={giftCreatorId}
                     onClose={() => setGiftCreatorId(null)}
                     onSent={()  => setGiftCreatorId(null)}
-                />
-            )}
-
-            {/* ── Unlock backdrop (wired in next phase) ───────────────────── */}
-            {unlockPost && (
-                <div
-                    className="feed-backdrop"
-                    onClick={() => setUnlockPost(null)}
-                    aria-hidden="true"
                 />
             )}
 

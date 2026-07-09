@@ -4,15 +4,12 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 
-export const BackButton = ({ fallback = "/" }: { fallback?: string }) => {
+export const BackButton = ({ fallback = "/feed" }: { fallback?: string }) => {
     const router = useRouter()
     const [canGoBack, setCanGoBack] = useState(false)
 
-    // history.length > 1 means we arrived here via an in-app navigation,
-    // so router.back() will land on the referring page. On a direct visit
-    // (new tab / shared link) it's 1, and we send them to the fallback.
     useEffect(() => {
-        setCanGoBack(window.history.length > 1)
+        setCanGoBack((window.history.state?.idx ?? 0) > 0)
     }, [])
 
     const handleBack = () => {
