@@ -396,7 +396,7 @@ const SuggestedCard = ({
     onSubscribe: (creator: SuggestedCreator) => void
 }) => (
     <div className="suggested-card">
-        <Link href={`/profile/${creator.handle ?? creator.id}`} className="suggested-card__creator">
+        <Link href={`/fan/${creator.handle ?? creator.id}`} className="suggested-card__creator">
             <div className="suggested-card__avatar">
                 {creator.image ? (
                     <Image

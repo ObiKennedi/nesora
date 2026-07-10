@@ -106,7 +106,7 @@ export default function WatchClient({
                     <h2>Subscribers only</h2>
                     <p>{creator.displayName} is live for subscribers. Subscribe to watch.</p>
                     <Link
-                        href={`/profile/${creator.handle ?? creator.id}`}
+                        href={`/fan/${creator.handle ?? creator.id}`}
                         className="watch__subscribe"
                     >
                         {subscribePrice ? `Subscribe · ₦${subscribePrice.toLocaleString()}` : "Subscribe"}

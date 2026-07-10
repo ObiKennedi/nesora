@@ -49,7 +49,7 @@ function fmtCount(n: number): string {
 
 /** Profile route — must match PostCard / FeedRightRail / LiveRail. */
 const profileHref = (creator: { handle: string | null; id: string }) =>
-    `/profile/${creator.handle ?? creator.id}`
+    `/fan/${creator.handle ?? creator.id}`
 
 // ── Single short item ─────────────────────────────────────────────────────────
 

@@ -283,7 +283,7 @@ export function DiscoverClient({
                                     {/* Info */}
                                     <div className="creator-card__info">
                                         <Link
-                                            href={`/profile/${creator.handle ?? creator.id}`}
+                                            href={`/fan/${creator.handle ?? creator.id}`}
                                             className="creator-card__name-link"
                                         >
                                             <span className="creator-card__name">
