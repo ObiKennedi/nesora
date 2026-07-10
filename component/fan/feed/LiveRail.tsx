@@ -29,7 +29,7 @@ export const LiveRail = ({ streams }: Props) => {
                 {streams.map((s) => (
                     <Link
                         key={s.id}
-                        href={`/live/${s.id}`}
+                        href={`/fan/live/${s.id}`}
                         className="live-bubble"
                         title={s.title}
                     >

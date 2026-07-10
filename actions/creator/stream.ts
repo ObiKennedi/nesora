@@ -13,19 +13,11 @@ import {
 } from "@/lib/ivs"
 import { pusherServer } from "@/lib/pusher"
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function getCreatorOrThrow(userId: string) {
     const creator = await prisma.creator.findUnique({ where: { userId } })
     if (!creator) redirect("/onboarding")
     return creator
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Schemas
-// ─────────────────────────────────────────────────────────────────────────────
 
 const StartStreamSchema = z.object({
     streamId:         z.string().optional(),
