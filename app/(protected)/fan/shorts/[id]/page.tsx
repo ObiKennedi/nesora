@@ -21,6 +21,7 @@ export default async function ShortPage({
     return (
         <ShortsPlayer
             initialShorts={data.shorts as any}
+            currentUserId={session.user.id}
             startIndex={startIndex >= 0 ? startIndex : 0}
         />
     )

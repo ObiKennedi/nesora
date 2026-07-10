@@ -18,5 +18,5 @@ export default async function ShortsPage() {
         )
     }
 
-    return <ShortsPlayer initialShorts={data.shorts as any} startIndex={0} />
+    return <ShortsPlayer initialShorts={data.shorts as any} startIndex={0} currentUserId={session.user.id} />
 }

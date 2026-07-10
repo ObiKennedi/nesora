@@ -5,7 +5,6 @@ import {
     useState, useRef, useEffect,
     useCallback, useTransition,
 } from "react"
-import Image                  from "next/image"
 import Link                   from "next/link"
 import { useRouter }          from "next/navigation"
 import {
@@ -18,12 +17,14 @@ import {
     savePostAction, recordShareAction,
 } from "@/actions/fan/interactions"
 import { getShortsAction } from "@/actions/fan/feed"
+import { CommentPanel }    from "./CommentPanel"
+import { GiftPanel }       from "./GiftPanel"
 import "@/styles/fan/Shorts.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 // Derive Short directly from the server action so the local type and the
-// action return type can never drift apart.  Any extra fields the action
+// action return type can never drift apart. Any extra fields the action
 // returns (type, publishedAt, etc.) are included automatically.
 type ActionShort = Awaited<ReturnType<typeof getShortsAction>>["shorts"][number]
 
@@ -35,6 +36,7 @@ type Short = ActionShort & {
 type Props = {
     initialShorts: Short[]
     startIndex:    number
+    currentUserId: string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,22 +47,26 @@ function fmtCount(n: number): string {
     return String(n)
 }
 
+/** Profile route — must match PostCard / FeedRightRail / LiveRail. */
+const profileHref = (creator: { handle: string | null; id: string }) =>
+    `/profile/${creator.handle ?? creator.id}`
+
 // ── Single short item ─────────────────────────────────────────────────────────
 
 type ShortItemProps = {
-    short:      Short
-    isActive:   boolean
-    isMuted:    boolean
-    onLike:     () => void
-    onSave:     () => void
-    onShare:    () => void
-    onComment:  () => void
-    onGift:     () => void
-    onUnlock:   () => void
-    onPrev:     () => void
-    onNext:     () => void
-    hasNext:    boolean
-    hasPrev:    boolean
+    short:     Short
+    isActive:  boolean
+    isMuted:   boolean
+    onLike:    () => void
+    onSave:    () => void
+    onShare:   () => void
+    onComment: () => void
+    onGift:    () => void
+    onUnlock:  () => void
+    onPrev:    () => void
+    onNext:    () => void
+    hasNext:   boolean
+    hasPrev:   boolean
 }
 
 const ShortItem = ({
@@ -114,7 +120,6 @@ const ShortItem = ({
                         <img
                             src={short.thumbnailUrl}
                             alt={short.title ?? ""}
-                            sizes="100vw"
                             className="short-item__thumb-blur"
                         />
                     )}
@@ -123,7 +128,7 @@ const ShortItem = ({
                         <p>{lockLabel}</p>
                         <div className="short-item__locked-actions">
                             <Link
-                                href={`/@${short.creator.handle ?? short.creator.id}`}
+                                href={profileHref(short.creator)}
                                 className="short-locked-btn short-locked-btn--primary"
                             >
                                 {short.lockReason === "FOLLOWERS_ONLY" ? "Follow" : "Subscribe"}
@@ -145,11 +150,7 @@ const ShortItem = ({
 
             {/* Bottom overlay — creator info + caption */}
             <div className="short-item__info">
-                {/* Creator */}
-                <Link
-                    href={`/@${short.creator.handle ?? short.creator.id}`}
-                    className="short-item__creator"
-                >
+                <Link href={profileHref(short.creator)} className="short-item__creator">
                     <div className={`short-avatar ${short.creator.isLive ? "short-avatar--live" : ""}`}>
                         {short.creator.isLive && (
                             <>
@@ -276,7 +277,7 @@ const ShortItem = ({
 
 // ── ShortsPlayer ──────────────────────────────────────────────────────────────
 
-export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
+export const ShortsPlayer = ({ initialShorts, startIndex, currentUserId }: Props) => {
     const router = useRouter()
 
     const [shorts,  setShorts]  = useState<Short[]>(initialShorts)
@@ -285,6 +286,10 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
     const [loading, setLoading] = useState(false)
     const [,        startTransition] = useTransition()
 
+    // Panels
+    const [commentPostId, setCommentPostId] = useState<string | null>(null)
+    const [giftCreatorId, setGiftCreatorId] = useState<string | null>(null)
+
     const containerRef = useRef<HTMLDivElement>(null)
     const touchStartY  = useRef<number>(0)
     const isSwiping    = useRef(false)
@@ -292,9 +297,10 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
     const current = shorts[index]
 
     // ── URL sync ──────────────────────────────────────────────────────────────
+    // Must match the real route: app/(fan)/fan/shorts/[id]/page.tsx
     useEffect(() => {
         if (!current) return
-        router.replace(`/feed/shorts/${current.id}`, { scroll: false })
+        router.replace(`/fan/shorts/${current.id}`, { scroll: false })
     }, [current?.id])
 
     // ── Load more when near end ───────────────────────────────────────────────
@@ -318,7 +324,7 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
     }, [index, shorts.length, loading])
 
     // ── Navigate ──────────────────────────────────────────────────────────────
-    const goTo   = useCallback((next: number) => {
+    const goTo = useCallback((next: number) => {
         if (next < 0 || next >= shorts.length) return
         setIndex(next)
     }, [shorts.length])
@@ -343,15 +349,20 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
     }
 
     // ── Keyboard navigation ───────────────────────────────────────────────────
+    // Disabled while a panel is open, otherwise arrow keys scrub shorts behind it.
+    const panelOpen = commentPostId !== null || giftCreatorId !== null
+
     useEffect(() => {
+        if (panelOpen) return
+
         const handler = (e: KeyboardEvent) => {
-            if (e.key === "ArrowDown")            goNext()
-            if (e.key === "ArrowUp")              goPrev()
-            if (e.key === "m" || e.key === "M")   setIsMuted((m) => !m)
+            if (e.key === "ArrowDown")          goNext()
+            if (e.key === "ArrowUp")            goPrev()
+            if (e.key === "m" || e.key === "M") setIsMuted((m) => !m)
         }
         window.addEventListener("keydown", handler)
         return () => window.removeEventListener("keydown", handler)
-    }, [goNext, goPrev])
+    }, [goNext, goPrev, panelOpen])
 
     // ── Optimistic interaction handlers ───────────────────────────────────────
     const mutateShort = (id: string, patch: Partial<Short>) =>
@@ -374,7 +385,7 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
     }
 
     const handleShare = async (s: Short) => {
-        const url = `${window.location.origin}/feed/shorts/${s.id}`
+        const url = `${window.location.origin}/fan/shorts/${s.id}`
         try {
             if (navigator.share) await navigator.share({ title: s.title ?? "Check this short on NESORA", url })
             else await navigator.clipboard.writeText(url)
@@ -406,14 +417,14 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
             <ShortItem
                 key={current.id}
                 short={current}
-                isActive={true}
+                isActive={!panelOpen}
                 isMuted={isMuted}
                 onLike={()    => handleLike(current)}
                 onSave={()    => handleSave(current)}
                 onShare={()   => handleShare(current)}
-                onComment={()  => {/* comment drawer — wired in next phase */}}
-                onGift={()    => {/* gift modal — wired in next phase */}}
-                onUnlock={()  => {/* unlock modal — wired in next phase */}}
+                onComment={() => setCommentPostId(current.id)}
+                onGift={()    => setGiftCreatorId(current.creator.id)}
+                onUnlock={()  => setGiftCreatorId(current.creator.id)}
                 onNext={goNext}
                 onPrev={goPrev}
                 hasNext={index < shorts.length - 1}
@@ -433,6 +444,29 @@ export const ShortsPlayer = ({ initialShorts, startIndex }: Props) => {
                         )
                     })}
                 </div>
+            )}
+
+            {/* ── Comments ── */}
+            {commentPostId && (
+                <CommentPanel
+                    postId={commentPostId}
+                    currentUserId={currentUserId}
+                    onClose={() => setCommentPostId(null)}
+                    onCommentAdded={() => {
+                        mutateShort(commentPostId, {
+                            commentCount: (shorts.find((s) => s.id === commentPostId)?.commentCount ?? 0) + 1,
+                        } as Partial<Short>)
+                    }}
+                />
+            )}
+
+            {/* ── Gift ── */}
+            {giftCreatorId && (
+                <GiftPanel
+                    creatorId={giftCreatorId}
+                    onClose={() => setGiftCreatorId(null)}
+                    onSent={()  => setGiftCreatorId(null)}
+                />
             )}
         </div>
     )
