@@ -39,7 +39,7 @@ export const ProfilePage = () => {
     if (!data) return null
 
     const { creator, user } = data
-    const profileUrl = `/profile/${creator.handle ?? creator.id}`
+    const profileUrl = `/fan/${creator.handle ?? creator.id}`
 
     return (
         <div className="profile-page">
