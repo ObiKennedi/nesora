@@ -55,15 +55,13 @@ export const ProfilePage = () => {
                         <Repeat size={14} />
                         Switch to Fan Mode
                     </Link>
-                    <a
+                    <Link
                         href={profileUrl}
-                        target="_blank"
-                        rel="noreferrer"
                         className="profile-page__view-btn"
                     >
                         <ExternalLink size={14} />
                         View Public Profile
-                    </a>
+                    </Link>
                 </div>
             </div>
 
