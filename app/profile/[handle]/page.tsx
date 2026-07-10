@@ -1,16 +1,62 @@
+// app/(fan)/[handle]/page.tsx
+
 import { notFound } from "next/navigation"
-import { getPublicCreatorProfile } from "@/lib/data/creator-profile"
-import { ProfileView } from "@/component/profile/ProfileView"
+import type { Metadata } from "next"
+import {
+    getPublicCreatorProfileAction,
+    getCreatorGridPostsAction,
+} from "@/actions/creator-profile"
+import CreatorProfileView from "@/component/creator-profile/CreatorProfileView"
 
-export default async function PublicProfilePage({
-    params,
-}: {
-    params: Promise<{ handle: string }>   // Next 15 — params is a Promise
-}) {
-    const { handle } = await params
-    const profile = await getPublicCreatorProfile(handle)
+type Params = Promise<{ handle: string }>
 
-    if (!profile) notFound()
+function extractHandle(raw: string): string | null {
+    const decoded = decodeURIComponent(raw)
+    if (!decoded.startsWith("@")) return null
+    const handle = decoded.slice(1)
+    return handle.length > 0 ? handle : null
+}
 
-    return <ProfileView profile={profile} />
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+    const { handle: raw } = await params
+    const handle = extractHandle(raw)
+    if (!handle) return {}
+
+    const profile = await getPublicCreatorProfileAction(handle)
+    if (profile.status !== "success") return {}
+
+    const { creator } = profile
+    return {
+        title:       `${creator.displayName} (@${creator.handle}) | Nesora`,
+        description: creator.bio ?? `Follow ${creator.displayName} on Nesora`,
+        openGraph: {
+            title:       `${creator.displayName} (@${creator.handle})`,
+            description: creator.bio ?? undefined,
+            images:      creator.image ? [creator.image] : undefined,
+        },
+    }
+}
+
+export default async function PublicCreatorProfilePage({ params }: { params: Params }) {
+    const { handle: raw } = await params
+    const handle = extractHandle(raw)
+    if (!handle) notFound()
+
+    const profile = await getPublicCreatorProfileAction(handle)
+    if (profile.status !== "success") notFound()
+
+    const initialGrid = await getCreatorGridPostsAction({
+        handle,
+        tab:    "posts",
+        cursor: null,
+    })
+
+    return (
+        <CreatorProfileView
+            creator={profile.creator}
+            viewer={profile.viewer}
+            initialPosts={initialGrid.status === "success" ? initialGrid.posts : []}
+            initialCursor={initialGrid.status === "success" ? initialGrid.nextCursor : null}
+        />
+    )
 }
