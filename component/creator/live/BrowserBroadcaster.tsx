@@ -1,3 +1,4 @@
+// components/creator/live/BrowserBroadcaster.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -8,8 +9,14 @@ const VIDEO_CONSTRAINTS = { width: { ideal: 1280 }, height: { ideal: 720 } }
 
 interface BrowserBroadcasterProps {
     ingestEndpoint: string
-    streamKey: string
-    onError?: (msg: string) => void
+    streamKey:      string
+    onError?:       (msg: string) => void
+    /**
+     * Fires when frames actually start/stop flowing to IVS.
+     * The parent needs this to know when to begin polling for LIVE —
+     * mounting this component is not the same as broadcasting.
+     */
+    onBroadcastingChange?: (broadcasting: boolean) => void
 }
 
 type Perm = "idle" | "requesting" | "granted" | "denied" | "nodevice" | "failed"
@@ -18,6 +25,7 @@ export default function BrowserBroadcaster({
     ingestEndpoint,
     streamKey,
     onError,
+    onBroadcastingChange,
 }: BrowserBroadcasterProps) {
     const clientRef       = useRef<any>(null)
     const cameraStreamRef = useRef<MediaStream | null>(null)
@@ -25,18 +33,30 @@ export default function BrowserBroadcaster({
     const canvasRef       = useRef<HTMLCanvasElement | null>(null)
     const initedRef       = useRef(false)
 
-    const [perm, setPerm]                 = useState<Perm>("idle")
-    const [detail, setDetail]             = useState<string>("")   // human-readable failure text
+    // Mirrors `broadcasting` for use inside teardown, which closes over
+    // the first render's state otherwise.
+    const broadcastingRef = useRef(false)
+
+    const [perm,   setPerm]   = useState<Perm>("idle")
+    const [detail, setDetail] = useState<string>("")
     const [broadcasting, setBroadcasting] = useState(false)
-    const [busy, setBusy]                 = useState(false)
+    const [busy,         setBusy]         = useState(false)
 
     const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
-    const [videoId, setVideoId]           = useState("")
-    const [audioId, setAudioId]           = useState("")
+    const [videoId,      setVideoId]      = useState("")
+    const [audioId,      setAudioId]      = useState("")
 
     const [micMuted, setMicMuted] = useState(false)
-    const [camOff, setCamOff]     = useState(false)
+    const [camOff,   setCamOff]   = useState(false)
+
+    // Single place that updates broadcast state, so the ref, the local state
+    // and the parent can never disagree.
+    function setBroadcastState(next: boolean) {
+        broadcastingRef.current = next
+        setBroadcasting(next)
+        onBroadcastingChange?.(next)
+    }
 
     useEffect(() => {
         if (initedRef.current) return
@@ -44,7 +64,7 @@ export default function BrowserBroadcaster({
         let cancelled = false
 
         async function init() {
-            // 1. Load the SDK. If this throws, we must NOT hang on "requesting".
+            // 1. Load the SDK. If this throws we must NOT hang on "requesting".
             let IVSBroadcastClient: any
             try {
                 setPerm("requesting")
@@ -88,9 +108,9 @@ export default function BrowserBroadcaster({
                 })
             } catch (err: any) {
                 console.error("getUserMedia failed:", err)
-                if (err?.name === "NotAllowedError")     { setPerm("denied");   setDetail("You blocked camera/mic access.") }
-                else if (err?.name === "NotFoundError")  { setPerm("nodevice"); setDetail("No camera or microphone found.") }
-                else                                     { setPerm("failed");   setDetail(err?.message ?? "Camera error.") }
+                if (err?.name === "NotAllowedError")    { setPerm("denied");   setDetail("You blocked camera/mic access.") }
+                else if (err?.name === "NotFoundError") { setPerm("nodevice"); setDetail("No camera or microphone found.") }
+                else                                    { setPerm("failed");   setDetail(err?.message ?? "Camera error.") }
                 onError?.("Could not start your camera.")
                 return
             }
@@ -130,7 +150,11 @@ export default function BrowserBroadcaster({
     }, [])
 
     function teardown() {
-        try { if (broadcasting) clientRef.current?.stopBroadcast() } catch {}
+        try {
+            if (broadcastingRef.current) clientRef.current?.stopBroadcast()
+        } catch {}
+        broadcastingRef.current = false
+
         cameraStreamRef.current?.getTracks().forEach((t) => t.stop())
         micStreamRef.current?.getTracks().forEach((t) => t.stop())
         try { clientRef.current?.delete?.() } catch {}
@@ -175,6 +199,7 @@ export default function BrowserBroadcaster({
         track.enabled = micMuted
         setMicMuted((m) => !m)
     }
+
     function toggleCam() {
         const track = cameraStreamRef.current?.getVideoTracks()[0]
         if (!track) return
@@ -188,41 +213,54 @@ export default function BrowserBroadcaster({
         setBusy(true)
         try {
             await client.startBroadcast(streamKey)
-            setBroadcasting(true)
+            // Frames are now flowing. IVS will take ~5–15s to register them —
+            // the parent starts polling from here.
+            setBroadcastState(true)
         } catch (err: any) {
             console.error("startBroadcast failed:", err)
             onError?.(err?.message ?? "Could not start broadcasting.")
-        } finally { setBusy(false) }
+        } finally {
+            setBusy(false)
+        }
     }
+
     async function stopBroadcast() {
         const client = clientRef.current
         if (!client) return
         setBusy(true)
         try {
             await client.stopBroadcast()
-            setBroadcasting(false)
-        } catch (err) { console.error("stopBroadcast failed:", err) }
-        finally { setBusy(false) }
+            setBroadcastState(false)
+        } catch (err) {
+            console.error("stopBroadcast failed:", err)
+        } finally {
+            setBusy(false)
+        }
     }
 
     return (
         <div className="broadcaster">
             <div className="broadcaster__stage">
                 <canvas ref={canvasRef} className="broadcaster__canvas" />
+
                 {perm === "requesting" && <div className="broadcaster__overlay">Starting camera…</div>}
+
                 {perm === "denied" && (
                     <div className="broadcaster__overlay">
-                        Camera/mic blocked. Allow access in your browser’s site settings, then reload.
+                        Camera/mic blocked. Allow access in your browser&rsquo;s site settings, then reload.
                         {detail && <span className="broadcaster__detail">{detail}</span>}
                     </div>
                 )}
+
                 {perm === "nodevice" && <div className="broadcaster__overlay">No camera or microphone found.</div>}
+
                 {perm === "failed" && (
                     <div className="broadcaster__overlay">
                         Something went wrong starting the broadcaster.
                         {detail && <span className="broadcaster__detail">{detail}</span>}
                     </div>
                 )}
+
                 {broadcasting && <span className="broadcaster__live-dot">● LIVE</span>}
             </div>
 
@@ -254,6 +292,7 @@ export default function BrowserBroadcaster({
                         <button className="broadcaster__toggle" onClick={toggleCam}>
                             {camOff ? "Turn camera on" : "Turn camera off"}
                         </button>
+
                         {!broadcasting ? (
                             <button className="broadcaster__go" onClick={startBroadcast} disabled={busy}>
                                 {busy ? "Starting…" : "Start broadcast"}

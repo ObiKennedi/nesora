@@ -16,8 +16,6 @@ export default async function ShortPage({
 
     const startIndex = data.shorts.findIndex((s) => s.id === id)
 
-    // Short not in the first page of the pool — fall back to the top of the reel.
-    // (A dedicated getShortByIdAction would let us prepend it instead.)
     if (data.shorts.length === 0) redirect("/fan/shorts")
 
     return (

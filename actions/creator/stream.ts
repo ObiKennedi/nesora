@@ -9,15 +9,23 @@ import {
     ensureCreatorChannel,
     getStreamKeyValue,
     stopChannelStream,
+    getChannelStreamState,
 } from "@/lib/ivs"
 import { pusherServer } from "@/lib/pusher"
-import { getChannelStreamState } from "@/lib/ivs"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function getCreatorOrThrow(userId: string) {
     const creator = await prisma.creator.findUnique({ where: { userId } })
     if (!creator) redirect("/onboarding")
     return creator
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Schemas
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StartStreamSchema = z.object({
     streamId:         z.string().optional(),
@@ -34,6 +42,83 @@ const ScheduleStreamSchema = z.object({
     isSubscriberOnly: z.boolean().default(false),
     scheduledFor:     z.string().datetime(),
 })
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STATE TRANSITIONS
+//
+// A LiveStream row changes status in exactly two places: markStreamLive and
+// markStreamEnded. Every writer — the client poll, the IVS EventBridge webhook,
+// the creator pressing "End stream" — routes through them.
+//
+// Both use a conditional `updateMany` rather than read-then-write. Two writers
+// racing means the first one matches, the second gets `count === 0` and
+// no-ops. Without this, poll + webhook arriving together fire `stream-live`
+// twice and every viewer's player reloads.
+// ═════════════════════════════════════════════════════════════════════════════
+
+export async function markStreamLive(params: {
+    streamId:     string
+    creatorId:    string
+    startedAt?:   Date | null
+    ivsStreamId?: string | null
+}): Promise<{ transitioned: boolean }> {
+    const { streamId, creatorId, startedAt, ivsStreamId } = params
+
+    // SCHEDULED → LIVE only. Can never resurrect an ENDED stream, which is what
+    // protects us from a late EventBridge retry landing after "End stream".
+    const { count } = await prisma.liveStream.updateMany({
+        where: { id: streamId, status: "SCHEDULED" },
+        data: {
+            status:      "LIVE",
+            startedAt:   startedAt ?? new Date(),
+            ivsStreamId: ivsStreamId || null,
+        },
+    })
+
+    if (count === 0) return { transitioned: false }
+
+    const stream = await prisma.liveStream.findUnique({
+        where:  { id: streamId },
+        select: { id: true, title: true, isSubscriberOnly: true, startedAt: true },
+    })
+
+    if (stream) {
+        await pusherServer.trigger(`creator-${creatorId}-live`, "stream-live", {
+            streamId:         stream.id,
+            title:            stream.title,
+            isSubscriberOnly: stream.isSubscriberOnly,
+            startedAt:        stream.startedAt,
+        })
+    }
+
+    return { transitioned: true }
+}
+
+export async function markStreamEnded(params: {
+    streamId:  string
+    creatorId: string
+}): Promise<{ transitioned: boolean }> {
+    const { streamId, creatorId } = params
+
+    // Either pre-live or live can end. Already-ENDED is a no-op.
+    const { count } = await prisma.liveStream.updateMany({
+        where: { id: streamId, status: { in: ["SCHEDULED", "LIVE"] } },
+        data:  { status: "ENDED", endedAt: new Date() },
+    })
+
+    if (count === 0) return { transitioned: false }
+
+    await pusherServer.trigger(`creator-${creatorId}-live`, "stream-ended", {
+        streamId,
+        endedAt: new Date(),
+    })
+
+    return { transitioned: true }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CREATOR ACTIONS
+// ═════════════════════════════════════════════════════════════════════════════
 
 export async function startStreamAction(input: z.infer<typeof StartStreamSchema>) {
     const session = await auth()
@@ -76,6 +161,8 @@ export async function startStreamAction(input: z.infer<typeof StartStreamSchema>
             data: {
                 creatorId:   creator.id,
                 title, description, thumbnailUrl, isSubscriberOnly,
+                // Stays SCHEDULED until IVS confirms ingest. The row existing
+                // is not the same as the encoder being connected.
                 status:      "SCHEDULED",
                 playbackUrl: channel.playbackUrl,
             },
@@ -91,7 +178,7 @@ export async function startStreamAction(input: z.infer<typeof StartStreamSchema>
     }
 
     return {
-        success: true,
+        success: true as const,
         stream: { id: stream.id, title: stream.title, playbackUrl: channel.playbackUrl },
         broadcast: {
             ingestEndpoint: channel.ingestEndpoint,
@@ -107,11 +194,14 @@ export async function endStreamAction(streamId: string) {
     const creator = await getCreatorOrThrow(session.user.id)
 
     const stream = await prisma.liveStream.findFirst({
-        where: { id: streamId, creatorId: creator.id },
+        where:  { id: streamId, creatorId: creator.id },
+        select: { id: true, status: true },
     })
-    if (!stream) return { error: "Stream not found." }
-    if (stream.status === "ENDED") return { success: true }
+    if (!stream) return { error: "Stream not found." as const }
+    if (stream.status === "ENDED") return { success: true as const }
 
+    // Tell IVS first — if this fails we still want the row ended, otherwise the
+    // creator is stuck with a stream they can't clear.
     if (creator.ivsChannelArn) {
         try {
             await stopChannelStream(creator.ivsChannelArn)
@@ -120,15 +210,10 @@ export async function endStreamAction(streamId: string) {
         }
     }
 
-    const ended = await prisma.liveStream.update({
-        where: { id: streamId },
-        data:  { status: "ENDED", endedAt: new Date() },
-    })
+    await markStreamEnded({ streamId: stream.id, creatorId: creator.id })
 
-    return { success: true, stream: ended }
+    return { success: true as const }
 }
-
-// ── Schedule for later ───────────────────────────────────────────────────────
 
 export async function scheduleStreamAction(input: z.infer<typeof ScheduleStreamSchema>) {
     const session = await auth()
@@ -155,7 +240,7 @@ export async function scheduleStreamAction(input: z.infer<typeof ScheduleStreamS
         },
     })
 
-    return { success: true, streamId: stream.id }
+    return { success: true as const, streamId: stream.id }
 }
 
 export async function getMyStreamsAction(params?: {
@@ -203,39 +288,65 @@ export async function getMyStreamsAction(params?: {
     return { streams, total, pages: Math.ceil(total / limit), page }
 }
 
-export async function pollStreamStatusAction(streamId: string) {
+// ═════════════════════════════════════════════════════════════════════════════
+// POLL
+//
+// IVS does not register a stream the moment frames start flowing — ingest
+// handshake plus registration takes roughly 5–15 seconds, and GetStream throws
+// ChannelNotBroadcasting the whole time. So a single call right after the
+// encoder connects ALWAYS reports not-live. The client must keep asking, which
+// is what `pending: true` signals.
+//
+// This runs in every environment. EventBridge cannot reach localhost, and in
+// production it can be slow or drop events — the poll is what makes going live
+// reliable rather than hopeful.
+// ═════════════════════════════════════════════════════════════════════════════
+
+type PollResult =
+    | { error: string }
+    | { status: "SCHEDULED" | "LIVE" | "ENDED"; pending: boolean }
+
+export async function pollStreamStatusAction(streamId: string): Promise<PollResult> {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
     const creator = await getCreatorOrThrow(session.user.id)
 
     const stream = await prisma.liveStream.findFirst({
-        where: { id: streamId, creatorId: creator.id },
+        where:  { id: streamId, creatorId: creator.id },
+        select: { id: true, status: true },
     })
     if (!stream) return { error: "Stream not found." }
-    if (stream.status === "ENDED" || stream.status === "LIVE") {
-        return { status: stream.status }
+
+    // Resolved — nothing left to wait for.
+    if (stream.status === "LIVE" || stream.status === "ENDED") {
+        return { status: stream.status, pending: false }
     }
-    if (!creator.ivsChannelArn) return { status: stream.status }
 
-    const state = await getChannelStreamState(creator.ivsChannelArn)
-    if (!state.live) return { status: stream.status }
+    if (!creator.ivsChannelArn) {
+        return { status: stream.status, pending: false }
+    }
 
-    const updated = await prisma.liveStream.update({
-        where: { id: stream.id },
-        data: {
-            status:      "LIVE",
-            startedAt:   state.startedAt ?? new Date(),
-            ivsStreamId: state.streamId || null,
-        },
+    let state
+    try {
+        state = await getChannelStreamState(creator.ivsChannelArn)
+    } catch (err) {
+        // ChannelNotBroadcasting is the expected pre-ingest response, not a
+        // failure. Swallow it and let the client keep polling.
+        console.error("IVS GetStream failed (will retry):", err)
+        return { status: stream.status, pending: true }
+    }
+
+    if (!state.live) {
+        return { status: stream.status, pending: true }
+    }
+
+    await markStreamLive({
+        streamId:    stream.id,
+        creatorId:   creator.id,
+        startedAt:   state.startedAt,
+        ivsStreamId: state.streamId,
     })
 
-    await pusherServer.trigger(`creator-${creator.id}-live`, "stream-live", {
-        streamId:         updated.id,
-        title:            updated.title,
-        isSubscriberOnly: updated.isSubscriberOnly,
-        startedAt:        updated.startedAt,
-    })
-
-    return { status: "LIVE" as const }
+    return { status: "LIVE", pending: false }
 }

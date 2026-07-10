@@ -1,3 +1,4 @@
+// components/creator/live/LiveChat.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -5,22 +6,22 @@ import { getPusherClient } from "@/lib/pusher-client"
 import { getLiveMessagesAction, sendLiveMessageAction } from "@/actions/live/chat"
 
 interface ChatMessage {
-    id: string
-    content: string
+    id:        string
+    content:   string
     createdAt: string | Date
     user: { id: string; username: string | null; firstName: string | null; image: string | null }
 }
 
 interface LiveChatProps {
-    streamId: string
+    streamId:      string
     currentUserId: string
-    canSend?: boolean
+    canSend?:      boolean
 }
 
 export default function LiveChat({ streamId, currentUserId, canSend = true }: LiveChatProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([])
-    const [draft, setDraft]       = useState("")
-    const [sending, setSending]   = useState(false)
+    const [draft,    setDraft]    = useState("")
+    const [sending,  setSending]  = useState(false)
     const listRef = useRef<HTMLDivElement | null>(null)
 
     // Initial load.
@@ -29,15 +30,23 @@ export default function LiveChat({ streamId, currentUserId, canSend = true }: Li
     }, [streamId])
 
     // Live updates.
+    //
+    // `stream-${streamId}` is SHARED with LiveGiftWallet. Unsubscribing here
+    // would tear the channel out from under it — so we unbind this handler
+    // only and leave the subscription alone.
     useEffect(() => {
         const pusher  = getPusherClient()
         const channel = pusher.subscribe(`stream-${streamId}`)
-        channel.bind("chat-message", (msg: ChatMessage) => {
+
+        const onChatMessage = (msg: ChatMessage) => {
             setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
-        })
+        }
+
+        channel.bind("chat-message", onChatMessage)
+
         return () => {
-            channel.unbind("chat-message")
-            pusher.unsubscribe(`stream-${streamId}`)
+            channel.unbind("chat-message", onChatMessage)
+            // NOTE: no pusher.unsubscribe — LiveGiftWallet is on this channel too.
         }
     }, [streamId])
 
@@ -49,18 +58,25 @@ export default function LiveChat({ streamId, currentUserId, canSend = true }: Li
     async function send() {
         const content = draft.trim()
         if (!content || sending) return
+
         setSending(true)
         setDraft("")
+
         const res = await sendLiveMessageAction({ streamId, content })
         setSending(false)
+
         if ("error" in res) setDraft(content) // restore on failure
     }
 
     return (
         <div className="live-chat">
             <div className="live-chat__header">Live chat</div>
+
             <div className="live-chat__messages" ref={listRef}>
-                {messages.length === 0 && <p className="live-chat__empty">No messages yet. Say hello 👋</p>}
+                {messages.length === 0 && (
+                    <p className="live-chat__empty">No messages yet. Say hello 👋</p>
+                )}
+
                 {messages.map((m) => {
                     const name = m.user.firstName || m.user.username || "Guest"
                     const mine = m.user.id === currentUserId
@@ -77,6 +93,7 @@ export default function LiveChat({ streamId, currentUserId, canSend = true }: Li
                     )
                 })}
             </div>
+
             {canSend && (
                 <div className="live-chat__composer">
                     <input
