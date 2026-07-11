@@ -9,10 +9,6 @@ import {
     unfollowCreatorAction,
 } from "@/actions/fan/discover"
 
-// Styles: .feed-rail / .rail-card / .rail-creator in Feed.scss
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 export type RailCreator = {
     id:             string
     displayName:    string
@@ -27,15 +23,11 @@ type Props = {
     suggested: RailCreator[]
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function formatCount(n: number): string {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
     if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`
     return String(n)
 }
-
-// ── FeedRightRail ─────────────────────────────────────────────────────────────
 
 export const FeedRightRail = ({ suggested }: Props) => {
     const [creators,    setCreators]    = useState<RailCreator[]>(suggested)
@@ -43,7 +35,6 @@ export const FeedRightRail = ({ suggested }: Props) => {
     const [,            startTransition] = useTransition()
 
     const handleToggleFollow = (id: string, isFollowing: boolean) => {
-        // Optimistic
         setCreators((prev) =>
             prev.map((c) => c.id === id ? { ...c, isFollowing: !isFollowing } : c)
         )
@@ -54,7 +45,6 @@ export const FeedRightRail = ({ suggested }: Props) => {
             const res    = await action(id)
 
             if (!res.success) {
-                // Revert on failure
                 setCreators((prev) =>
                     prev.map((c) => c.id === id ? { ...c, isFollowing } : c)
                 )
@@ -84,7 +74,7 @@ export const FeedRightRail = ({ suggested }: Props) => {
                     {creators.slice(0, 5).map((c) => (
                         <div key={c.id} className="rail-creator">
                             <Link
-                                href={`/profile/${c.handle ?? c.id}`}
+                                href={`/fan/${c.handle ?? c.id}`}
                                 className="rail-creator__link"
                             >
                                 <div className="rail-creator__avatar">
