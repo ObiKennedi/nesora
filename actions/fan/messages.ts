@@ -130,12 +130,13 @@ export async function getFanMessagesAction(
 // ── Send message (fan → creator) ──────────────────────────────────────────────
 
 const SendMessageSchema = z.object({
-    conversationId: z.string().min(1),
-    type:           z.nativeEnum(MessageType).default("TEXT"),
-    content:        z.string().optional(),
-    mediaUrl:       z.string().optional(),
-    voiceNoteUrl:   z.string().optional(),
-    voiceDuration:  z.number().optional(),
+    conversationId:    z.string().min(1),
+    type:              z.nativeEnum(MessageType).default("TEXT"),
+    content:           z.string().optional(),
+    mediaUrl:          z.string().optional(),
+    voiceNoteUrl:      z.string().optional(),
+    voiceNotePublicId: z.string().optional(), // Cloudinary public_id for cleanup
+    voiceDuration:     z.number().optional(),
 })
 
 export async function sendFanMessageAction(
@@ -147,12 +148,18 @@ export async function sendFanMessageAction(
     const parsed = SendMessageSchema.safeParse(data)
     if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-    const { conversationId, type, content, mediaUrl, voiceNoteUrl, voiceDuration } = parsed.data
+    const {
+        conversationId, type, content, mediaUrl,
+        voiceNoteUrl, voiceNotePublicId, voiceDuration,
+    } = parsed.data
 
     if (type === "TEXT"       && !content?.trim())  return { error: "Message cannot be empty."    }
     if (type === "IMAGE"      && !mediaUrl)          return { error: "Image URL is required."      }
     if (type === "VIDEO"      && !mediaUrl)          return { error: "Video URL is required."      }
     if (type === "VOICE_NOTE" && !voiceNoteUrl)      return { error: "Voice note URL is required." }
+    if (type === "VOICE_NOTE" && (!voiceDuration || voiceDuration < 1)) {
+        return { error: "Voice note appears to be empty. Please record again." }
+    }
 
     const conversation = await prisma.conversation.findFirst({
         where: {
@@ -173,6 +180,7 @@ export async function sendFanMessageAction(
             content,
             mediaUrl,
             voiceNoteUrl,
+            voiceNotePublicId,
             voiceDuration,
         },
         include: {

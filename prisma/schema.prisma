@@ -284,18 +284,19 @@ model Tip {
 }
 
 model Message {
-  id             String      @id @default(cuid())
-  conversationId String
-  senderId       String
-  type           MessageType @default(TEXT)
-  content        String?
-  mediaUrl       String?
-  voiceNoteUrl   String?
-  voiceDuration  Int?
-  isRead         Boolean     @default(false)
-  readAt         DateTime?
-  createdAt      DateTime    @default(now())
-  callId         String?
+  id                String      @id @default(cuid())
+  conversationId    String
+  senderId          String
+  type              MessageType @default(TEXT)
+  content           String?
+  mediaUrl          String?
+  voiceNoteUrl      String?
+  voiceNotePublicId String? // Cloudinary public_id — needed for asset cleanup on delete
+  voiceDuration     Int?
+  isRead            Boolean     @default(false)
+  readAt            DateTime?
+  createdAt         DateTime    @default(now())
+  callId            String?
 
   conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User            @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)

@@ -1,0 +1,59 @@
+// component/ui/toast.scss
+
+.toast-container {
+    position:       fixed;
+    bottom:         1.25rem;
+    left:           50%;
+    transform:      translateX(-50%);
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            0.5rem;
+    z-index:        9999;
+    pointer-events: none; // clicks pass through the container itself
+}
+
+.toast {
+    pointer-events: auto; // ...but toasts are tappable to dismiss
+    max-width:      min(90vw, 24rem);
+    padding:        0.625rem 1rem;
+    border-radius:  0.625rem;
+    font-size:      0.875rem;
+    line-height:    1.4;
+    color:          #fff;
+    background:     var(--text-primary, #2b241e);
+    box-shadow:     0 4px 16px rgba(0, 0, 0, 0.18);
+    cursor:         pointer;
+
+    opacity:    0;
+    transform:  translateY(0.5rem);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+
+    &--visible {
+        opacity:   1;
+        transform: translateY(0);
+    }
+
+    &--success {
+        background: var(--success, #2e7d4f);
+    }
+
+    &--error {
+        background: var(--danger, #d5453c);
+    }
+
+    &--info {
+        background: var(--text-primary, #2b241e);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        transition: opacity 0.15s ease;
+        transform:  none;
+
+        &--visible {
+            transform: none;
+        }
+    }
+}

@@ -9,7 +9,7 @@ import Image from "next/image"
 import {
     Send, Mic, ImagePlus,
     Loader2, CheckCheck, Check,
-    StopCircle, ArrowLeft,
+    ArrowLeft,
 } from "lucide-react"
 import {
     getFanMessagesAction,
@@ -20,6 +20,8 @@ import { getPusherClient }   from "@/lib/pusher-client"
 import { format, isToday, isYesterday } from "date-fns"
 import { CallHeaderButtons } from "@/component/calls/CallHeaderButtons"
 import { CallEventBubble }   from "@/component/calls/CallEventBubble"
+import VoiceRecorder from "@/component/messages/VoiceRecorder"
+import type { VoiceNoteUpload } from "@/lib/upload-voice-note"
 import "@/styles/fan/messages/FanChatWindow.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -82,6 +84,12 @@ const uploadToCloudinary = async (file: File, folder: string) => {
     return data.secure_url as string
 }
 
+const formatVoiceDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m}:${s.toString().padStart(2, "0")}`
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export const FanChatWindow = ({
@@ -91,21 +99,19 @@ export const FanChatWindow = ({
     onBack,
 }: Props) => {
 
-    const [messages,     setMessages]     = useState<Message[]>([])
-    const [text,         setText]         = useState("")
-    const [uploading,    setUploading]    = useState(false)
-    const [recording,    setRecording]    = useState(false)
-    const [isTyping,     setIsTyping]     = useState(false)
-    const [page,         setPage]         = useState(1)
-    const [hasMore,      setHasMore]      = useState(false)
-    const [isPending,    startTransition] = useTransition()
-    const [isSending,    startSend]       = useTransition()
+    const [messages,    setMessages]     = useState<Message[]>([])
+    const [text,        setText]         = useState("")
+    const [uploading,   setUploading]    = useState(false)
+    const [voiceActive, setVoiceActive]  = useState(false) // recorder is recording/previewing/uploading
+    const [isTyping,    setIsTyping]     = useState(false)
+    const [page,        setPage]         = useState(1)
+    const [hasMore,     setHasMore]      = useState(false)
+    const [isPending,   startTransition] = useTransition()
+    const [isSending,   startSend]       = useTransition()
 
     const bottomRef   = useRef<HTMLDivElement>(null)
     const fileRef     = useRef<HTMLInputElement>(null)
     const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const mediaRef    = useRef<MediaRecorder | null>(null)
-    const chunksRef   = useRef<Blob[]>([])
 
     const creatorName  = conversation.creator.displayName
     const creatorImage = conversation.creator.user.image
@@ -128,24 +134,27 @@ export const FanChatWindow = ({
     }, [messages])
 
     // ── Pusher ────────────────────────────────────────────────────────────────
+    // NOTE: named handlers + unbind(event, handler) ONLY. Never unbind_all()
+    // or pusher.unsubscribe() here — the conversation channel is shared with
+    // sibling components (ChatDock, unread badges) and nuking it kills theirs.
     useEffect(() => {
         const pusher  = getPusherClient()
         const channel = pusher.subscribe(`private-conversation-${conversation.id}`)
 
-        channel.bind("new-message", (data: { message: Message }) => {
+        const handleNewMessage = (data: { message: Message }) => {
             setMessages((prev) => {
                 if (prev.find((m) => m.id === data.message.id)) return prev
                 return [...prev, data.message]
             })
-        })
+        }
 
-        channel.bind("typing", (data: { userId: string; isTyping: boolean }) => {
+        const handleTyping = (data: { userId: string; isTyping: boolean }) => {
             if (data.userId !== currentUserId) {
                 setIsTyping(data.isTyping)
             }
-        })
+        }
 
-        channel.bind("messages-read", () => {
+        const handleMessagesRead = () => {
             setMessages((prev) =>
                 prev.map((m) =>
                     m.senderId === currentUserId
@@ -153,11 +162,16 @@ export const FanChatWindow = ({
                         : m
                 )
             )
-        })
+        }
+
+        channel.bind("new-message",   handleNewMessage)
+        channel.bind("typing",        handleTyping)
+        channel.bind("messages-read", handleMessagesRead)
 
         return () => {
-            channel.unbind_all()
-            pusher.unsubscribe(`private-conversation-${conversation.id}`)
+            channel.unbind("new-message",   handleNewMessage)
+            channel.unbind("typing",        handleTyping)
+            channel.unbind("messages-read", handleMessagesRead)
         }
     }, [conversation.id, currentUserId])
 
@@ -221,43 +235,18 @@ export const FanChatWindow = ({
     }
 
     // ── Voice note ────────────────────────────────────────────────────────────
-    const startRecording = async () => {
-        try {
-            const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-            const recorder = new MediaRecorder(stream)
-            chunksRef.current = []
-
-            recorder.ondataavailable = (e) => chunksRef.current.push(e.data)
-            recorder.onstop = async () => {
-                const blob = new Blob(chunksRef.current, { type: "audio/webm" })
-                const file = new File([blob], "voice-note.webm", { type: "audio/webm" })
-
-                setUploading(true)
-                try {
-                    const url = await uploadToCloudinary(file, "messages/voice-notes")
-                    await sendFanMessageAction({
-                        conversationId: conversation.id,
-                        type:           "VOICE_NOTE",
-                        voiceNoteUrl:   url,
-                    })
-                    onMessageSent()
-                } finally {
-                    setUploading(false)
-                    stream.getTracks().forEach((t) => t.stop())
-                }
-            }
-
-            recorder.start()
-            mediaRef.current = recorder
-            setRecording(true)
-        } catch {
-            alert("Microphone access denied.")
-        }
-    }
-
-    const stopRecording = () => {
-        mediaRef.current?.stop()
-        setRecording(false)
+    // Recording, preview, and Cloudinary upload all live inside VoiceRecorder.
+    // This fires only once the upload has fully resolved with a real asset.
+    const handleSendVoiceNote = async (upload: VoiceNoteUpload) => {
+        const res = await sendFanMessageAction({
+            conversationId:    conversation.id,
+            type:              "VOICE_NOTE",
+            voiceNoteUrl:      upload.url,
+            voiceNotePublicId: upload.publicId,
+            voiceDuration:     upload.duration,
+        })
+        if (res?.error) throw new Error(res.error) // recorder keeps the take for retry
+        onMessageSent()
     }
 
     // ── Date helper ───────────────────────────────────────────────────────────
@@ -394,7 +383,12 @@ export const FanChatWindow = ({
                                                 {msg.type === "VOICE_NOTE" && msg.voiceNoteUrl && (
                                                     <div className="fan-msg__voice">
                                                         <Mic size={14} />
-                                                        <audio src={msg.voiceNoteUrl} controls />
+                                                        <audio src={msg.voiceNoteUrl} controls preload="metadata" />
+                                                        {msg.voiceDuration ? (
+                                                            <span className="fan-msg__voice-duration">
+                                                                {formatVoiceDuration(msg.voiceDuration)}
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 )}
 
@@ -443,53 +437,53 @@ export const FanChatWindow = ({
                     style={{ display: "none" }}
                 />
 
-                <button
-                    className="fan-chat__input-btn"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading || isSending || recording}
-                    title="Send photo or video"
-                >
-                    {uploading
-                        ? <Loader2 size={18} className="spin" />
-                        : <ImagePlus size={18} />
-                    }
-                </button>
+                {/* While the recorder is active it fills the row; the rest of
+                    the composer collapses out of the way */}
+                {!voiceActive && (
+                    <>
+                        <button
+                            className="fan-chat__input-btn"
+                            onClick={() => fileRef.current?.click()}
+                            disabled={uploading || isSending}
+                            title="Send photo or video"
+                        >
+                            {uploading
+                                ? <Loader2 size={18} className="spin" />
+                                : <ImagePlus size={18} />
+                            }
+                        </button>
 
-                <textarea
-                    className="fan-chat__input-text"
-                    placeholder="Type a message..."
-                    value={text}
-                    onChange={(e) => handleTextChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    disabled={uploading || isSending || recording}
+                        <textarea
+                            className="fan-chat__input-text"
+                            placeholder="Type a message..."
+                            value={text}
+                            onChange={(e) => handleTextChange(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            rows={1}
+                            disabled={uploading || isSending}
+                        />
+                    </>
+                )}
+
+                {/* Voice note — tap to record, preview, tap send */}
+                <VoiceRecorder
+                    onSend={handleSendVoiceNote}
+                    onActiveChange={setVoiceActive}
+                    disabled={uploading || isSending}
                 />
 
-                <button
-                    className={`fan-chat__input-btn ${recording ? "fan-chat__input-btn--recording" : ""}`}
-                    onMouseDown={startRecording}
-                    onMouseUp={stopRecording}
-                    onTouchStart={startRecording}
-                    onTouchEnd={stopRecording}
-                    disabled={uploading || isSending}
-                    title="Hold to record voice note"
-                >
-                    {recording
-                        ? <StopCircle size={18} />
-                        : <Mic        size={18} />
-                    }
-                </button>
-
-                <button
-                    className="fan-chat__send-btn"
-                    onClick={handleSendText}
-                    disabled={!text.trim() || isSending || uploading}
-                >
-                    {isSending
-                        ? <Loader2 size={16} className="spin" />
-                        : <Send    size={16} />
-                    }
-                </button>
+                {!voiceActive && (
+                    <button
+                        className="fan-chat__send-btn"
+                        onClick={handleSendText}
+                        disabled={!text.trim() || isSending || uploading}
+                    >
+                        {isSending
+                            ? <Loader2 size={16} className="spin" />
+                            : <Send    size={16} />
+                        }
+                    </button>
+                )}
             </div>
         </div>
     )
