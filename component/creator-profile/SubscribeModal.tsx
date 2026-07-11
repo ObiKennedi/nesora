@@ -4,7 +4,7 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { X, Check, Loader2, Wallet } from "lucide-react"
-import { subscribeToPlanAction } from "@/actions/fan/subscription"
+import { subscribeToPlanAction } from "@/actions/fan/subscription" // ← adjust to your actual path
 
 type Plan = {
     id:       string
@@ -102,7 +102,7 @@ export default function SubscribeModal({ creatorId, creatorName, plans, onClose,
                         <p>
                             You&apos;re {naira.format(shortfall)} short. Top up your wallet to subscribe.
                         </p>
-                        <Link href="/wallet" className="subscribe-modal__topup-btn">
+                        <Link href="/fan/wallet" className="subscribe-modal__topup-btn">
                             <Wallet size={15} /> Top up wallet
                         </Link>
                     </div>

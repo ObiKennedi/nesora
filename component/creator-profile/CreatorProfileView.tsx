@@ -11,9 +11,9 @@ import {
     type PublicProfileViewer,
     type GridPost,
 } from "@/actions/creator-profile"
-import ProfileGrid from "@/component/creator-profile/ProfileGrid"
-import SubscribeModal from "@/component/creator-profile/SubscribeModal"
-import "@/styles/creator-profile/creator-profile.scss"
+import ProfileGrid from "./ProfileGrid"
+import SubscribeModal from "./SubscribeModal"
+import "./creator-profile.scss"
 
 type Props = {
     creator:       PublicProfileCreator
@@ -45,9 +45,11 @@ export default function CreatorProfileView({ creator, viewer, initialPosts, init
     const [followersCount, setFollowersCount] = useState(creator.followersCount)
     const [showSubscribe, setShowSubscribe]   = useState(false)
 
+    const profilePath = `/fan/${creator.username}`
+
     const handleFollow = () => {
         if (!viewer.isAuthenticated) {
-            router.push(`/login?next=${encodeURIComponent(`/@${creator.handle}`)}`)
+            router.push(`/login?next=${encodeURIComponent(profilePath)}`)
             return
         }
 
@@ -67,7 +69,7 @@ export default function CreatorProfileView({ creator, viewer, initialPosts, init
                 setFollowing(!optimistic)
                 setFollowersCount((c) => c + (optimistic ? -1 : 1))
                 if (result.status === "unauthenticated") {
-                    router.push(`/login?next=${encodeURIComponent(`/@${creator.handle}`)}`)
+                    router.push(`/login?next=${encodeURIComponent(profilePath)}`)
                 }
             }
         })
@@ -75,7 +77,7 @@ export default function CreatorProfileView({ creator, viewer, initialPosts, init
 
     const handleSubscribeClick = () => {
         if (!viewer.isAuthenticated) {
-            router.push(`/login?next=${encodeURIComponent(`/@${creator.handle}`)}`)
+            router.push(`/login?next=${encodeURIComponent(profilePath)}`)
             return
         }
         setShowSubscribe(true)
@@ -116,7 +118,7 @@ export default function CreatorProfileView({ creator, viewer, initialPosts, init
                     )}
                 </h1>
 
-                <p className="creator-profile__handle">@{creator.handle}</p>
+                <p className="creator-profile__handle">@{creator.username}</p>
 
                 {creator.bio && <p className="creator-profile__bio">{creator.bio}</p>}
 
@@ -195,8 +197,7 @@ export default function CreatorProfileView({ creator, viewer, initialPosts, init
 
             {/* ── Grid ── */}
             <ProfileGrid
-                handle={creator.handle}
-                isSubscribed={viewer.isSubscribed}
+                username={creator.username}
                 initialPosts={initialPosts}
                 initialCursor={initialCursor}
                 onLockedClick={canSubscribe && !viewer.isSubscribed ? handleSubscribeClick : undefined}

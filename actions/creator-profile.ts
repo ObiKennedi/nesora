@@ -5,21 +5,13 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z }      from "zod"
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Public creator profile — data layer (v2)
-// Route: app/(fan)/[handle]/page.tsx  →  URL: /@handle_it
-// Access resolution mirrors checkPostAccessAction (planId + top-50 gifters).
-// ══════════════════════════════════════════════════════════════════════════════
-
 const GRID_PAGE_SIZE = 12
 const TOP_FAN_LIMIT  = 50
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PublicProfileCreator = {
     id:                  string
     displayName:         string
-    handle:              string
+    username:            string
     bio:                 string | null
     isVerified:          boolean
     image:               string | null
@@ -61,9 +53,7 @@ export type GridPost = {
     id:            string
     type:          "TEXT" | "PHOTO" | "VIDEO" | "AUDIO" | "POLL"
     thumbnailUrl:  string | null
-    /** First media URL — only present when the viewer has access */
     previewUrl:    string | null
-    /** Snippet for TEXT / POLL tiles — only when unlocked */
     snippet:       string | null
     mediaCount:    number
     videoDuration: number | null
@@ -84,7 +74,25 @@ export type FollowResult =
     | { status: "error"; message: string }
     | { status: "success"; following: boolean; followersCount: number }
 
-// ── Internal: viewer relationship to a creator ────────────────────────────────
+async function resolveCreatorIdentifier(identifier: string) {
+    const user = await prisma.user.findUnique({
+        where:  { username: identifier },
+        select: { id: true, username: true, creator: { select: { id: true } } },
+    })
+    if (user?.creator) {
+        return { creatorId: user.creator.id, ownerUserId: user.id, username: user.username }
+    }
+
+    const creator = await prisma.creator.findUnique({
+        where:  { id: identifier },
+        select: { id: true, userId: true, user: { select: { username: true } } },
+    })
+    if (creator) {
+        return { creatorId: creator.id, ownerUserId: creator.userId, username: creator.user.username }
+    }
+
+    return null
+}
 
 async function getViewerContext(creatorId: string, userId: string | null) {
     if (!userId) {
@@ -108,10 +116,6 @@ async function getViewerContext(creatorId: string, userId: string | null) {
     return { isFollowing: !!follow, subscription }
 }
 
-// ── Internal: is viewer in the creator's top 50 gifters? ─────────────────────
-// Mirrors checkPostAccessAction's TOP_FANS_ONLY branch. Called at most once per
-// grid request, and only when a TOP_FANS_ONLY post is on the page.
-
 async function isTopFan(creatorId: string, userId: string): Promise<boolean> {
     const topFans = await prisma.giftTransaction.groupBy({
         by:      ["senderId"],
@@ -123,19 +127,18 @@ async function isTopFan(creatorId: string, userId: string): Promise<boolean> {
     return topFans.some((f) => f.senderId === userId)
 }
 
-// ── Get public profile head ───────────────────────────────────────────────────
+export async function getPublicCreatorProfileAction(identifier: string): Promise<PublicProfileResult> {
+    const session  = await auth()
+    const viewerId = session?.user?.id ?? null
 
-export async function getPublicCreatorProfileAction(handle: string): Promise<PublicProfileResult> {
-    const session = await auth() // optional — page is public
-    const userId  = session?.user?.id ?? null
+    const resolved = await resolveCreatorIdentifier(identifier)
+    if (!resolved) return { status: "not_found" }
 
     const creator = await prisma.creator.findUnique({
-        where: { handle },
+        where: { id: resolved.creatorId },
         select: {
             id:                  true,
-            userId:              true,
             displayName:         true,
-            handle:              true,
             bio:                 true,
             isVerified:          true,
             bannerImage:         true,
@@ -160,17 +163,16 @@ export async function getPublicCreatorProfileAction(handle: string): Promise<Pub
             },
         },
     })
+    if (!creator) return { status: "not_found" }
 
-    if (!creator || !creator.handle) return { status: "not_found" }
-
-    const { isFollowing, subscription } = await getViewerContext(creator.id, userId)
+    const { isFollowing, subscription } = await getViewerContext(creator.id, viewerId)
 
     return {
         status: "success",
         creator: {
             id:                  creator.id,
             displayName:         creator.displayName,
-            handle:              creator.handle,
+            username:            resolved.username,
             bio:                 creator.bio,
             isVerified:          creator.isVerified,
             image:               creator.user.image,
@@ -197,20 +199,18 @@ export async function getPublicCreatorProfileAction(handle: string): Promise<Pub
             },
         },
         viewer: {
-            isAuthenticated: !!userId,
-            isOwnProfile:    userId === creator.userId,
+            isAuthenticated: !!viewerId,
+            isOwnProfile:    viewerId === resolved.ownerUserId,
             isFollowing,
             isSubscribed:    !!subscription,
         },
     }
 }
 
-// ── Get grid posts (paginated, access-resolved) ───────────────────────────────
-
 const GridSchema = z.object({
-    handle: z.string().min(1),
-    tab:    z.enum(["posts", "shorts"]),
-    cursor: z.string().nullable().optional(),
+    identifier: z.string().min(1), // username or creator id
+    tab:        z.enum(["posts", "shorts"]),
+    cursor:     z.string().nullable().optional(),
 })
 
 export async function getCreatorGridPostsAction(
@@ -219,23 +219,21 @@ export async function getCreatorGridPostsAction(
     const parsed = GridSchema.safeParse(data)
     if (!parsed.success) return { status: "error", message: parsed.error.issues[0].message }
 
-    const { handle, tab, cursor } = parsed.data
+    const { identifier, tab, cursor } = parsed.data
 
-    const session = await auth() // optional
-    const userId  = session?.user?.id ?? null
+    const session  = await auth() 
+    const viewerId = session?.user?.id ?? null
 
-    const creator = await prisma.creator.findUnique({
-        where:  { handle },
-        select: { id: true, userId: true },
-    })
-    if (!creator) return { status: "not_found" }
+    const resolved = await resolveCreatorIdentifier(identifier)
+    if (!resolved) return { status: "not_found" }
 
-    const isOwnProfile = userId === creator.userId
+    const { creatorId, ownerUserId } = resolved
+    const isOwnProfile = viewerId === ownerUserId
 
     const posts = await prisma.post.findMany({
         where: {
-            creatorId: creator.id,
-            status:    "PUBLISHED",
+            creatorId,
+            status: "PUBLISHED",
             ...(tab === "shorts" ? { type: "VIDEO" } : {}),
         },
         orderBy: { publishedAt: "desc" },
@@ -259,25 +257,23 @@ export async function getCreatorGridPostsAction(
     const hasMore   = posts.length > GRID_PAGE_SIZE
     const pagePosts = hasMore ? posts.slice(0, GRID_PAGE_SIZE) : posts
 
-    // Viewer relationship + PPV purchases for this page, in parallel
     const [{ isFollowing, subscription }, purchases] = await Promise.all([
-        getViewerContext(creator.id, userId),
-        userId
+        getViewerContext(creatorId, viewerId),
+        viewerId
             ? prisma.postPurchase.findMany({
-                where:  { userId, postId: { in: pagePosts.map((p) => p.id) } },
+                where:  { userId: viewerId, postId: { in: pagePosts.map((p) => p.id) } },
                 select: { postId: true },
             })
             : Promise.resolve([] as { postId: string }[]),
     ])
     const purchasedIds = new Set(purchases.map((p) => p.postId))
 
-    // Top-fan check: once per request, only if the page actually needs it
     const pageHasTopFanPost = pagePosts.some(
         (p) => p.access?.accessLevel === "TOP_FANS_ONLY"
     )
     const viewerIsTopFan =
-        pageHasTopFanPost && userId && !isOwnProfile
-            ? await isTopFan(creator.id, userId)
+        pageHasTopFanPost && viewerId && !isOwnProfile
+            ? await isTopFan(creatorId, viewerId)
             : false
 
     const viewerPlanId = subscription?.planId ?? subscription?.subscriptionPlanId ?? null
@@ -291,7 +287,7 @@ export async function getCreatorGridPostsAction(
             case "PUBLIC":
                 return true
             case "FOLLOWERS_ONLY":
-                return isFollowing || !!subscription // subscribers outrank followers
+                return isFollowing || !!subscription
             case "SUBSCRIBERS_ONLY":
                 return !!subscription
             case "PLAN_SPECIFIC":
@@ -326,8 +322,6 @@ export async function getCreatorGridPostsAction(
     }
 }
 
-// ── Toggle follow ─────────────────────────────────────────────────────────────
-
 export async function toggleFollowAction(creatorId: string): Promise<FollowResult> {
     const session = await auth()
     if (!session?.user?.id) return { status: "unauthenticated" }
@@ -336,17 +330,23 @@ export async function toggleFollowAction(creatorId: string): Promise<FollowResul
 
     const creator = await prisma.creator.findUnique({
         where:  { id: creatorId },
-        select: { id: true, userId: true, handle: true, followersCount: true },
+        select: {
+            id:             true,
+            userId:         true,
+            followersCount: true,
+            user:           { select: { username: true } },
+        },
     })
     if (!creator) return { status: "error", message: "Creator not found." }
     if (creator.userId === userId) return { status: "error", message: "You can't follow yourself." }
+
+    const profilePath = `/fan/${creator.user.username}`
 
     const existing = await prisma.follow.findUnique({
         where: { userId_creatorId: { userId, creatorId } },
     })
 
     if (existing) {
-        // ── Unfollow ──
         const [, updated] = await prisma.$transaction([
             prisma.follow.delete({ where: { id: existing.id } }),
             prisma.creator.update({
@@ -355,11 +355,10 @@ export async function toggleFollowAction(creatorId: string): Promise<FollowResul
             }),
         ])
 
-        if (creator.handle) revalidatePath(`/@${creator.handle}`)
+        revalidatePath(profilePath)
         return { status: "success", following: false, followersCount: updated.followersCount }
     }
 
-    // ── Follow ──
     try {
         const [, updated] = await prisma.$transaction([
             prisma.follow.create({ data: { userId, creatorId } }),
@@ -367,8 +366,6 @@ export async function toggleFollowAction(creatorId: string): Promise<FollowResul
                 where: { id: creatorId },
                 data:  { followersCount: { increment: 1 } },
             }),
-            // NOTE: swap for your shared createNotification helper so the
-            // per-user notification cache tag gets revalidated.
             prisma.notification.create({
                 data: {
                     userId: creator.userId,
@@ -380,10 +377,9 @@ export async function toggleFollowAction(creatorId: string): Promise<FollowResul
             }),
         ])
 
-        if (creator.handle) revalidatePath(`/@${creator.handle}`)
+        revalidatePath(profilePath)
         return { status: "success", following: true, followersCount: updated.followersCount }
     } catch (err: unknown) {
-        // P2002 — double-tap race on the unique index; already following, treat as success
         if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
             return { status: "success", following: true, followersCount: creator.followersCount }
         }

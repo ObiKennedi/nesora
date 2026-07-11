@@ -28,8 +28,7 @@ type TabState = {
 }
 
 type Props = {
-    handle:        string
-    isSubscribed:  boolean
+    username:      string
     initialPosts:  GridPost[]
     initialCursor: string | null
     /** When provided, tapping a locked tile opens the subscribe flow instead of navigating */
@@ -51,7 +50,7 @@ function formatDuration(seconds: number): string {
 }
 
 export default function ProfileGrid({
-    handle,
+    username,
     initialPosts,
     initialCursor,
     onLockedClick,
@@ -68,7 +67,7 @@ export default function ProfileGrid({
     const loadMore = useCallback(async (tab: Tab, cursor: string | null, append: boolean) => {
         setTabs((prev) => ({ ...prev, [tab]: { ...prev[tab], loading: true } }))
 
-        const result = await getCreatorGridPostsAction({ handle, tab, cursor })
+        const result = await getCreatorGridPostsAction({ identifier: username, tab, cursor })
 
         setTabs((prev) => {
             if (result.status !== "success") {
@@ -84,7 +83,7 @@ export default function ProfileGrid({
                 },
             }
         })
-    }, [handle])
+    }, [username])
 
     // Lazy-load the shorts tab on first visit
     const handleTabChange = (tab: Tab) => {
@@ -151,7 +150,7 @@ export default function ProfileGrid({
                         <GridTile
                             key={post.id}
                             post={post}
-                            handle={handle}
+                            username={username}
                             onLockedClick={onLockedClick}
                         />
                     ))}
@@ -173,14 +172,14 @@ export default function ProfileGrid({
 
 function GridTile({
     post,
-    handle,
+    username,
     onLockedClick,
 }: {
     post:           GridPost
-    handle:         string
+    username:       string
     onLockedClick?: () => void
 }) {
-    const href = `/@${handle}/post/${post.id}`
+    const href = `/fan/${username}/post/${post.id}`
 
     const tileInner = (
         <>
