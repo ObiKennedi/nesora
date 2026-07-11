@@ -8,9 +8,9 @@ import { Home, Clapperboard, Radio } from "lucide-react"
 // Styles: .feed-toptabs in Feed.scss
 
 const TABS = [
-    { href: "/fan/feed",   label: "Feed",   icon: <Home         size={19} /> },
-    { href: "/fan/shorts", label: "Shorts", icon: <Clapperboard size={19} /> },
-    { href: "/fan/live",   label: "Live",   icon: <Radio        size={19} /> },
+    { href: "/fan/feed",   label: "Feed",   icon: <Home         size={17} /> },
+    { href: "/fan/shorts", label: "Shorts", icon: <Clapperboard size={17} /> },
+    { href: "/fan/live",   label: "Live",   icon: <Radio        size={17} /> },
 ]
 
 type Props = {

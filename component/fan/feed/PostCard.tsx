@@ -460,7 +460,7 @@ export function PostCard({
             {/* ── Header: avatar · name · time ────────────────────────────── */}
             <header className="post-card__header">
                 <Link
-                    href={`/profile/${post.creator.handle ?? post.creator.id}`}
+                    href={`/fan/${post.creator.handle ?? post.creator.id}`}
                     className="post-card__creator-link"
                 >
                     <div className={`post-card__avatar ${isLive ? "post-card__avatar--live" : ""}`}>

@@ -1,11 +1,12 @@
 // components/fan/live/WatchClient.tsx
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { BadgeCheck, Volume2, VolumeX, Gift, Lock } from "lucide-react"
+import { BadgeCheck, Gift, Lock } from "lucide-react"
 import { getPusherClient }         from "@/lib/pusher-client"
 import { getStreamForWatchAction } from "@/actions/fan/live"
+import StreamPlayer    from "@/component/fan/live/StreamPlayer"
 import LiveChat        from "@/component/creator/live/LiveChat"
 import LiveGiftWallet  from "@/component/creator/live/LiveGiftWallet"
 import { GiftPanel }   from "@/component/fan/feed/GiftPanel"
@@ -25,11 +26,7 @@ export default function WatchClient({
     const { stream, creator, locked, subscribePrice } = data
 
     const [status,   setStatus]   = useState<Status>(stream.status as Status)
-    const [muted,    setMuted]    = useState(true)
     const [showGift, setShowGift] = useState(false)
-
-    const videoRef  = useRef<HTMLVideoElement | null>(null)
-    const playerRef = useRef<any>(null)
 
     // ── React to go-live / end events ────────────────────────────────────────
     // `creator-${id}-live` isn't shared with another component on this page,
@@ -47,55 +44,6 @@ export default function WatchClient({
             pusher.unsubscribe(name)
         }
     }, [creator.id])
-
-    // ── Load + attach the IVS player once we're live and allowed ─────────────
-    useEffect(() => {
-        if (locked || status !== "LIVE" || !stream.playbackUrl) return
-
-        let cancelled = false
-        let player: any = null
-
-        async function init() {
-            if (!(window as any).IVSPlayer) {
-                await new Promise<void>((res, rej) => {
-                    const s = document.createElement("script")
-                    s.src = "https://player.live-video.net/1.x/amazon-ivs-player.min.js"
-                    s.onload  = () => res()
-                    s.onerror = () => rej(new Error("player load failed"))
-                    document.body.appendChild(s)
-                })
-            }
-            if (cancelled) return
-
-            const IVSPlayer = (window as any).IVSPlayer
-            if (!IVSPlayer?.isPlayerSupported || !videoRef.current) return
-
-            player = IVSPlayer.create()
-            player.attachHTMLVideoElement(videoRef.current)
-            player.load(stream.playbackUrl!)
-            player.setMuted(true)   // required for autoplay
-            player.play()
-            playerRef.current = player
-        }
-
-        init().catch(() => {})
-
-        // Runs when the stream ends too — status leaves "LIVE", so the player
-        // is torn down rather than left spinning on a dead playlist.
-        return () => {
-            cancelled = true
-            if (player) player.delete()
-            playerRef.current = null
-        }
-    }, [locked, status, stream.playbackUrl])
-
-    function toggleMute() {
-        const p = playerRef.current
-        if (!p) return
-        const next = !muted
-        p.setMuted(next)
-        setMuted(next)
-    }
 
     // ── Locked (subscriber-only, not subscribed) ─────────────────────────────
     if (locked) {
@@ -122,20 +70,27 @@ export default function WatchClient({
                 <div className="watch__stage">
                     {status === "LIVE" && stream.playbackUrl ? (
                         <>
-                            <video ref={videoRef} className="watch__video" playsInline />
+                            {/* StreamPlayer owns the whole playback lifecycle:
+                                IVS SDK loading, Safari native-HLS fallback,
+                                muted autoplay + tap-for-sound, and offline
+                                retry while the broadcaster's first segments
+                                are still landing. Remounts cleanly if the
+                                stream ends (status leaves "LIVE"). */}
+                            <StreamPlayer
+                                playbackUrl={stream.playbackUrl}
+                                streamStatus={status}
+                            />
                             <span className="watch__live-badge">● LIVE</span>
-                            <button className="watch__mute" onClick={toggleMute}>
-                                {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                            </button>
                         </>
                     ) : status === "ENDED" && stream.recordingUrl ? (
-                        // Replay, if IVS recorded the session to S3.
-                        <video
-                            className="watch__video"
-                            src={stream.recordingUrl}
+                        /* IVS recordings in S3 are HLS (.m3u8) too — a bare
+                           <video src> replay is a black box everywhere except
+                           Safari. Replays go through the same player, with
+                           native controls for scrubbing. */
+                        <StreamPlayer
+                            playbackUrl={stream.recordingUrl}
+                            streamStatus="ENDED"
                             controls
-                            playsInline
-                            poster={undefined}
                         />
                     ) : (
                         <div className="watch__placeholder">
