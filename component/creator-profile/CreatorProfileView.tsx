@@ -13,7 +13,7 @@ import {
 } from "@/actions/creator-profile"
 import ProfileGrid from "./ProfileGrid"
 import SubscribeModal from "./SubscribeModal"
-import "./creator-profile.scss"
+import "@/styles/creator-profile/creator-profile.scss"
 
 type Props = {
     creator:       PublicProfileCreator
