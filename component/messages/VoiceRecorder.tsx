@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Mic, Square, Trash2, Send, Loader2, Play, Pause } from "lucide-react"
 import { uploadVoiceNote, type VoiceNoteUpload } from "@/lib/upload-voice-note"
 import { showToast } from "@/component/fan/ui/Toast"
-import "./voice-recorder.scss"
+import "@/styles/messages/voice-recorder.scss"
 
 // ── Why the old recorder sent empty voice notes ──────────────────────────────
 // MediaRecorder.stop() is asynchronous: the final "dataavailable" event fires
