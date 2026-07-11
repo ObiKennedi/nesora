@@ -172,7 +172,7 @@ $fan-footnav-height: 64px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-3);
     flex-shrink: 0;
 
     @media (min-width: 1024px) { display: none }
