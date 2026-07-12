@@ -530,6 +530,103 @@
     }
 }
 
+// ─── Live grid (/fan/live — who's live now) ──────────────────────────────────
+
+.live-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-4);
+    width: 100%;
+
+    &__card {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        text-decoration: none;
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+
+        &:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-primary);
+            box-shadow: 0 6px 18px rgba(43, 36, 30, 0.08);
+        }
+    }
+
+    &__thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: linear-gradient(135deg, var(--color-bg-alt) 0%, var(--color-border) 100%);
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    &__thumb-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background-color: var(--color-primary);
+        color: #fff;
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-bold);
+    }
+
+    &__badge {
+        position: absolute;
+        top: var(--space-2);
+        left: var(--space-2);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        background-color: #ef4444;
+        color: #fff;
+        font-size: 10px;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.06em;
+        animation: feed-live-pulse 1.4s ease-in-out infinite;
+    }
+
+    &__info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: var(--space-3);
+    }
+
+    &__title {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__creator {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 768px) {
+    .live-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: var(--space-3);
+        padding: 0 var(--space-3);
+    }
+}
+
 // ─── Responsive ───────────────────────────────────────────────────────────────
 
 // Right rail drops first — the feed column keeps its width

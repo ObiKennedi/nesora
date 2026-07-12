@@ -69,6 +69,28 @@ export type GridPostsResult =
     | { status: "error"; message: string }
     | { status: "success"; posts: GridPost[]; nextCursor: string | null }
 
+// Full post payload for the profile lightbox. Gated fields are nulled/emptied
+// server-side when locked — same principle as the grid, never trust the client.
+export type ModalPost = {
+    id:            string
+    type:          "TEXT" | "PHOTO" | "VIDEO" | "AUDIO" | "POLL"
+    title:         string | null
+    body:          string | null
+    mediaUrls:     string[]
+    thumbnailUrl:  string | null
+    videoDuration: number | null
+    likeCount:     number
+    commentCount:  number
+    accessLevel:   GridPost["accessLevel"]
+    unlocked:      boolean
+    publishedAt:   Date | null
+}
+
+export type ModalPostResult =
+    | { status: "not_found" }
+    | { status: "error"; message: string }
+    | { status: "success"; post: ModalPost }
+
 export type FollowResult =
     | { status: "unauthenticated" }
     | { status: "error"; message: string }
@@ -125,6 +147,44 @@ async function isTopFan(creatorId: string, userId: string): Promise<boolean> {
         take:    TOP_FAN_LIMIT,
     })
     return topFans.some((f) => f.senderId === userId)
+}
+
+// ── Shared access resolution ──────────────────────────────────────────────────
+// Single source of truth for "can this viewer see this post's content".
+// Used by both the grid and the modal so the two can never drift apart.
+
+type AccessInput = {
+    accessLevel:    GridPost["accessLevel"]
+    allowedPlanIds: string[]
+}
+
+type AccessContext = {
+    isOwnProfile:  boolean
+    isPurchased:   boolean
+    isFollowing:   boolean
+    isSubscribed:  boolean
+    viewerPlanId:  string | null
+    viewerIsTopFan: boolean
+}
+
+function resolvePostUnlocked(access: AccessInput, ctx: AccessContext): boolean {
+    if (ctx.isOwnProfile) return true
+    if (ctx.isPurchased)  return true
+
+    switch (access.accessLevel) {
+        case "PUBLIC":
+            return true
+        case "FOLLOWERS_ONLY":
+            return ctx.isFollowing || ctx.isSubscribed
+        case "SUBSCRIBERS_ONLY":
+            return ctx.isSubscribed
+        case "PLAN_SPECIFIC":
+            return !!ctx.viewerPlanId && access.allowedPlanIds.includes(ctx.viewerPlanId)
+        case "TOP_FANS_ONLY":
+            return ctx.viewerIsTopFan
+        default:
+            return false
+    }
 }
 
 export async function getPublicCreatorProfileAction(identifier: string): Promise<PublicProfileResult> {
@@ -221,7 +281,7 @@ export async function getCreatorGridPostsAction(
 
     const { identifier, tab, cursor } = parsed.data
 
-    const session  = await auth() 
+    const session  = await auth()
     const viewerId = session?.user?.id ?? null
 
     const resolved = await resolveCreatorIdentifier(identifier)
@@ -278,32 +338,24 @@ export async function getCreatorGridPostsAction(
 
     const viewerPlanId = subscription?.planId ?? subscription?.subscriptionPlanId ?? null
 
-    const resolveUnlocked = (post: (typeof pagePosts)[number]): boolean => {
-        if (isOwnProfile) return true
-        if (purchasedIds.has(post.id)) return true
-
-        const level = post.access?.accessLevel ?? "PUBLIC"
-        switch (level) {
-            case "PUBLIC":
-                return true
-            case "FOLLOWERS_ONLY":
-                return isFollowing || !!subscription
-            case "SUBSCRIBERS_ONLY":
-                return !!subscription
-            case "PLAN_SPECIFIC":
-                return !!viewerPlanId && (post.access?.allowedPlanIds ?? []).includes(viewerPlanId)
-            case "TOP_FANS_ONLY":
-                return viewerIsTopFan
-            default:
-                return false
-        }
-    }
-
     return {
         status: "success",
         nextCursor: hasMore ? pagePosts[pagePosts.length - 1].id : null,
         posts: pagePosts.map((post) => {
-            const unlocked = resolveUnlocked(post)
+            const unlocked = resolvePostUnlocked(
+                {
+                    accessLevel:    post.access?.accessLevel ?? "PUBLIC",
+                    allowedPlanIds: post.access?.allowedPlanIds ?? [],
+                },
+                {
+                    isOwnProfile,
+                    isPurchased:    purchasedIds.has(post.id),
+                    isFollowing,
+                    isSubscribed:   !!subscription,
+                    viewerPlanId,
+                    viewerIsTopFan,
+                }
+            )
             return {
                 id:            post.id,
                 type:          post.type,
@@ -319,6 +371,89 @@ export async function getCreatorGridPostsAction(
                 publishedAt:   post.publishedAt,
             }
         }),
+    }
+}
+
+// ── Single post for the profile lightbox ──────────────────────────────────────
+// Same access resolution as the grid; gated content (mediaUrls, body, title)
+// is stripped server-side when locked.
+
+export async function getPostForModalAction(postId: string): Promise<ModalPostResult> {
+    if (!postId) return { status: "error", message: "Post id is required." }
+
+    const session  = await auth()
+    const viewerId = session?.user?.id ?? null
+
+    const post = await prisma.post.findFirst({
+        where: { id: postId, status: "PUBLISHED" },
+        select: {
+            id:            true,
+            creatorId:     true,
+            type:          true,
+            title:         true,
+            body:          true,
+            thumbnailUrl:  true,
+            mediaUrls:     true,
+            videoDuration: true,
+            likeCount:     true,
+            commentCount:  true,
+            publishedAt:   true,
+            access:        { select: { accessLevel: true, allowedPlanIds: true } },
+            creator:       { select: { userId: true } },
+        },
+    })
+    if (!post) return { status: "not_found" }
+
+    const isOwnProfile = viewerId === post.creator.userId
+
+    const [{ isFollowing, subscription }, purchase] = await Promise.all([
+        getViewerContext(post.creatorId, viewerId),
+        viewerId
+            ? prisma.postPurchase.findUnique({
+                where:  { userId_postId: { userId: viewerId, postId: post.id } },
+                select: { id: true },
+            })
+            : Promise.resolve(null),
+    ])
+
+    const accessLevel = post.access?.accessLevel ?? "PUBLIC"
+
+    const viewerIsTopFan =
+        accessLevel === "TOP_FANS_ONLY" && viewerId && !isOwnProfile
+            ? await isTopFan(post.creatorId, viewerId)
+            : false
+
+    const unlocked = resolvePostUnlocked(
+        {
+            accessLevel,
+            allowedPlanIds: post.access?.allowedPlanIds ?? [],
+        },
+        {
+            isOwnProfile,
+            isPurchased:    !!purchase,
+            isFollowing,
+            isSubscribed:   !!subscription,
+            viewerPlanId:   subscription?.planId ?? subscription?.subscriptionPlanId ?? null,
+            viewerIsTopFan,
+        }
+    )
+
+    return {
+        status: "success",
+        post: {
+            id:            post.id,
+            type:          post.type,
+            title:         unlocked ? post.title : null,
+            body:          unlocked ? post.body  : null,
+            mediaUrls:     unlocked ? post.mediaUrls : [],
+            thumbnailUrl:  post.thumbnailUrl, // blurred backdrop when locked
+            videoDuration: post.videoDuration,
+            likeCount:     post.likeCount,
+            commentCount:  post.commentCount,
+            accessLevel,
+            unlocked,
+            publishedAt:   post.publishedAt,
+        },
     }
 }
 

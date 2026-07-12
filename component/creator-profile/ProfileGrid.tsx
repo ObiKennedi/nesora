@@ -17,6 +17,7 @@ import {
     Loader2,
 } from "lucide-react"
 import { getCreatorGridPostsAction, type GridPost } from "@/actions/creator-profile"
+import PostLightbox from "./PostLightbox"
 
 type Tab = "posts" | "shorts"
 
@@ -34,6 +35,10 @@ type Props = {
     /** When provided, tapping a locked tile opens the subscribe flow instead of navigating */
     onLockedClick?: () => void
 }
+
+// Shorts land on the dedicated vertical player, not the profile lightbox.
+// Fan routes live under /fan/* — adjust here if the shorts route moves.
+const shortsHref = (postId: string) => `/fan/shorts/${postId}`
 
 const LOCK_LABELS: Record<GridPost["accessLevel"], string> = {
     PUBLIC:           "",
@@ -60,6 +65,9 @@ export default function ProfileGrid({
         posts:  { posts: initialPosts, cursor: initialCursor, loaded: true, loading: false },
         shorts: { posts: [], cursor: null, loaded: false, loading: false },
     })
+
+    // Post open in the lightbox (posts tab only)
+    const [lightboxPostId, setLightboxPostId] = useState<string | null>(null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const current     = tabs[activeTab]
@@ -150,8 +158,9 @@ export default function ProfileGrid({
                         <GridTile
                             key={post.id}
                             post={post}
-                            username={username}
+                            tab={activeTab}
                             onLockedClick={onLockedClick}
+                            onOpen={() => setLightboxPostId(post.id)}
                         />
                     ))}
                 </div>
@@ -164,6 +173,16 @@ export default function ProfileGrid({
             )}
 
             <div ref={sentinelRef} className="profile-grid__sentinel" aria-hidden />
+
+            {/* ── Lightbox (posts tab) ── */}
+            {lightboxPostId && (
+                <PostLightbox
+                    postId={lightboxPostId}
+                    username={username}
+                    onClose={() => setLightboxPostId(null)}
+                    onSubscribeClick={onLockedClick}
+                />
+            )}
         </div>
     )
 }
@@ -172,15 +191,15 @@ export default function ProfileGrid({
 
 function GridTile({
     post,
-    username,
+    tab,
     onLockedClick,
+    onOpen,
 }: {
     post:           GridPost
-    username:       string
+    tab:            Tab
     onLockedClick?: () => void
+    onOpen:         () => void
 }) {
-    const href = `/fan/${username}/post/${post.id}`
-
     const tileInner = (
         <>
             {/* Media / text layer */}
@@ -230,9 +249,7 @@ function GridTile({
         </>
     )
 
-    // Locked tiles route to the subscribe flow when available;
-    // otherwise (and for unlocked tiles) they navigate to the post view,
-    // which renders the paywall state itself.
+    // Locked tiles route to the subscribe flow when available — same on both tabs.
     if (!post.unlocked && onLockedClick) {
         return (
             <button type="button" className="profile-grid__tile" onClick={onLockedClick}>
@@ -241,9 +258,20 @@ function GridTile({
         )
     }
 
+    // Shorts tab → dedicated vertical player route.
+    if (tab === "shorts") {
+        return (
+            <Link href={shortsHref(post.id)} className="profile-grid__tile">
+                {tileInner}
+            </Link>
+        )
+    }
+
+    // Posts tab → in-profile lightbox. Locked posts without a subscribe flow
+    // also open the lightbox, which renders its own locked state.
     return (
-        <Link href={href} className="profile-grid__tile" scroll={false}>
+        <button type="button" className="profile-grid__tile" onClick={onOpen}>
             {tileInner}
-        </Link>
+        </button>
     )
 }
