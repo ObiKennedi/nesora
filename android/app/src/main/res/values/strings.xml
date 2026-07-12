@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">nesora</string>
+    <string name="title_activity_main">nesora</string>
+    <string name="package_name">www.nesora.org</string>
+    <string name="custom_url_scheme">www.nesora.org</string>
+</resources>

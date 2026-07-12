@@ -10,6 +10,7 @@ import { CreatorFootNav } from "@/component/creator/layout/CreatorFootNav"
 import { getPageTitle } from "@/component/creator/layout/nav-config"
 import { Loader } from "@/component/essentials/Loader"
 import { CallProvider } from "@/component/calls/CallProvider"
+import { FanThemeProvider } from "@/component/fan/FanThemeContext"
 import "@/styles/creator/CreatorLayout.scss"
 
 export default function CreatorLayout({
@@ -24,36 +25,38 @@ export default function CreatorLayout({
 
     return (
         <CallProvider role="creator" currentUserId={session?.user?.id ?? ""}>
-            <div className="creator-shell">
+            <FanThemeProvider>
+                <div className="creator-shell">
 
-                <CreatorSidebar
-                    isOpen={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                />
-
-                {menuOpen && (
-                    <div
-                        className="creator-backdrop"
-                        onClick={() => setMenuOpen(false)}
-                        aria-hidden="true"
+                    <CreatorSidebar
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
                     />
-                )}
 
-                <div className="creator-main">
-                    <CreatorHeader
-                        pageTitle={pageTitle}
-                        onMenuOpen={() => setMenuOpen(true)}
-                    />
-                    <main className="creator-content">
-                        <Suspense fallback={<Loader />}>
-                            {children}
-                        </Suspense>
-                    </main>
+                    {menuOpen && (
+                        <div
+                            className="creator-backdrop"
+                            onClick={() => setMenuOpen(false)}
+                            aria-hidden="true"
+                        />
+                    )}
+
+                    <div className="creator-main">
+                        <CreatorHeader
+                            pageTitle={pageTitle}
+                            onMenuOpen={() => setMenuOpen(true)}
+                        />
+                        <main className="creator-content">
+                            <Suspense fallback={<Loader />}>
+                                {children}
+                            </Suspense>
+                        </main>
+                    </div>
+
+                    <CreatorFootNav />
+
                 </div>
-
-                <CreatorFootNav />
-
-            </div>
+            </FanThemeProvider>
         </CallProvider>
     )
 }
