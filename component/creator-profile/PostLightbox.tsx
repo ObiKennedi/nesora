@@ -145,12 +145,7 @@ export default function PostLightbox({
                                     Subscribe to unlock
                                 </button>
                             ) : (
-                                <Link
-                                    href={`/fan/${username}/post/${post.id}`}
-                                    className="post-lightbox__subscribe"
-                                >
-                                    View post
-                                </Link>
+                                ""
                             )}
                         </div>
                     </div>
