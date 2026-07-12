@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'NESORA',
   webDir: 'capacitor-shell',
   server: {
-    url: 'https://nesora.com/login',
+    url: 'https://nesora.org/login',
     cleartext: false,
   },
   android: {
