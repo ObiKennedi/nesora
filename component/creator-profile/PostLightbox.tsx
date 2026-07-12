@@ -182,10 +182,7 @@ export default function PostLightbox({
                                 )}
 
                                 {post.type === "POLL" && (
-                                    <div className="post-lightbox__text-card">
-                                        <BarChart3 size={28} />
-                                        <p>Open the full post to vote</p>
-                                    </div>
+                                    ""
                                 )}
 
                                 {/* Carousel controls */}
