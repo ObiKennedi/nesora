@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import {
     X, Lock, Loader2, ChevronLeft, ChevronRight,
-    Heart, MessageCircle, FileText, Music, BarChart3,
+    Heart, MessageCircle, FileText, Music, Check,
 } from "lucide-react"
 import { getPostForModalAction, type ModalPost } from "@/actions/creator-profile"
 import "@/styles/creator-profile/post-lightbox.scss"
@@ -145,7 +145,12 @@ export default function PostLightbox({
                                     Subscribe to unlock
                                 </button>
                             ) : (
-                                ""
+                                <Link
+                                    href={`/fan/${username}/post/${post.id}`}
+                                    className="post-lightbox__subscribe"
+                                >
+                                    View post
+                                </Link>
                             )}
                         </div>
                     </div>
@@ -181,8 +186,42 @@ export default function PostLightbox({
                                     </div>
                                 )}
 
-                                {post.type === "POLL" && (
-                                    ""
+                                {/* Poll — read-only results; voting lives on the post page */}
+                                {post.type === "POLL" && post.poll && (
+                                    <div className="post-lightbox__poll">
+                                        <ul className="post-lightbox__poll-options">
+                                            {post.poll.options.map((option) => {
+                                                const percent = post.poll!.totalVotes > 0
+                                                    ? Math.round((option.votes / post.poll!.totalVotes) * 100)
+                                                    : 0
+                                                const isMine = option.id === post.poll!.viewerOptionId
+
+                                                return (
+                                                    <li
+                                                        key={option.id}
+                                                        className={`post-lightbox__poll-option ${isMine ? "post-lightbox__poll-option--mine" : ""}`}
+                                                    >
+                                                        <span
+                                                            className="post-lightbox__poll-fill"
+                                                            style={{ width: `${percent}%` }}
+                                                            aria-hidden
+                                                        />
+                                                        <span className="post-lightbox__poll-label">
+                                                            {option.text}
+                                                            {isMine && <Check size={14} aria-label="Your vote" />}
+                                                        </span>
+                                                        <span className="post-lightbox__poll-percent">
+                                                            {percent}%
+                                                        </span>
+                                                    </li>
+                                                )
+                                            })}
+                                        </ul>
+                                        <p className="post-lightbox__poll-total">
+                                            {post.poll.totalVotes.toLocaleString("en-NG")}{" "}
+                                            {post.poll.totalVotes === 1 ? "vote" : "votes"}
+                                        </p>
+                                    </div>
                                 )}
 
                                 {/* Carousel controls */}

@@ -4,6 +4,7 @@ import { auth }   from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z }      from "zod"
+import type { PostPoll } from "@/lib/post-access"
 
 const GRID_PAGE_SIZE = 12
 const TOP_FAN_LIMIT  = 50
@@ -84,6 +85,7 @@ export type ModalPost = {
     accessLevel:   GridPost["accessLevel"]
     unlocked:      boolean
     publishedAt:   Date | null
+    poll:          PostPoll | null
 }
 
 export type ModalPostResult =
@@ -400,6 +402,12 @@ export async function getPostForModalAction(postId: string): Promise<ModalPostRe
             publishedAt:   true,
             access:        { select: { accessLevel: true, allowedPlanIds: true } },
             creator:       { select: { userId: true } },
+            poll: {
+                select: {
+                    id:      true,
+                    options: { select: { id: true, text: true, voteCount: true } },
+                },
+            },
         },
     })
     if (!post) return { status: "not_found" }
@@ -438,6 +446,31 @@ export async function getPostForModalAction(postId: string): Promise<ModalPostRe
         }
     )
 
+    let pollPayload: PostPoll | null = null
+
+    if (unlocked && post.type === "POLL" && post.poll && post.poll.options.length > 0) {
+        const viewerVote = viewerId
+            ? await prisma.pollVote.findFirst({
+                where: {
+                    userId: viewerId,
+                    pollOptionId: { in: post.poll.options.map((o) => o.id) },
+                },
+                select: { pollOptionId: true },
+            })
+            : null
+
+        pollPayload = {
+            question: null,
+            totalVotes: post.poll.options.reduce((sum, o) => sum + o.voteCount, 0),
+            viewerOptionId: viewerVote?.pollOptionId ?? null,
+            options: post.poll.options.map((o) => ({
+                id: o.id,
+                text: o.text,
+                votes: o.voteCount,
+            })),
+        }
+    }
+
     return {
         status: "success",
         post: {
@@ -453,6 +486,7 @@ export async function getPostForModalAction(postId: string): Promise<ModalPostRe
             accessLevel,
             unlocked,
             publishedAt:   post.publishedAt,
+            poll:          pollPayload,
         },
     }
 }
