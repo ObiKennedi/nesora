@@ -11,6 +11,7 @@ import { Loader }             from "@/component/essentials/Loader"
 import { CallProvider }       from "@/component/calls/CallProvider"
 import { MessagesProvider }   from "@/component/fan/messages/MessagesProvider"
 import { ChatDock }           from "@/component/fan/messages/ChatDock"
+import { FanThemeProvider }    from "@/component/fan/FanThemeContext"
 import "@/styles/fan/FanLayout.scss"
 
 export default function FanLayout({
@@ -28,31 +29,33 @@ export default function FanLayout({
         // `user-${id}` first, which MessagesProvider then shares.
         <CallProvider role="fan" currentUserId={userId}>
             <MessagesProvider currentUserId={userId}>
-                <div className="fan-shell">
+                <FanThemeProvider>
+                    <div className="fan-shell">
 
-                    {/* Desktop only */}
-                    <FanSideNav onWalletOpen={() => setWalletOpen(true)} />
+                        {/* Desktop only */}
+                        <FanSideNav onWalletOpen={() => setWalletOpen(true)} />
 
-                    {/* Mobile only */}
-                    <FanTopBar />
+                        {/* Mobile only */}
+                        <FanTopBar />
 
-                    <main className="fan-content">
-                        <Suspense fallback={<Loader />}>
-                            {children}
-                        </Suspense>
-                    </main>
+                        <main className="fan-content">
+                            <Suspense fallback={<Loader />}>
+                                {children}
+                            </Suspense>
+                        </main>
 
-                    {/* Mobile only */}
-                    <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
+                        {/* Mobile only */}
+                        <FanBottomNav onWalletOpen={() => setWalletOpen(true)} />
 
-                    {/* Desktop only — persists across route changes */}
-                    <ChatDock currentUserId={userId} />
+                        {/* Desktop only — persists across route changes */}
+                        <ChatDock currentUserId={userId} />
 
-                    {walletOpen && (
-                        <WalletModal onClose={() => setWalletOpen(false)} />
-                    )}
+                        {walletOpen && (
+                            <WalletModal onClose={() => setWalletOpen(false)} />
+                        )}
 
-                </div>
+                    </div>
+                </FanThemeProvider>
             </MessagesProvider>
         </CallProvider>
     )

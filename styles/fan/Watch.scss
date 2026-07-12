@@ -22,7 +22,7 @@
     &__name { font-weight: 700; display: flex; align-items: center; gap: .3rem; }
     &__verified { color: #c2622a; }
     &__handle { font-size: .82rem; color: var(--color-text-muted, #6b6b6b); }
-    &__gift { margin-left: auto; display: flex; align-items: center; gap: .4rem; border: 1px solid #c2622a; color: #c2622a; background: #fff; border-radius: 999px; padding: .5rem .9rem; font-weight: 600; cursor: pointer; &:hover { background: #fff4e8; } }
+    &__gift { margin-left: auto; display: flex; align-items: center; gap: .4rem; border: 1px solid #c2622a; color: #c2622a; background: var(--color-surface, #fff); border-radius: 999px; padding: .5rem .9rem; font-weight: 600; cursor: pointer; &:hover { background: color-mix(in srgb, var(--color-primary) 10%, transparent); } }
     &__title { font-size: 1.15rem; font-weight: 700; margin: .8rem 0 .3rem; }
     &__desc { color: var(--color-text-muted, #6b6b6b); font-size: .9rem; margin: 0; }
 

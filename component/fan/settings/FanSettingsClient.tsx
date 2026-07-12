@@ -8,7 +8,7 @@ import { signOut, useSession }                          from "next-auth/react"
 import {
     User, AtSign, Lock, Heart, Bell, Trash2,
     Loader2, Camera, CheckCircle, XCircle, LogOut,
-    AlertTriangle, ArrowRightLeft,
+    AlertTriangle, ArrowRightLeft, Sun, Moon,
 } from "lucide-react"
 import {
     updateFanAccountAction,
@@ -25,6 +25,7 @@ import {
 import { CATEGORIES }   from "@/lib/categories"
 import { Category }     from "@prisma/client"
 import "@/styles/fan/Settings.scss"
+import { useFanTheme } from "@/component/fan/FanThemeContext"
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ type Props = {
     isCreator:       boolean   // ← new: true when user has a Creator row with a handle
 }
 
-type Tab = "account" | "username" | "password" | "interests" | "notifications" | "danger"
+type Tab = "account" | "username" | "password" | "interests" | "notifications" | "display" | "danger"
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "account",       label: "Account",        icon: <User    size={16} /> },
@@ -58,6 +59,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "password",      label: "Password",       icon: <Lock    size={16} /> },
     { id: "interests",     label: "Interests",      icon: <Heart   size={16} /> },
     { id: "notifications", label: "Notifications",  icon: <Bell    size={16} /> },
+    { id: "display",       label: "Display Theme",  icon: <Sun     size={16} /> },
     { id: "danger",        label: "Delete Account", icon: <Trash2  size={16} /> },
 ]
 
@@ -177,6 +179,9 @@ export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPasswor
                     )}
                     {activeTab === "notifications" && (
                         <NotificationsTab onToast={showToast} />
+                    )}
+                    {activeTab === "display" && (
+                        <DisplayTab />
                     )}
                     {activeTab === "danger" && (
                         <DangerTab hasPassword={hasPassword} onToast={showToast} />
@@ -634,6 +639,39 @@ const DangerTab = ({
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+
+// ─── Display Theme Tab ────────────────────────────────────────────────────────
+
+const DisplayTab = () => {
+    const { theme, setTheme } = useFanTheme()
+
+    return (
+        <div className="settings-section">
+            <h2>Display Theme</h2>
+            <p className="settings-desc">
+                Customize how NESORA looks for you. Choose between light and dark themes.
+            </p>
+            <div className="branding-themes">
+                <button
+                    type="button"
+                    className={`branding-theme-btn ${theme === "light" ? "branding-theme-btn--active" : ""}`}
+                    onClick={() => setTheme("light")}
+                >
+                    <Sun size={16} />
+                    Light Mode
+                </button>
+                <button
+                    type="button"
+                    className={`branding-theme-btn ${theme === "dark" ? "branding-theme-btn--active" : ""}`}
+                    onClick={() => setTheme("dark")}
+                >
+                    <Moon size={16} />
+                    Dark Mode
+                </button>
+            </div>
         </div>
     )
 }

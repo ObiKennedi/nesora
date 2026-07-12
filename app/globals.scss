@@ -114,6 +114,31 @@
   --z-toast: 500;
 }
 
+[data-theme="dark"] {
+  // ─── Neutrals ───────────────────────────────────
+  --color-bg: #0F0F0E;
+  --color-bg-alt: #161614;
+  --color-surface: #1E1E1C;
+  --color-border: #2D2D2B;
+
+  // ─── Text ───────────────────────────────────────
+  --color-text-primary: #ECEAE6;
+  --color-text: #ECEAE6;
+  --color-text-secondary: #B5B3B0;
+  --color-text-muted: #7E7C79;
+  --color-text-inverse: #1E1E1C;
+  --color-dark: #F5F5F5;
+
+  // ─── Brand Colors / Dark Mode adjustments ────────────────
+  --color-secondary: #2D2D2B;
+
+  // ─── Shadows ────────────────────────────────────
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.8);
+}
+
 * {
   margin: 0;
   padding: 0;
