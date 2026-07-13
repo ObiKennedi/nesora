@@ -120,6 +120,17 @@ export async function updatePersonalInfoAction(
     return { success: true }
 }
 
+// ── URL validation ────────────────────────────────────────────────────────────
+
+function isAllowedImageUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        return parsed.protocol === "https:" && parsed.hostname === "res.cloudinary.com"
+    } catch {
+        return false
+    }
+}
+
 // ── Submit/update identity documents ──────────────────────────────────────────
 
 const IdentitySchema = z.object({
@@ -138,6 +149,10 @@ export async function submitIdentityDocumentsAction(
 
     const parsed = IdentitySchema.safeParse(data)
     if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+    if (!isAllowedImageUrl(parsed.data.idFrontImage) || !isAllowedImageUrl(parsed.data.idBackImage)) {
+        return { error: "Invalid image URL." }
+    }
 
     const creator = await getCreatorOrThrow(session.user.id)
 
@@ -189,6 +204,7 @@ export async function submitSelfieAction(selfieImage: string) {
     if (!session?.user?.id) redirect("/login")
 
     if (!selfieImage) return { error: "Selfie image is required." }
+    if (!isAllowedImageUrl(selfieImage)) return { error: "Invalid image URL." }
 
     const creator = await getCreatorOrThrow(session.user.id)
 
@@ -230,6 +246,10 @@ export async function submitAddressAction(
 
     const parsed = AddressSchema.safeParse(data)
     if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+    if (!isAllowedImageUrl(parsed.data.addressProofImage)) {
+        return { error: "Invalid image URL." }
+    }
 
     const creator = await getCreatorOrThrow(session.user.id)
 

@@ -8,7 +8,7 @@ const adapter = new PrismaNeon({
 function makePrisma() {
     const client = new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+        log: ["error"],
     });
 
     return client.$extends({

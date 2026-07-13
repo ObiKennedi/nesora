@@ -303,7 +303,12 @@ export async function cancelScheduleAction(postId: string) {
 
 // ── Check Post Access (Fan Side) ──────────────────────────────────────────────
 
-export async function checkPostAccessAction(postId: string, viewerUserId: string) {
+export async function checkPostAccessAction(postId: string) {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const viewerUserId = session.user.id
+
     const post = await prisma.post.findUnique({
         where: { id: postId },
         include: {

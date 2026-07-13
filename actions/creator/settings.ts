@@ -41,7 +41,7 @@ export async function getSettingsAction() {
                 lastName:      true,
                 username:      true,
                 emailVerified: true,
-                password:      true,
+                password:      false,
                 accounts:      { select: { provider: true } },
             },
         }),
@@ -58,7 +58,12 @@ export async function getSettingsAction() {
     ])
 
     const isGoogleAccount = user?.accounts.some((a) => a.provider === "google") ?? false
-    const hasPassword     = !!user?.password
+
+    const passwordCheck = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { password: true },
+    })
+    const hasPassword = !!passwordCheck?.password
 
     // Safe extraction
     const creator = {
@@ -174,17 +179,15 @@ export async function updateMonetizationSettingsAction(
 
     const creator = await getCreatorOrThrow(session.user.id)
 
-    // Use raw update to avoid type issues for now
-    await prisma.$executeRaw`
-        UPDATE creators 
-        SET 
-            "subscriptionEnabled" = ${parsed.data.subscriptionEnabled},
-            "subscriptionPrice" = ${parsed.data.subscriptionPrice ?? null},
-            "subscriberDMsEnabled" = ${parsed.data.subscriberDMsEnabled},
-            "subscriberDMPrice" = ${parsed.data.subscriberDMPrice ?? null},
-            "updatedAt" = NOW()
-        WHERE id = ${creator.id}
-    `
+    await prisma.creator.update({
+        where: { id: creator.id },
+        data: {
+            subscriptionEnabled:  parsed.data.subscriptionEnabled,
+            subscriptionPrice:    parsed.data.subscriptionPrice ?? null,
+            subscriberDMsEnabled: parsed.data.subscriberDMsEnabled,
+            subscriberDMPrice:    parsed.data.subscriberDMPrice ?? null,
+        },
+    })
 
     return { success: true }
 }
@@ -217,18 +220,25 @@ export async function updateNotificationPrefsAction(prefs: Record<string, boolea
 
 // ── Delete account ────────────────────────────────────────────────────────────
 
-export async function deleteAccountAction(password: string) {
+export async function deleteAccountAction(password: string, confirmEmail?: string) {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { password: true },
+        select: { password: true, email: true },
     })
 
-    if (user?.password) {
+    if (!user) return { error: "User not found." }
+
+    if (user.password) {
+        if (!password) return { error: "Password is required." }
         const valid = await bcrypt.compare(password, user.password)
         if (!valid) return { error: "Incorrect password." }
+    } else {
+        if (!confirmEmail || confirmEmail !== user.email) {
+            return { error: "Please confirm your email address to delete your account." }
+        }
     }
 
     await prisma.user.delete({ where: { id: session.user.id } })
