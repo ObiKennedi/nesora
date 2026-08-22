@@ -544,6 +544,7 @@ model User {
   postPurchases         PostPurchase[]
   liveStreamMessages    LiveStreamMessage[]    @relation("LiveStreamMessageSender")
   calls                 Call[]                 @relation("CallFan")
+  expoPushToken         String?                // Mobile push notification token
   isSuspended           Boolean                @default(false)
   suspendedAt           DateTime?
   suspensionReason      String?
