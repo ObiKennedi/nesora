@@ -7,11 +7,13 @@ import type { NextAuthConfig } from "next-auth"
 import type { OnboardingType, Role } from "@prisma/client"
 
 export default {
+    trustHost: true,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     session: { strategy: "jwt" },
     providers: [
         Google({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            clientId: process.env.GOOGLE_CLIENT_ID || process.env.AUTH_GOOGLE_ID || "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || process.env.AUTH_GOOGLE_SECRET || "",
             profile(profile) {
                 const firstName = (profile.given_name as string) ?? ""
                 const lastName = (profile.family_name as string) ?? ""
@@ -47,13 +49,14 @@ export default {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) return null
 
+                const email = String(credentials.email).trim().toLowerCase()
                 const user = await prisma.user.findUnique({
-                    where: { email: credentials.email as string },
+                    where: { email },
                 })
 
                 if (!user || !user.password) return null
                 if (!user.emailVerified) return null
-                if (user.isSuspended) return null 
+                if (user.isSuspended) return null
 
                 const valid = await bcrypt.compare(credentials.password as string, user.password)
                 if (!valid) return null
@@ -61,7 +64,7 @@ export default {
                 return {
                     id: user.id,
                     email: user.email,
-                    name: `${user.firstName} ${user.lastName}`,
+                    name: `${user.firstName} ${user.lastName}`.trim(),
                     image: user.image,
                     role: user.role,
                     onboardingType: user.onboardingType,
@@ -80,12 +83,19 @@ export default {
                 token.image = user.image ?? null
             }
 
-            if (account?.provider === "google" && user?.id) {
-                const dbUser = await prisma.user.findUnique({
-                    where: { id: user.id },
-                    select: { role: true, onboardingType: true, username: true, image: true },
+            if (account?.provider === "google" && (user?.id || user?.email)) {
+                const cleanEmail = user.email ? String(user.email).trim().toLowerCase() : undefined
+                const dbUser = await prisma.user.findFirst({
+                    where: {
+                        OR: [
+                            ...(user.id ? [{ id: user.id }] : []),
+                            ...(cleanEmail ? [{ email: cleanEmail }] : []),
+                        ],
+                    },
+                    select: { id: true, role: true, onboardingType: true, username: true, image: true },
                 })
                 if (dbUser) {
+                    token.id = dbUser.id
                     token.role = dbUser.role
                     token.onboardingType = dbUser.onboardingType ?? null
                     token.username = dbUser.username ?? null
@@ -120,11 +130,13 @@ export default {
             if (account?.provider === "google") return true
 
             if (account?.provider === "credentials") {
+                if (!user.email) return false
+                const email = String(user.email).trim().toLowerCase()
                 const dbUser = await prisma.user.findUnique({
-                    where: { email: user.email! },
-                    select: { emailVerified: true },
+                    where: { email },
+                    select: { emailVerified: true, isSuspended: true },
                 })
-                return !!dbUser?.emailVerified
+                return Boolean(dbUser?.emailVerified && !dbUser?.isSuspended)
             }
             return true
         },

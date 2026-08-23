@@ -10,7 +10,7 @@ import { z } from "zod"
 const RegisterSchema = z.object({
     firstName: z.string().min(1),
     lastName: z.string().min(1),
-    email: z.email(),
+    email: z.string().email(),
     password: z.string().min(8),
 })
 
@@ -19,8 +19,9 @@ export async function registerAction(formData: z.infer<typeof RegisterSchema>) {
     if (!parsed.success) return { error: "Invalid fields." }
 
     const { firstName, lastName, email, password } = parsed.data
+    const cleanEmail = email.trim().toLowerCase()
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } })
     if (existing) return { error: "An account with this email already exists." }
 
     // Build a unique username from name + random suffix
@@ -36,9 +37,9 @@ export async function registerAction(formData: z.infer<typeof RegisterSchema>) {
     await prisma.user.create({
         data: {
             name: `${firstName} ${lastName}`.trim(),
-            firstName,
-            lastName,
-            email,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: cleanEmail,
             username,
             password: hashed,
             // Create wallet immediately
@@ -46,8 +47,8 @@ export async function registerAction(formData: z.infer<typeof RegisterSchema>) {
         },
     })
 
-    const token = await generateVerificationToken(email)
-    await sendVerificationEmail(email, token)
+    const token = await generateVerificationToken(cleanEmail)
+    await sendVerificationEmail(cleanEmail, token)
 
     return { success: "Account created. Check your email to verify." }
 }

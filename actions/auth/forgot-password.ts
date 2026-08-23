@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 const ForgotSchema = z.object({
-    email: z.email(),
+    email: z.string().email("Enter a valid email"),
 })
 
 const ResetSchema = z.object({
@@ -20,15 +20,17 @@ export async function forgotPasswordAction(formData: z.infer<typeof ForgotSchema
     const parsed = ForgotSchema.safeParse(formData)
     if (!parsed.success) return { error: "Invalid email." }
 
+    const cleanEmail = parsed.data.email.trim().toLowerCase()
+
     const user = await prisma.user.findUnique({
-        where: { email: parsed.data.email },
+        where: { email: cleanEmail },
     })
 
     // Always return success — don't leak whether email exists
     if (!user) return { success: "If that email exists, a reset link has been sent." }
 
-    const token = await generatePasswordResetToken(parsed.data.email)
-    await sendPasswordResetEmail(parsed.data.email, token)
+    const token = await generatePasswordResetToken(cleanEmail)
+    await sendPasswordResetEmail(cleanEmail, token)
 
     return { success: "If that email exists, a reset link has been sent." }
 }

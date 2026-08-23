@@ -49,10 +49,9 @@ type ExtendedPrisma = ReturnType<typeof makePrisma>;
 const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrisma | undefined };
 
 export const prisma = globalForPrisma.prisma ?? makePrisma();
+globalForPrisma.prisma = prisma;
 
 export type TxClient = Omit<
     typeof prisma,
     "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

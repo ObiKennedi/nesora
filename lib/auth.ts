@@ -20,8 +20,9 @@ const customAdapter = {
 
         return prisma.user.create({
             data: {
-                ...user,
                 name: user.name || `${firstName} ${lastName}`.trim(),
+                email: user.email?.toLowerCase().trim() || user.email,
+                image: user.image ?? null,
                 firstName,
                 lastName,
                 username,
