@@ -18,17 +18,15 @@ export async function saveFanCategoriesAction(categories: Category[]) {
     const parsed = CategoriesSchema.safeParse({ categories })
     if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-    await prisma.$transaction([
-        prisma.userCategoryInterest.deleteMany({
-            where: { userId: session.user.id },
-        }),
-        prisma.userCategoryInterest.createMany({
-            data: parsed.data.categories.map((category) => ({
-                userId: session.user.id,
-                category,
-            })),
-        }),
-    ])
+    await prisma.userCategoryInterest.deleteMany({
+        where: { userId: session.user.id },
+    })
+    await prisma.userCategoryInterest.createMany({
+        data: parsed.data.categories.map((category) => ({
+            userId: session.user.id,
+            category,
+        })),
+    })
 
     redirect("/onboarding/fan/username")
 }
@@ -45,17 +43,15 @@ export async function saveCreatorCategoriesAction(categories: Category[]) {
     })
     if (!creator) return { error: "Creator profile not found." }
 
-    await prisma.$transaction([
-        prisma.creatorCategory.deleteMany({
-            where: { creatorId: creator.id },
-        }),
-        prisma.creatorCategory.createMany({
-            data: parsed.data.categories.map((category) => ({
-                creatorId: creator.id,
-                category,
-            })),
-        }),
-    ])
+    await prisma.creatorCategory.deleteMany({
+        where: { creatorId: creator.id },
+    })
+    await prisma.creatorCategory.createMany({
+        data: parsed.data.categories.map((category) => ({
+            creatorId: creator.id,
+            category,
+        })),
+    })
 
     redirect("/onboarding/creator/verify")
 }

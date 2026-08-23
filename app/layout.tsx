@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   description: "Get a glimpse into the daily living of your favorite creators",
   icons: {
     icon: [
-      { url: "/logo.png", href: "/logo.png" },
+      { url: "/icons.png", href: "/icons.png" },
     ],
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    shortcut: "/icons.png",
+    apple: "/icons.png",
   },
 };
 
