@@ -5,7 +5,11 @@ export const metadata: Metadata = {
   title: "Nesora",
   description: "Get a glimpse into the daily living of your favorite creators",
   icons: {
-    icon: "/icons.png",
+    icon: [
+      { url: "/logo.png", href: "/logo.png" },
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
