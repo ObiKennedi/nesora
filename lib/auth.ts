@@ -8,6 +8,10 @@ const baseAdapter = PrismaAdapter(prisma)
 
 const customAdapter = {
     ...baseAdapter,
+    createSession: () => null,
+    getSessionAndUser: () => null,
+    updateSession: () => null,
+    deleteSession: () => null,
     async createUser(user: any) {
         const name = user.name || "User"
         const nameParts = name.trim().split(" ")
@@ -36,5 +40,8 @@ const customAdapter = {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: customAdapter as any,
+    session: { strategy: "jwt" },
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    trustHost: true,
     ...authConfig,
 })
