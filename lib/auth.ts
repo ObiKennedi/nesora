@@ -12,6 +12,45 @@ const customAdapter = {
     getSessionAndUser: () => null,
     updateSession: () => null,
     deleteSession: () => null,
+    async getUser(id: string) {
+        if (!id) return null
+        return prisma.user.findUnique({ where: { id } })
+    },
+    async getUserByEmail(email: string) {
+        if (!email) return null
+        return prisma.user.findUnique({
+            where: { email: email.toLowerCase().trim() },
+        })
+    },
+    async getUserByAccount({ provider, providerAccountId }: { provider: string; providerAccountId: string }) {
+        const account = await prisma.account.findUnique({
+            where: {
+                provider_providerAccountId: {
+                    provider,
+                    providerAccountId,
+                },
+            },
+            include: { user: true },
+        })
+        return account?.user ?? null
+    },
+    async linkAccount(account: any) {
+        return prisma.account.create({
+            data: {
+                userId: account.userId,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token ?? null,
+                access_token: account.access_token ?? null,
+                expires_at: account.expires_at ? Number(account.expires_at) : null,
+                token_type: account.token_type ?? null,
+                scope: account.scope ?? null,
+                id_token: account.id_token ?? null,
+                session_state: account.session_state ?? null,
+            },
+        })
+    },
     async createUser(user: any) {
         const name = user.name || "User"
         const nameParts = name.trim().split(" ")
