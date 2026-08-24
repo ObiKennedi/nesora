@@ -105,13 +105,13 @@ const ERROR_MAP: Record<string, ErrorDetail> = {
         primaryAction: { label: "Try again", href: "/login" },
     },
     CredentialsSignin: {
-        title: "Invalid Credentials",
+        title: "Incorrect Email or Password",
         description:
-            "The email or password you entered is incorrect, or your email has not been verified.",
-        hint: "Please check your details and try again.",
+            "The email address or password you entered does not match our records, or your email has not yet been verified.",
+        hint: "Please double-check your spelling, or reset your password if you forgot it.",
         icon: <KeyRound size={32} />,
         primaryAction: { label: "Try signing in again", href: "/login" },
-        secondaryAction: { label: "Forgot password?", href: "/forgot-password" },
+        secondaryAction: { label: "Forgot password? Reset here", href: "/forgot-password" },
     },
     SessionRequired: {
         title: "Session Expired",
