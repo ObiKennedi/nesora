@@ -15,6 +15,7 @@ const AUTH_ROUTES = [
     "/forgot-password",
     "/reset-password",
     "/verify-email",
+    "/error",
 ]
 
 // Protected routes requiring a valid session
@@ -160,8 +161,18 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    // ── 1. AUTH ROUTES (/login, /register, etc.) ─────────────────────────────
+    // ── 1. AUTH ROUTES (/login, /register, /error, etc.) ───────────────────
     if (isAuthRoute) {
+        // Special case: /error page should always be viewable so users can read the error
+        if (pathname === "/error" || pathname.startsWith("/error/")) {
+            if (isBadSession) {
+                const response = NextResponse.next()
+                clearAuthCookies(request, response)
+                return response
+            }
+            return NextResponse.next()
+        }
+
         // Logged-in user trying to access /login: redirect to /dashboard
         if (hasValidSession) {
             return NextResponse.redirect(new URL("/dashboard", request.url))

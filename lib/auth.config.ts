@@ -148,7 +148,7 @@ export default {
     },
     pages: {
         signIn: "/login",
-        error: "/login",
+        error: "/error",
         newUser: "/onboarding",
         verifyRequest: "/verify-email",
     },
