@@ -98,6 +98,10 @@ function clearAuthCookies(req: NextRequest, res: NextResponse): void {
  * Safely verify session token across environments (HTTP / HTTPS / standard prefixes)
  */
 async function verifySessionToken(req: NextRequest) {
+    if (!AUTH_SECRET) {
+        return { valid: false, token: null }
+    }
+
     const isHttps = req.nextUrl.protocol === "https:" || req.headers.get("x-forwarded-proto") === "https"
 
     try {
