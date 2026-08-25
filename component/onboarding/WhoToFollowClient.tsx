@@ -96,11 +96,12 @@ export function WhoToFollowClient({ initialCreators, categories }: Props) {
         })
     }
 
-    // ── Finish and go to feed ─────────────────────────────────────────────────
+    // ── Finish and show billing plans ─────────────────────────────────────────
     const finish = async () => {
         setIsFinishing(true)
-        router.push("/fan/feed")
+        router.push("/onboarding/fan/billing")
     }
+
 
     // ── Filter by category chip ───────────────────────────────────────────────
     const filtered = activeFilter === "ALL"

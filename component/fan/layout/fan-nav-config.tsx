@@ -7,6 +7,7 @@ import {
     Compass,
     PlaySquare,
     UserCircle,
+    CreditCard,
 } from "lucide-react"
 
 export type FanNavItem = {
@@ -26,8 +27,10 @@ export const FAN_SIDE_NAV: FanNavItem[] = [
     { label: "Messages",      href: "/fan/messages",      icon: <MessageCircle size={22} />, badge: "unread" },
     { label: "Explore",       href: "/fan/discover",      icon: <Compass      size={22} /> },
     { label: "Subscriptions", href: "/fan/subscriptions", icon: <PlaySquare   size={22} /> },
+    { label: "Billing",       href: "/fan/billing",       icon: <CreditCard   size={22} /> },
     { label: "You",           href: "/fan/settings",      icon: <UserCircle   size={22} /> },
 ]
+
 
 // ── Mobile bottom nav — the four majors, wallet occupies the centre slot ──────
 // Shorts and Live are reachable from the feed's top tab strip instead.

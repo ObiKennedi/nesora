@@ -321,3 +321,130 @@ export async function cancelSubscriptionAction(subscriptionId: string) {
 
     return { success: true }
 }
+
+// ── NESORA Plus Platform Membership (₦5,000 / month) ──────────────────────────
+
+export async function getMembershipStatusAction() {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const userId = session.user.id
+
+    const activeSub = await prisma.userWalletTransaction.findFirst({
+        where: {
+            wallet: { userId },
+            description: { contains: "NESORA Plus" },
+            createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+        orderBy: { createdAt: "desc" },
+    })
+
+    const isPaid = !!activeSub
+    const expiresAt = activeSub
+        ? new Date(activeSub.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000)
+        : null
+
+    return {
+        isPaidMember: isPaid,
+        expiresAt,
+        price: 5000,
+        interval: "monthly",
+        planName: "NESORA Plus Membership",
+    }
+}
+
+export async function initializeMembershipAction() {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const user = await prisma.user.findUnique({
+        where:  { id: session.user.id },
+        select: { email: true, firstName: true, lastName: true },
+    })
+    if (!user) return { error: "User not found." }
+
+    const res = await fetch("https://api.paystack.co/transaction/initialize", {
+        method:  "POST",
+        headers: {
+            Authorization:  `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            email:    user.email,
+            amount:   500000, // ₦5,000 in kobo
+            metadata: {
+                userId:   session.user.id,
+                type:     "membership_subscription",
+                planName: "NESORA Plus (₦5,000/mo)",
+            },
+        }),
+    })
+
+    const data = await res.json()
+    if (!data.status) return { error: data.message || "Failed to initialize payment." }
+
+    return {
+        success:          true,
+        authorizationUrl: data.data.authorization_url,
+        accessCode:       data.data.access_code,
+        reference:        data.data.reference,
+        amount:           5000,
+    }
+}
+
+export async function verifyMembershipAction(reference: string) {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+    })
+    const data = await res.json()
+
+    if (!data.status || data.data.status !== "success") {
+        return { error: "Payment verification failed." }
+    }
+
+    const wallet = await prisma.userWallet.upsert({
+        where:  { userId: session.user.id },
+        create: { userId: session.user.id, balance: 0 },
+        update: {},
+    })
+
+    await prisma.userWalletTransaction.create({
+        data: {
+            walletId:    wallet.id,
+            amount:      5000,
+            type:        "SUBSCRIPTION_PAYMENT",
+            description: `NESORA Plus (₦5,000/mo) · ref:${reference}`,
+        },
+    })
+
+    return {
+        success:      true,
+        isPaidMember: true,
+        expiresAt:    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    }
+}
+
+export async function getBillingHistoryAction() {
+    const session = await auth()
+    if (!session?.user?.id) redirect("/login")
+
+    const transactions = await prisma.userWalletTransaction.findMany({
+        where: {
+            wallet: { userId: session.user.id },
+            type:   { in: ["SUBSCRIPTION_PAYMENT", "DEPOSIT"] },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+    })
+
+    return transactions.map((t) => ({
+        id:          t.id,
+        amount:      Number(t.amount),
+        type:        t.type,
+        description: t.description,
+        createdAt:   t.createdAt,
+    }))
+}

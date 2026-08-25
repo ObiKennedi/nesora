@@ -3,13 +3,15 @@
 
 import { useState, useTransition, useRef, useEffect } from "react"
 import Image                                            from "next/image"
+import Link                                             from "next/link"
 import { useRouter }                                    from "next/navigation"
 import { signOut, useSession }                          from "next-auth/react"
 import {
     User, AtSign, Lock, Heart, Bell, Trash2,
     Loader2, Camera, CheckCircle, XCircle, LogOut,
-    AlertTriangle, ArrowRightLeft, Sun, Moon,
+    AlertTriangle, ArrowRightLeft, Sun, Moon, CreditCard,
 } from "lucide-react"
+
 import {
     updateFanAccountAction,
     updateFanUsernameAction,
@@ -139,6 +141,15 @@ export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPasswor
                         </button>
                     ))}
 
+                    <Link
+                        href="/fan/billing"
+                        className="fan-settings-tab fan-settings-tab--billing"
+                        style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                        <CreditCard size={16} />
+                        <span>Billing & Plans</span>
+                    </Link>
+
                     <button
                         type="button"
                         className="fan-settings-tab fan-settings-tab--creator"
@@ -148,6 +159,7 @@ export const FanSettingsClient = ({ user, interests, isGoogleAccount, hasPasswor
                         {isSwitching ? <Loader2 size={16} className="spin" /> : <ArrowRightLeft size={16} />}
                         <span>{isCreator ? "Creator Dashboard" : "Become a Creator"}</span>
                     </button>
+
 
                     <button
                         type="button"
