@@ -7,6 +7,7 @@ import { redirect }                 from "next/navigation"
 import { prisma }                   from "@/lib/prisma"
 import { getFeedAction, getShortsAction } from "@/actions/fan/feed"
 import { getDiscoverCreatorsAction }      from "@/actions/fan/discover"
+import { getStoriesRailAction }           from "@/actions/stories"
 import { FeedClient }               from "@/component/fan/feed/FeedClient"
 import { Loader }                   from "@/component/essentials/Loader"
 
@@ -37,7 +38,7 @@ export default async function FeedPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const [feedData, shortsData, liveStreams, fanInterests, discover] = await Promise.all([
+    const [feedData, shortsData, liveStreams, fanInterests, discover, storiesData] = await Promise.all([
         getFeedAction({ page: 1 }),
         getShortsAction({ page: 1, limit: 16 }),
         getFollowedLiveStreams(session.user.id),
@@ -46,6 +47,7 @@ export default async function FeedPage() {
             select: { category: true },
         }),
         getDiscoverCreatorsAction({ category: "ALL", page: 1 }),
+        getStoriesRailAction(),
     ])
 
     return (
@@ -54,6 +56,7 @@ export default async function FeedPage() {
                 initialPosts={feedData.posts}
                 initialShorts={shortsData.shorts as any}
                 liveStreams={liveStreams}
+                storiesRail={storiesData.rail as any}
                 fanCategories={fanInterests.map((i) => i.category)}
                 currentUserId={session.user.id}
                 suggestedCreators={discover.creators
@@ -62,4 +65,4 @@ export default async function FeedPage() {
             />
         </Suspense>
     )
-}
+}

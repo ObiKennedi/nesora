@@ -55,6 +55,7 @@ type Props = {
     initialPosts:       FeedPost[]
     initialShorts:      FeedShort[]
     liveStreams:        LiveStream[]
+    storiesRail?:       any[]
     fanCategories:      Category[]
     currentUserId:      string
     suggestedCreators?: RailCreator[]
@@ -73,10 +74,12 @@ export const FeedClient = ({
     initialPosts,
     initialShorts,
     liveStreams,
+    storiesRail = [],
     fanCategories,
     currentUserId,
     suggestedCreators = [],
 }: Props) => {
+
     const router = useRouter()
 
     // ── Feed pagination ───────────────────────────────────────────────────────
@@ -161,8 +164,9 @@ export const FeedClient = ({
                 {/* Mobile-only section tabs */}
                 <FeedTopTabs liveCount={liveStreams.length} />
 
-                {/* Live rail — stories-style, top of feed */}
-                <LiveRail streams={liveStreams} />
+                {/* Stories & Live rail — top of feed */}
+                <LiveRail streams={liveStreams} stories={storiesRail} />
+
 
                 {/* Category chips */}
                 <div className="feed-chips">
