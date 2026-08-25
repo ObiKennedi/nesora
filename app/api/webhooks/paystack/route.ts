@@ -22,6 +22,10 @@ export async function POST(req: Request) {
     }
 
     switch (event.event) {
+        case "charge.success":
+            await handleChargeSuccess(event.data)
+            break
+
         case "transfer.success":
             await handleTransferSuccess(event.data.reference)
             break
@@ -37,6 +41,68 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ received: true })
 }
+
+async function handleChargeSuccess(data: any) {
+    const reference = data?.reference
+    const metadata  = data?.metadata
+    const amount    = (data?.amount ?? 0) / 100 // kobo -> naira
+    const userId    = metadata?.userId
+
+    if (!userId || !reference) return
+
+    // Check if reference already processed
+    const existing = await prisma.userWalletTransaction.findFirst({
+        where: { description: { contains: reference } },
+    })
+    if (existing) return
+
+    const wallet = await prisma.userWallet.upsert({
+        where:  { userId },
+        create: { userId, balance: metadata?.type === "wallet_topup" ? amount : 0 },
+        update: metadata?.type === "wallet_topup" ? { balance: { increment: amount } } : {},
+    })
+
+    if (metadata?.type === "membership_subscription") {
+        await prisma.userWalletTransaction.create({
+            data: {
+                walletId:    wallet.id,
+                amount:      amount,
+                type:        "SUBSCRIPTION_PAYMENT",
+                description: `NESORA Plus (₦5,000/mo) · ref:${reference}`,
+            },
+        })
+
+        await prisma.notification.create({
+            data: {
+                userId,
+                type:  "SYSTEM",
+                title: "NESORA Plus Active! 🎉",
+                body:  "Your monthly membership has been renewed. Enjoy unlimited access across NESORA.",
+                href:  "/feed",
+            },
+        })
+    } else if (metadata?.type === "wallet_topup") {
+        await prisma.userWalletTransaction.create({
+            data: {
+                walletId:    wallet.id,
+                amount,
+                type:        "DEPOSIT",
+                description: `Paystack top-up · ref:${reference}`,
+            },
+        })
+
+        await prisma.notification.create({
+            data: {
+                userId,
+                type:  "SYSTEM",
+                title: "Wallet credited 🎉",
+                body:  `₦${amount.toLocaleString()} has been added to your wallet.`,
+                href:  "/wallet",
+            },
+        })
+    }
+}
+
 
 async function handleTransferSuccess(reference?: string) {
     if (!reference) return
