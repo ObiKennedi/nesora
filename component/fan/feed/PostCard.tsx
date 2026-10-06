@@ -17,6 +17,7 @@ import {
     purchasePostAction,
 }                                                from "@/actions/fan/interactions"
 import { recordPostViewAction }                  from "@/actions/fan/feed"
+import { resolveThumbnail, getSafariVideoSrc }    from "@/lib/media"
 import "@/styles/fan/PostCard.scss"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -315,7 +316,13 @@ export function PostCard({
         })
     }
 
-    const handleView = () => { recordPostViewAction(post.id) }
+    const handleView = () => {
+        recordPostViewAction(post.id).then((res) => {
+            if (res?.recorded && typeof res.viewCount === "number") {
+                onUpdate(post.id, { viewCount: res.viewCount })
+            }
+        })
+    }
 
     const isVideo  = post.type === "VIDEO"
     const isAudio  = post.type === "AUDIO"
@@ -331,54 +338,57 @@ export function PostCard({
         : 0
 
     // ── Locked media zone ─────────────────────────────────────────────────────
-    const renderLocked = () => (
-        <div className={`post-card__locked ${isText || isPoll || isAudio ? "post-card__locked--flat" : ""}`}>
-            {post.thumbnailUrl && (
-                <img
-                    src={post.thumbnailUrl}
-                    alt=""
-                    className="post-card__locked-blur"
-                    aria-hidden="true"
-                />
-            )}
-            <div className="post-card__locked-inner">
-                <div className="post-card__locked-icon">
-                    <Lock size={20} />
-                </div>
+    const renderLocked = () => {
+        const lockedThumb = resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0])
+        return (
+            <div className={`post-card__locked ${isText || isPoll || isAudio ? "post-card__locked--flat" : ""}`}>
+                {lockedThumb && (
+                    <img
+                        src={lockedThumb}
+                        alt=""
+                        className="post-card__locked-blur"
+                        aria-hidden="true"
+                    />
+                )}
+                <div className="post-card__locked-inner">
+                    <div className="post-card__locked-icon">
+                        <Lock size={20} />
+                    </div>
 
-                <p className="post-card__locked-label">
-                    {LOCK_LABEL[post.lockReason ?? ""] ?? "Members only"}
-                </p>
-                <p className="post-card__locked-sub">
-                    Join {post.creator.displayName}&rsquo;s community to see this
-                </p>
+                    <p className="post-card__locked-label">
+                        {LOCK_LABEL[post.lockReason ?? ""] ?? "Members only"}
+                    </p>
+                    <p className="post-card__locked-sub">
+                        Join {post.creator.displayName}&rsquo;s community to see this
+                    </p>
 
-                <div className="post-card__locked-actions">
-                    <Link
-                        href={`/profile/${post.creator.handle ?? post.creator.id}`}
-                        className="post-card__locked-subscribe"
-                    >
-                        Subscribe
-                    </Link>
-
-                    {post.unlockPrice && !purchased && (
-                        <button
-                            type="button"
-                            className="post-card__locked-purchase"
-                            onClick={handlePurchase}
-                            disabled={isPending}
+                    <div className="post-card__locked-actions">
+                        <Link
+                            href={`/profile/${post.creator.handle ?? post.creator.id}`}
+                            className="post-card__locked-subscribe"
                         >
-                            Unlock for ₦{post.unlockPrice.toLocaleString()}
-                        </button>
+                            Subscribe
+                        </Link>
+
+                        {post.unlockPrice && !purchased && (
+                            <button
+                                type="button"
+                                className="post-card__locked-purchase"
+                                onClick={handlePurchase}
+                                disabled={isPending}
+                            >
+                                Unlock for ₦{post.unlockPrice.toLocaleString()}
+                            </button>
+                        )}
+                    </div>
+
+                    {purchaseErr && (
+                        <p className="post-card__locked-err">{purchaseErr}</p>
                     )}
                 </div>
-
-                {purchaseErr && (
-                    <p className="post-card__locked-err">{purchaseErr}</p>
-                )}
             </div>
-        </div>
-    )
+        )
+    }
 
     // ── Unlocked media zone ───────────────────────────────────────────────────
     const renderMedia = () => {
@@ -387,21 +397,25 @@ export function PostCard({
         }
 
         if (isVideo) {
+            const videoSrc = hasMedia ? getSafariVideoSrc(post.mediaUrls[0]) : ""
+            const poster = resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0])
+
             return (
                 <div className="post-card__frame post-card__frame--video">
                     {hasMedia ? (
                         <video
-                            src={post.mediaUrls[0]}
-                            poster={post.thumbnailUrl ?? undefined}
+                            src={videoSrc}
+                            poster={poster ?? undefined}
                             controls
+                            playsInline
                             preload="metadata"
                             className="post-card__video"
                             onPlay={handleView}
                         />
                     ) : (
                         <div className="post-card__video-thumb">
-                            {post.thumbnailUrl && (
-                                <img src={post.thumbnailUrl} alt="" className="post-card__frame-img" />
+                            {poster && (
+                                <img src={poster} alt="" className="post-card__frame-img" />
                             )}
                             <div className="post-card__play-icon"><Play size={28} /></div>
                         </div>

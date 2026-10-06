@@ -17,6 +17,7 @@ import {
     Loader2,
 } from "lucide-react"
 import { getCreatorGridPostsAction, type GridPost } from "@/actions/creator-profile"
+import { getSafariVideoSrc } from "@/lib/media"
 import PostLightbox from "./PostLightbox"
 
 type Tab = "posts" | "shorts"
@@ -203,10 +204,26 @@ function GridTile({
     const tileInner = (
         <>
             {/* Media / text layer */}
-            {post.thumbnailUrl || post.previewUrl ? (
+            {post.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                    src={post.thumbnailUrl ?? post.previewUrl ?? ""}
+                    src={post.thumbnailUrl}
+                    alt=""
+                    className={`profile-grid__tile-media ${!post.unlocked ? "profile-grid__tile-media--blurred" : ""}`}
+                    loading="lazy"
+                />
+            ) : post.previewUrl && post.type === "VIDEO" ? (
+                <video
+                    src={getSafariVideoSrc(post.previewUrl)}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className={`profile-grid__tile-media ${!post.unlocked ? "profile-grid__tile-media--blurred" : ""}`}
+                />
+            ) : post.previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={post.previewUrl}
                     alt=""
                     className={`profile-grid__tile-media ${!post.unlocked ? "profile-grid__tile-media--blurred" : ""}`}
                     loading="lazy"

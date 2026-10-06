@@ -4,6 +4,7 @@ import { auth }     from "@/lib/auth"
 import { prisma }   from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { Category, PostAccessLevel } from "@prisma/client"
+import { resolveThumbnail } from "@/lib/media"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -327,7 +328,7 @@ export async function getFeedAction(params?: {
                 title:        post.title,
                 body:         hasAccess ? post.body      : null,
                 mediaUrls:    hasAccess ? post.mediaUrls : [],
-                thumbnailUrl: post.thumbnailUrl, 
+                thumbnailUrl: resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0]), 
                 videoDuration: post.videoDuration,
                 publishedAt:  post.publishedAt,
                 createdAt:    post.createdAt,
@@ -446,9 +447,10 @@ export async function getShortsAction(params?: {
                 title:         post.title,
                 body:          hasAccess ? post.body : null,
                 mediaUrls:     hasAccess ? post.mediaUrls : [],
-                thumbnailUrl:  post.thumbnailUrl,
+                thumbnailUrl:  resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0]),
                 videoDuration: post.videoDuration,
                 publishedAt:   post.publishedAt,
+                viewCount:     post.viewCount,
                 likeCount:     post._count.likes,
                 commentCount:  post._count.comments,
                 isLiked:       post.likes.length > 0,
@@ -475,19 +477,43 @@ export async function getShortsAction(params?: {
 
 export async function recordPostViewAction(postId: string) {
     const session = await auth()
-    if (!session?.user?.id) return
+    if (!session?.user?.id) return { recorded: false }
+
+    const userId = session.user.id
 
     try {
-        await prisma.$transaction([
-            prisma.postView.create({
-                data: { postId, userId: session.user.id },
-            }),
-            prisma.post.update({
-                where: { id: postId },
-                data:  { viewCount: { increment: 1 } },
-            }),
-        ])
+        // Creators viewing their own post don't count towards views
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+            select: { creator: { select: { userId: true } }, viewCount: true },
+        })
+        if (!post) return { recorded: false }
+        if (post.creator?.userId === userId) {
+            return { recorded: false, viewCount: post.viewCount }
+        }
+
+        // Views count how many accounts watched it — ensure this account hasn't viewed yet
+        const alreadyViewed = await prisma.postView.findFirst({
+            where: { postId, userId },
+            select: { id: true },
+        })
+
+        if (!alreadyViewed) {
+            const [, updated] = await prisma.$transaction([
+                prisma.postView.create({
+                    data: { postId, userId },
+                }),
+                prisma.post.update({
+                    where: { id: postId },
+                    data:  { viewCount: { increment: 1 } },
+                    select: { viewCount: true },
+                }),
+            ])
+            return { recorded: true, viewCount: updated.viewCount }
+        }
+
+        return { recorded: false, viewCount: post.viewCount }
     } catch {
-        // Silently fail — views are non-critical
+        return { recorded: false }
     }
 }

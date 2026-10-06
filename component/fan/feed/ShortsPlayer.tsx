@@ -11,12 +11,14 @@ import {
     Heart, MessageCircle, Share2,
     Bookmark, Gift, Volume2, VolumeX,
     Lock, ShoppingBag, ChevronUp, ChevronDown,
+    Play, Eye,
 } from "lucide-react"
 import {
     likePostAction, unlikePostAction,
     savePostAction, recordShareAction,
 } from "@/actions/fan/interactions"
-import { getShortsAction } from "@/actions/fan/feed"
+import { getShortsAction, recordPostViewAction } from "@/actions/fan/feed"
+import { resolveThumbnail, getSafariVideoSrc }  from "@/lib/media"
 import { CommentPanel }    from "./CommentPanel"
 import { GiftPanel }       from "./GiftPanel"
 import "@/styles/fan/Shorts.scss"
@@ -67,31 +69,85 @@ type ShortItemProps = {
     onNext:    () => void
     hasNext:   boolean
     hasPrev:   boolean
+    onView:    (shortId: string) => void
 }
 
 const ShortItem = ({
     short, isActive, isMuted,
     onLike, onSave, onShare, onComment, onGift, onUnlock,
-    onPrev, onNext, hasNext, hasPrev,
+    onPrev, onNext, hasNext, hasPrev, onView,
 }: ShortItemProps) => {
     const videoRef = useRef<HTMLVideoElement>(null)
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [showPlayOverlay, setShowPlayOverlay] = useState(false)
 
-    // Play/pause based on active state
+    const poster = resolveThumbnail(short.thumbnailUrl, short.mediaUrls[0])
+    const videoSrc = short.mediaUrls[0] ? getSafariVideoSrc(short.mediaUrls[0]) : ""
+
+    // Autoplay fallback: if browser audio policy blocks play, mute and immediately play
+    const attemptPlay = useCallback(() => {
+        const vid = videoRef.current
+        if (!vid) return
+        const promise = vid.play()
+        if (promise !== undefined) {
+            promise
+                .then(() => {
+                    setIsPlaying(true)
+                    setShowPlayOverlay(false)
+                })
+                .catch(() => {
+                    vid.muted = true
+                    vid.play()
+                        .then(() => {
+                            setIsPlaying(true)
+                            setShowPlayOverlay(false)
+                        })
+                        .catch(() => {})
+                })
+        }
+    }, [])
+
+    // Play/pause based on active state — immediately auto plays upon activation
     useEffect(() => {
         const vid = videoRef.current
         if (!vid) return
         if (isActive && short.hasAccess && short.mediaUrls[0]) {
             vid.currentTime = 0
-            vid.play().catch(() => {})
+            attemptPlay()
         } else {
             vid.pause()
+            setIsPlaying(false)
+            setShowPlayOverlay(false)
         }
-    }, [isActive, short.hasAccess, short.mediaUrls])
+    }, [isActive, short.hasAccess, short.mediaUrls, attemptPlay])
 
     // Sync mute
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted
     }, [isMuted])
+
+    // Toggle playback immediately on video click
+    const handleVideoClick = () => {
+        const vid = videoRef.current
+        if (!vid || !short.hasAccess) return
+        if (vid.paused) {
+            attemptPlay()
+        } else {
+            vid.pause()
+            setIsPlaying(false)
+            setShowPlayOverlay(true)
+        }
+    }
+
+    const handleVideoPlay = () => {
+        setIsPlaying(true)
+        setShowPlayOverlay(false)
+        onView(short.id)
+    }
+
+    const handleVideoPause = () => {
+        setIsPlaying(false)
+    }
 
     const lockLabel =
         short.lockReason === "FOLLOWERS_ONLY"   ? "Follow to unlock"    :
@@ -104,21 +160,34 @@ const ShortItem = ({
 
             {/* Video / locked thumbnail */}
             {short.hasAccess && short.mediaUrls[0] ? (
-                <video
-                    ref={videoRef}
-                    className="short-item__video"
-                    src={short.mediaUrls[0]}
-                    loop
-                    playsInline
-                    muted={isMuted}
-                    poster={short.thumbnailUrl ?? undefined}
-                    preload={isActive ? "auto" : "none"}
-                />
+                <div className="short-item__video-wrap" onClick={handleVideoClick}>
+                    <video
+                        ref={videoRef}
+                        className="short-item__video"
+                        src={videoSrc}
+                        autoPlay={isActive}
+                        loop
+                        playsInline
+                        muted={isMuted}
+                        poster={poster ?? undefined}
+                        preload={isActive ? "auto" : "metadata"}
+                        onPlay={handleVideoPlay}
+                        onPause={handleVideoPause}
+                    />
+
+                    {showPlayOverlay && (
+                        <div className="short-item__play-overlay" aria-label="Play video">
+                            <div className="short-item__play-badge">
+                                <Play size={44} fill="white" />
+                            </div>
+                        </div>
+                    )}
+                </div>
             ) : (
                 <div className="short-item__locked-bg">
-                    {short.thumbnailUrl && (
+                    {poster && (
                         <img
-                            src={short.thumbnailUrl}
+                            src={poster}
                             alt={short.title ?? ""}
                             className="short-item__thumb-blur"
                         />
@@ -184,11 +253,18 @@ const ShortItem = ({
                                 <span className="short-item__verified">✓</span>
                             )}
                         </span>
-                        {short.creator.handle && (
-                            <span className="short-item__creator-handle">
-                                @{short.creator.handle}
+                        <div className="short-item__creator-sub">
+                            {short.creator.handle && (
+                                <span className="short-item__creator-handle">
+                                    @{short.creator.handle}
+                                </span>
+                            )}
+                            <span className="short-item__dot">·</span>
+                            <span className="short-item__views" title="Accounts watched">
+                                <Eye size={12} />
+                                {fmtCount(short.viewCount ?? 0)} views
                             </span>
-                        )}
+                        </div>
                     </div>
                 </Link>
 
@@ -202,6 +278,11 @@ const ShortItem = ({
 
             {/* Right action rail */}
             <div className="short-item__actions">
+                <div className="short-action short-action--views" title={`${fmtCount(short.viewCount ?? 0)} accounts watched`}>
+                    <Eye size={26} />
+                    <span>{fmtCount(short.viewCount ?? 0)}</span>
+                </div>
+
                 <button
                     type="button"
                     className={`short-action ${short.isLiked ? "short-action--liked" : ""}`}
@@ -393,6 +474,14 @@ export const ShortsPlayer = ({ initialShorts, startIndex, currentUserId }: Props
         await recordShareAction(s.id)
     }
 
+    const handleView = useCallback((shortId: string) => {
+        recordPostViewAction(shortId).then((res) => {
+            if (res?.recorded && typeof res.viewCount === "number") {
+                mutateShort(shortId, { viewCount: res.viewCount })
+            }
+        })
+    }, [])
+
     if (!current) return null
 
     return (
@@ -429,6 +518,7 @@ export const ShortsPlayer = ({ initialShorts, startIndex, currentUserId }: Props
                 onPrev={goPrev}
                 hasNext={index < shorts.length - 1}
                 hasPrev={index > 0}
+                onView={handleView}
             />
 
             {/* Progress dots */}

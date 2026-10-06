@@ -4,6 +4,7 @@ import { auth }   from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z }      from "zod"
+import { resolveThumbnail } from "@/lib/media"
 import type { PostPoll } from "@/lib/post-access"
 
 const GRID_PAGE_SIZE = 12
@@ -361,7 +362,7 @@ export async function getCreatorGridPostsAction(
             return {
                 id:            post.id,
                 type:          post.type,
-                thumbnailUrl:  post.thumbnailUrl, // rendered blurred when locked
+                thumbnailUrl:  resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0]), // rendered blurred when locked
                 previewUrl:    unlocked ? post.mediaUrls[0] ?? null : null, // never leak gated media
                 snippet:       unlocked ? (post.title || post.body)?.slice(0, 140) ?? null : null,
                 mediaCount:    post.mediaUrls.length,

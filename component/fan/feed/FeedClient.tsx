@@ -43,6 +43,8 @@ type FeedShort = {
     thumbnailUrl:  string | null
     videoDuration: number | null
     hasAccess:     boolean
+    mediaUrls?:    string[]
+    viewCount?:    number
     creator: {
         id:          string
         displayName: string

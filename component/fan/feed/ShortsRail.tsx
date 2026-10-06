@@ -1,15 +1,17 @@
 // components/fan/feed/ShortsRail.tsx
 "use client"
 
-import Image from "next/image"
 import { Play, Lock } from "lucide-react"
+import { resolveThumbnail, getSafariVideoSrc } from "@/lib/media"
 import "@/styles/fan/ShortsRail.scss"
 
 type Short = {
     id:            string
     title:         string | null
     thumbnailUrl:  string | null
+    mediaUrls?:    string[]
     videoDuration: number | null
+    viewCount?:    number
     hasAccess:     boolean
     creator: {
         displayName: string
@@ -20,9 +22,9 @@ type Short = {
 }
 
 type Props = {
-    shorts:         Short[]
-    onShortClick:   (shortId: string) => void
-    onSeeAll:       () => void
+    shorts:       Short[]
+    onShortClick: (shortId: string) => void
+    onSeeAll:     () => void
 }
 
 function fmtDuration(secs: number): string {
@@ -48,57 +50,73 @@ export const ShortsRail = ({ shorts, onShortClick, onSeeAll }: Props) => {
             </div>
 
             <div className="shorts-rail__track">
-                {shorts.map((short) => (
-                    <button
-                        key={short.id}
-                        type="button"
-                        className="short-card"
-                        onClick={() => onShortClick(short.id)}
-                    >
-                        <div className="short-card__thumb">
-                            {short.thumbnailUrl ? (
-                                <img
-                                    src={short.thumbnailUrl}
-                                    alt={short.title ?? "Short"}
-                                    sizes="120px"
-                                    className={`short-card__img ${!short.hasAccess ? "short-card__img--blur" : ""}`}
-                                />
-                            ) : (
-                                <div className="short-card__placeholder" />
-                            )}
+                {shorts.map((short) => {
+                    const thumb = resolveThumbnail(short.thumbnailUrl, short.mediaUrls?.[0])
+                    const videoSrc = short.mediaUrls?.[0] ? getSafariVideoSrc(short.mediaUrls[0]) : null
 
-                            {!short.hasAccess && (
-                                <div className="short-card__lock"><Lock size={14} /></div>
-                            )}
-                            {short.hasAccess && (
-                                <div className="short-card__play"><Play size={14} fill="white" /></div>
-                            )}
-                            {short.videoDuration && (
-                                <span className="short-card__duration">
-                                    {fmtDuration(short.videoDuration)}
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="short-card__meta">
-                            <div className="short-card__avatar">
-                                {short.creator.image ? (
+                    return (
+                        <button
+                            key={short.id}
+                            type="button"
+                            className="short-card"
+                            onClick={() => onShortClick(short.id)}
+                            aria-label={`Watch short by ${short.creator.displayName}`}
+                        >
+                            <div className="short-card__thumb">
+                                {thumb ? (
                                     <img
-                                        src={short.creator.image}
-                                        alt={short.creator.displayName}
-                                        width={20} height={20}
-                                        className="short-card__avatar-img"
+                                        src={thumb}
+                                        alt={short.title ?? "Short"}
+                                        className={`short-card__img ${!short.hasAccess ? "short-card__img--blur" : ""}`}
+                                        loading="lazy"
+                                    />
+                                ) : videoSrc ? (
+                                    <video
+                                        src={videoSrc}
+                                        preload="metadata"
+                                        playsInline
+                                        muted
+                                        className={`short-card__img ${!short.hasAccess ? "short-card__img--blur" : ""}`}
                                     />
                                 ) : (
-                                    <span className="short-card__avatar-fallback">
-                                        {short.creator.displayName.charAt(0)}
+                                    <div className="short-card__placeholder">
+                                        <Play size={20} className="short-card__placeholder-icon" />
+                                    </div>
+                                )}
+
+                                {!short.hasAccess && (
+                                    <div className="short-card__lock"><Lock size={14} /></div>
+                                )}
+                                {short.hasAccess && (
+                                    <div className="short-card__play"><Play size={14} fill="white" /></div>
+                                )}
+                                {short.videoDuration && (
+                                    <span className="short-card__duration">
+                                        {fmtDuration(short.videoDuration)}
                                     </span>
                                 )}
                             </div>
-                            <span className="short-card__creator">{short.creator.displayName}</span>
-                        </div>
-                    </button>
-                ))}
+
+                            <div className="short-card__meta">
+                                <div className="short-card__avatar">
+                                    {short.creator.image ? (
+                                        <img
+                                            src={short.creator.image}
+                                            alt={short.creator.displayName}
+                                            width={20} height={20}
+                                            className="short-card__avatar-img"
+                                        />
+                                    ) : (
+                                        <span className="short-card__avatar-fallback">
+                                            {short.creator.displayName.charAt(0)}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="short-card__creator">{short.creator.displayName}</span>
+                            </div>
+                        </button>
+                    )
+                })}
             </div>
         </div>
     )
