@@ -12,9 +12,18 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "s3-alpha-sig.figma.com" },
       { protocol: "https", hostname: "lh5.googleusercontent.com" },
       { protocol: "https", hostname: "lh6.googleusercontent.com" },
-      { protocol: "https", hostname: "res.cloudinary.com" },  // ← add this
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
-},
+  },
+  async redirects() {
+    return [
+      {
+        source: "/explore",
+        destination: "/fan/discover",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

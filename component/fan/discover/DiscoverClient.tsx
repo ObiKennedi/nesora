@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useTransition, useCallback } from "react"
+import { useState, useTransition, useCallback, useRef, useEffect } from "react"
 import Image                                     from "next/image"
 import Link                                      from "next/link"
+import { useSearchParams }                       from "next/navigation"
 import {
     Search, Loader2, UserPlus, UserCheck,
     BadgeCheck, Users, Compass,
@@ -38,6 +39,8 @@ type Props = {
     initialPages:    number
     rankedCategories: Category[]
     categoryLabels:  Record<string, { label: string; emoji: string }>
+    initialSearch?:   string
+    autoFocusSearch?: boolean
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -56,12 +59,17 @@ export function DiscoverClient({
     initialPages,
     rankedCategories,
     categoryLabels,
+    initialSearch = "",
+    autoFocusSearch = false,
 }: Props) {
+    const searchParams = useSearchParams()
+    const inputRef     = useRef<HTMLInputElement>(null)
+
     const [creators,       setCreators]       = useState<DiscoverCreator[]>(initialCreators)
     const [total,          setTotal]          = useState(initialTotal)
     const [pages,          setPages]          = useState(initialPages)
     const [page,           setPage]           = useState(1)
-    const [search,         setSearch]         = useState("")
+    const [search,         setSearch]         = useState(initialSearch)
     const [activeCategory, setActiveCategory] = useState<Category | "ALL">("ALL")
     const [loading,        setLoading]        = useState(false)
     const [loadingMore,    setLoadingMore]    = useState(false)
@@ -70,6 +78,24 @@ export function DiscoverClient({
 
     // Track which creators are being followed/unfollowed
     const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+
+    // Auto-focus search input if requested
+    useEffect(() => {
+        if (autoFocusSearch) {
+            inputRef.current?.focus()
+        }
+    }, [autoFocusSearch])
+
+    // Sync with query params if they change
+    useEffect(() => {
+        const q = searchParams.get("search") || searchParams.get("q")
+        if (q && q !== "1" && q !== search) {
+            setSearch(q)
+            fetchCreators({ category: activeCategory, search: q })
+        } else if (searchParams.get("search") === "1" || searchParams.get("focus") === "1") {
+            inputRef.current?.focus()
+        }
+    }, [searchParams])
 
     // ── Fetch creators ────────────────────────────────────────────────────────
     const fetchCreators = useCallback(async (opts: {
@@ -204,6 +230,7 @@ export function DiscoverClient({
                 <div className="discover__search">
                     <Search size={16} />
                     <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Search creators..."
                         value={search}

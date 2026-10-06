@@ -160,7 +160,7 @@ $fan-footnav-height: 64px;
     50%       { opacity: 0.4; transform: scale(0.7) }
 }
 
-// ─── Mobile top bar ───────────────────────────────────────────────────────────
+// ─── Top bar (Mobile & Desktop) ───────────────────────────────────────────────
 
 .fan-topbar {
     position: sticky;
@@ -174,8 +174,15 @@ $fan-footnav-height: 64px;
     justify-content: space-between;
     padding: 0 var(--space-3);
     flex-shrink: 0;
+    gap: var(--space-3);
+    transition: background-color var(--transition-fast);
 
-    @media (min-width: 1024px) { display: none }
+    @media (min-width: 1024px) {
+        margin-left: #{$fan-sidenav-width};
+        width: calc(100% - #{$fan-sidenav-width});
+        padding: 0 var(--space-6);
+        gap: var(--space-6);
+    }
 
     &__logo {
         display: flex;
@@ -184,12 +191,268 @@ $fan-footnav-height: 64px;
         flex-shrink: 0;
 
         img { object-fit: contain }
+
+        @media (min-width: 1024px) {
+            display: none; // Sidebar already features the logo on desktop
+        }
+    }
+
+    // ── Search bar ──
+    &__search-container {
+        position: relative;
+        flex: 1;
+        max-width: 480px;
+
+        // Hidden on mobile unless expanded
+        display: none;
+
+        &--mobile-open {
+            display: flex;
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            background-color: var(--color-surface);
+            padding: 0 var(--space-3);
+            align-items: center;
+            max-width: none;
+        }
+
+        @media (min-width: 1024px) {
+            display: flex;
+        }
+    }
+
+    &__search-form {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 38px;
+        background-color: var(--color-bg);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-full);
+        padding: 0 var(--space-3);
+        gap: var(--space-2);
+        transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+
+        &:focus-within {
+            border-color: var(--color-primary);
+            background-color: var(--color-surface);
+            box-shadow: 0 0 0 3px rgba(194, 98, 42, 0.12);
+        }
+    }
+
+    &__search-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: color var(--transition-fast);
+        flex-shrink: 0;
+
+        &:hover {
+            color: var(--color-primary);
+        }
+    }
+
+    &__search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-family: var(--font-body);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        min-width: 0;
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+    }
+
+    &__search-clear {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-full);
+        border: none;
+        background-color: var(--color-border);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background-color: var(--color-text-muted);
+            color: #fff;
+        }
+    }
+
+    &__search-back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: var(--color-text-secondary);
+        padding: var(--space-1);
+        margin-right: var(--space-2);
+        cursor: pointer;
+        flex-shrink: 0;
+
+        @media (min-width: 1024px) {
+            display: none;
+        }
+    }
+
+    // ── Dropdown suggestions ──
+    &__dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background-color: var(--color-surface);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        z-index: var(--z-dropdown);
+        animation: fan-dropdown-in 150ms ease;
+    }
+
+    &__dropdown-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
+        color: var(--color-text-muted);
+        gap: var(--space-2);
+        font-size: var(--font-size-xs);
+    }
+
+    &__dropdown-empty {
+        padding: var(--space-4);
+        text-align: center;
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+
+        p {
+            margin-bottom: var(--space-2);
+        }
+    }
+
+    &__dropdown-list {
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    &__dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-3);
+        text-decoration: none;
+        color: var(--color-text-primary);
+        transition: background-color var(--transition-fast);
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--color-bg-alt);
+        }
+    }
+
+    &__dropdown-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        background-color: var(--color-bg-alt);
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        span {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-secondary);
+        }
+    }
+
+    &__dropdown-meta {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__dropdown-name {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__verified {
+        color: var(--color-primary);
+        flex-shrink: 0;
+    }
+
+    &__dropdown-handle {
+        font-size: 11px;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__dropdown-footer {
+        padding: var(--space-2) var(--space-3);
+        border-top: var(--border-width) solid var(--color-border);
+        background-color: var(--color-bg);
+    }
+
+    &__dropdown-all-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-primary);
+        background: none;
+        border: none;
+        padding: var(--space-1) 0;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+
+        &:hover {
+            text-decoration: underline;
+        }
     }
 
     &__right {
         display: flex;
         align-items: center;
         gap: var(--space-2);
+        flex-shrink: 0;
     }
 
     &__icon-btn {
@@ -214,6 +477,23 @@ $fan-footnav-height: 64px;
             color: var(--color-primary);
             background-color: var(--color-bg-alt);
         }
+
+        &--search {
+            @media (min-width: 1024px) {
+                display: none; // Search bar is already visible on PC
+            }
+        }
+    }
+}
+
+@keyframes fan-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
