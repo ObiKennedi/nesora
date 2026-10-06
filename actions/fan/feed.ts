@@ -144,6 +144,137 @@ async function getFanCreatorIds(userId: string): Promise<string[]> {
 
 // ── Main feed action ──────────────────────────────────────────────────────────
 
+// ── Main feed action ──────────────────────────────────────────────────────────
+
+const getFeedPostInclude = (userId: string) => ({
+    creator: {
+        select: {
+            id:          true,
+            displayName: true,
+            handle:      true,
+            isVerified:  true,
+            creatorCategories: { select: { category: true } },
+            user:        { select: { image: true } },
+        },
+    },
+    access:    true,
+    poll:      { include: { options: true } },
+    likes:     { where: { userId }, select: { id: true } },
+    postSaves: { where: { userId }, select: { id: true } },
+    postPurchases: { where: { userId }, select: { id: true } },
+    _count: {
+        select: {
+            likes:    true,
+            comments: true,
+        },
+    },
+})
+
+const createPostMapper = (userId: string) => async (post: any) => {
+    const accessLevel    = post.access?.accessLevel    ?? "PUBLIC"
+    const allowedPlanIds = post.access?.allowedPlanIds ?? []
+    const alreadyPurchased = (post.postPurchases?.length ?? 0) > 0
+
+    const { hasAccess, lockReason } = alreadyPurchased
+        ? { hasAccess: true, lockReason: null }
+        : await resolvePostAccess({
+            userId,
+            creatorId:   post.creatorId,
+            accessLevel,
+            allowedPlanIds,
+        })
+
+    const unlockPrice = (!hasAccess && lockReason)
+        ? await resolveUnlockPrice({
+            creatorId: post.creatorId,
+            accessLevel,
+            allowedPlanIds,
+        })
+        : null
+
+    return {
+        id:           post.id,
+        type:         post.type,
+        status:       post.status,
+        title:        post.title,
+        body:         hasAccess ? post.body      : null,
+        mediaUrls:    hasAccess ? post.mediaUrls : [],
+        thumbnailUrl: resolveThumbnail(post.thumbnailUrl, post.mediaUrls?.[0]), 
+        videoDuration: post.videoDuration,
+        publishedAt:  post.publishedAt,
+        createdAt:    post.createdAt,
+        viewCount:    post.viewCount,
+        likeCount:    post._count?.likes ?? post.likeCount ?? 0,
+        commentCount: post._count?.comments ?? post.commentCount ?? 0,
+        isLiked:      (post.likes?.length ?? 0) > 0,
+        isSaved:      (post.postSaves?.length ?? 0) > 0,
+        isPurchased:  alreadyPurchased,
+        hasAccess,
+        lockReason,
+        unlockPrice,
+        poll:         hasAccess ? post.poll : null,
+        creator: {
+            id:          post.creator.id,
+            displayName: post.creator.displayName,
+            handle:      post.creator.handle,
+            isVerified:  post.creator.isVerified,
+            image:       post.creator.user?.image ?? null,
+            categories:  post.creator.creatorCategories?.map((c: any) => c.category) ?? [],
+        },
+    }
+}
+
+async function fetchRandomPublishedPosts(userId: string, limit: number, skip: number = 0) {
+    const total = await prisma.post.count({
+        where: { status: "PUBLISHED" },
+    })
+
+    if (total === 0) return { posts: [], total: 0 }
+
+    const postInclude = getFeedPostInclude(userId)
+
+    if (total <= 60) {
+        const allPosts = await prisma.post.findMany({
+            where: { status: "PUBLISHED" },
+            include: postInclude,
+        })
+
+        // Fisher-Yates shuffle
+        const shuffled = [...allPosts]
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1))
+            ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        }
+
+        return {
+            posts: shuffled.slice(skip, skip + limit),
+            total,
+        }
+    }
+
+    const takeAmount = Math.min(total, Math.max(limit * 3, 30))
+    const maxSkip = Math.max(0, total - takeAmount)
+    const randomSkip = maxSkip > 0 ? Math.floor(Math.random() * (maxSkip + 1)) : 0
+
+    const chunk = await prisma.post.findMany({
+        where: { status: "PUBLISHED" },
+        include: postInclude,
+        skip: randomSkip,
+        take: takeAmount,
+    })
+
+    const shuffled = [...chunk]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+
+    return {
+        posts: shuffled.slice(0, limit),
+        total,
+    }
+}
+
 export async function getFeedAction(params?: {
     category?: Category | "ALL"
     page?:     number
@@ -157,6 +288,9 @@ export async function getFeedAction(params?: {
     const limit    = params?.limit ?? FEED_LIMIT
     const skip     = (page - 1) * limit
     const category = params?.category ?? "ALL"
+
+    const mapPost = createPostMapper(userId)
+    const postInclude = getFeedPostInclude(userId)
 
     // ── 1. Get creator IDs the fan follows or subscribes to ───────────────────
     const creatorIds = await getFanCreatorIds(userId)
@@ -176,20 +310,57 @@ export async function getFeedAction(params?: {
                 handle: true,
                 isVerified: true,
                 user: { select: { image: true } },
-                // Note: Change 'followers' to 'follows' if that's what your Prisma schema uses.
                 _count: { select: { followers: true } }
             },
             orderBy: {
-                // Note: Change 'followers' to 'follows' if that's what your Prisma schema uses.
                 followers: { _count: "desc" }
             },
             take: 10,
         })
     }
 
+    // ── If fan follows no creators ───────────────────────────────────────────
     if (creatorIds.length === 0) {
+        if (category !== "ALL") {
+            const categoryPosts = await prisma.post.findMany({
+                where: {
+                    status: "PUBLISHED",
+                    creator: { creatorCategories: { some: { category } } },
+                },
+                include: postInclude,
+                orderBy: { publishedAt: "desc" },
+                skip,
+                take: limit,
+            })
+
+            if (categoryPosts.length > 0) {
+                const postsWithAccess = await Promise.all(categoryPosts.map(mapPost))
+                return {
+                    posts: postsWithAccess,
+                    total: categoryPosts.length,
+                    pages: Math.ceil(categoryPosts.length / limit),
+                    page,
+                    isRandomFallback: false,
+                    fallbackCategory: null,
+                    suggestedCreators: page === 1 ? await fetchSuggestedCreators() : [],
+                }
+            }
+        }
+
+        // When there's no post from the category a user selected: display random posts!
+        const randomResult = await fetchRandomPublishedPosts(userId, limit, skip)
+        const postsWithAccess = await Promise.all(randomResult.posts.map(mapPost))
         const suggestedCreators = page === 1 ? await fetchSuggestedCreators() : []
-        return { posts: [], total: 0, pages: 0, page, suggestedCreators }
+
+        return {
+            posts: postsWithAccess,
+            total: randomResult.total,
+            pages: Math.ceil(randomResult.total / limit),
+            page,
+            isRandomFallback: category !== "ALL",
+            fallbackCategory: category !== "ALL" ? category : null,
+            suggestedCreators,
+        }
     }
 
     // ── 2. Get fan's interest signals (for ranking) ───────────────────────────
@@ -214,44 +385,71 @@ export async function getFeedAction(params?: {
             },
         }
 
-    const rawPosts = await prisma.post.findMany({
+    let rawPosts = await prisma.post.findMany({
         where: {
             creatorId: { in: creatorIds },
             status:    "PUBLISHED",
             ...categoryFilter,
         },
-        include: {
-            creator: {
-                select: {
-                    id:          true,
-                    displayName: true,
-                    handle:      true,
-                    isVerified:  true,
-                    creatorCategories: { select: { category: true } },
-                    user:        { select: { image: true } },
-                },
-            },
-            access:    true,
-            poll:      { include: { options: true } },
-            likes:     { where: { userId }, select: { id: true } },
-            postSaves: { where: { userId }, select: { id: true } },
-            postPurchases: { where: { userId }, select: { id: true } },
-            _count: {
-                select: {
-                    likes:    true,
-                    comments: true,
-                },
-            },
-        },
+        include: postInclude,
         orderBy: { publishedAt: "desc" },
         take:    limit * 5, 
     })
 
+    let isRandomFallback = false
+    let fallbackCategory: Category | null = null
+
+    // ── If no posts found from followed creators in this category ─────────────
+    if (rawPosts.length === 0) {
+        if (category !== "ALL") {
+            // Check platform-wide for posts in this category
+            const platformCategoryPosts = await prisma.post.findMany({
+                where: {
+                    status: "PUBLISHED",
+                    creator: { creatorCategories: { some: { category } } },
+                },
+                include: postInclude,
+                orderBy: { publishedAt: "desc" },
+                take: limit * 5,
+            })
+
+            if (platformCategoryPosts.length > 0) {
+                rawPosts = platformCategoryPosts
+            } else {
+                // There is NO post from this category anywhere on the platform:
+                // DISPLAY RANDOM POSTS!
+                isRandomFallback = true
+                fallbackCategory = category
+                const randomResult = await fetchRandomPublishedPosts(userId, limit, skip)
+                rawPosts = randomResult.posts
+            }
+        } else {
+            // ALL category but followed creators have 0 posts: display random posts
+            const randomResult = await fetchRandomPublishedPosts(userId, limit, skip)
+            rawPosts = randomResult.posts
+        }
+    }
+
+    // If random fallback was triggered, map and return immediately
+    if (isRandomFallback) {
+        const postsWithAccess = await Promise.all(rawPosts.map(mapPost))
+        const suggestedCreators = page === 1 ? await fetchSuggestedCreators() : []
+        return {
+            posts: postsWithAccess,
+            total: rawPosts.length,
+            pages: 1,
+            page,
+            isRandomFallback: true,
+            fallbackCategory,
+            suggestedCreators,
+        }
+    }
+
     // ── 4. Score each post ────────────────────────────────────────────────────
     const scoredPosts = rawPosts.map((post) => {
-        const categories = post.creator.creatorCategories.map((cc) => cc.category)
+        const categories = post.creator.creatorCategories.map((cc: any) => cc.category)
 
-        const interestScore = categories.reduce((sum, cat) => {
+        const interestScore = categories.reduce((sum: number, cat: any) => {
             return sum + (signalMap.get(`${post.creatorId}:${cat}`) ?? 0)
         }, 0)
 
@@ -298,68 +496,16 @@ export async function getFeedAction(params?: {
     }
 
     // ── 7. Resolve access for each post ───────────────────────────────────────
-    const postsWithAccess = await Promise.all(
-        paginated.map(async ({ post }) => {
-            const accessLevel    = post.access?.accessLevel    ?? "PUBLIC"
-            const allowedPlanIds = post.access?.allowedPlanIds ?? []
-            const alreadyPurchased = post.postPurchases.length > 0
-
-            const { hasAccess, lockReason } = alreadyPurchased
-                ? { hasAccess: true, lockReason: null }
-                : await resolvePostAccess({
-                    userId,
-                    creatorId:   post.creatorId,
-                    accessLevel,
-                    allowedPlanIds,
-                })
-
-            const unlockPrice = (!hasAccess && lockReason)
-                ? await resolveUnlockPrice({
-                    creatorId: post.creatorId,
-                    accessLevel,
-                    allowedPlanIds,
-                })
-                : null
-
-            return {
-                id:           post.id,
-                type:         post.type,
-                status:       post.status,
-                title:        post.title,
-                body:         hasAccess ? post.body      : null,
-                mediaUrls:    hasAccess ? post.mediaUrls : [],
-                thumbnailUrl: resolveThumbnail(post.thumbnailUrl, post.mediaUrls[0]), 
-                videoDuration: post.videoDuration,
-                publishedAt:  post.publishedAt,
-                createdAt:    post.createdAt,
-                viewCount:    post.viewCount,
-                likeCount:    post._count.likes,
-                commentCount: post._count.comments,
-                isLiked:      post.likes.length > 0,
-                isSaved:      post.postSaves.length > 0,
-                isPurchased:  alreadyPurchased,
-                hasAccess,
-                lockReason,
-                unlockPrice,
-                poll:         hasAccess ? post.poll : null,
-                creator: {
-                    id:          post.creator.id,
-                    displayName: post.creator.displayName,
-                    handle:      post.creator.handle,
-                    isVerified:  post.creator.isVerified,
-                    image:       post.creator.user.image,
-                    categories:  post.creator.creatorCategories.map((c) => c.category),
-                },
-            }
-        })
-    )
+    const postsWithAccess = await Promise.all(paginated.map(async ({ post }) => mapPost(post)))
 
     return {
         posts: postsWithAccess,
         total,
         pages: Math.ceil(total / limit),
         page,
-        suggestedCreators, // Exported to the frontend
+        isRandomFallback: false,
+        fallbackCategory: null,
+        suggestedCreators,
     }
 }
 

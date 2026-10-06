@@ -673,6 +673,51 @@
     gap: var(--space-6); // the ONLY source of vertical rhythm between cards
 }
 
+.feed-fallback-banner {
+    display: flex;
+    align-items: center;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, rgba(194, 98, 42, 0.08) 0%, rgba(194, 98, 42, 0.02) 100%);
+    border: 1px solid rgba(194, 98, 42, 0.22);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(8px);
+
+    &__content {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    &__emoji {
+        font-size: 1.4rem;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+
+    &__text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    &__title {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-dark);
+
+        strong {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-bold);
+        }
+    }
+
+    &__desc {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+    }
+}
+
 .feed-empty {
     text-align: center;
     padding: var(--space-16) var(--space-4);

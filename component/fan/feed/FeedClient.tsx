@@ -90,6 +90,8 @@ export const FeedClient = ({
     const [hasMore,        setHasMore]        = useState(initialPosts.length >= 20)
     const [activeCategory, setActiveCategory] = useState<Category | "ALL">("ALL")
     const [loadingMore,    setLoadingMore]    = useState(false)
+    const [isRandomFallback, setIsRandomFallback] = useState(false)
+    const [fallbackCategory, setFallbackCategory] = useState<Category | null>(null)
 
     // ── Panel state (becomes SidePanel in phase 2) ────────────────────────────
     const [commentPostId, setCommentPostId] = useState<string | null>(null)
@@ -113,6 +115,8 @@ export const FeedClient = ({
         startTransition(async () => {
             const data = await getFeedAction({ category: cat, page: 1 })
             setPosts(data.posts)
+            setIsRandomFallback(Boolean(data.isRandomFallback))
+            setFallbackCategory(data.fallbackCategory ?? null)
             setHasMore(data.posts.length >= 20)
         })
     }
@@ -187,7 +191,23 @@ export const FeedClient = ({
 
                 {/* Post list, with a shorts rail every SHORTS_INTERVAL posts */}
                 <div className="feed-posts">
-                    {postsWithLive.length === 0 && (
+                    {isRandomFallback && fallbackCategory && (
+                        <div className="feed-fallback-banner">
+                            <div className="feed-fallback-banner__content">
+                                <span className="feed-fallback-banner__emoji">✨</span>
+                                <div className="feed-fallback-banner__text">
+                                    <span className="feed-fallback-banner__title">
+                                        No posts in <strong>{CATEGORIES.find((c) => c.value === fallbackCategory)?.label ?? fallbackCategory}</strong> yet
+                                    </span>
+                                    <span className="feed-fallback-banner__desc">
+                                        Showing random posts from creators across NESORA
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {postsWithLive.length === 0 && !isRandomFallback && (
                         <div className="feed-empty">
                             <p>No posts yet in this category.</p>
                             <p>Follow more creators to fill your feed.</p>
