@@ -3,9 +3,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { X } from "lucide-react"
+import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { recordStoryViewAction } from "@/actions/stories"
 import { formatDistanceToNowStrict } from "date-fns"
+import { getPusherClient } from "@/lib/pusher-client"
 
 export type LiveStream = {
     id:    string
@@ -44,28 +45,51 @@ type Props = {
 }
 
 export const LiveRail = ({ streams = [], stories = [] }: Props) => {
+    // ── Live stream state: starts from SSR prop, removes on stream-ended event ──
+    const [liveStreams, setLiveStreams] = useState<LiveStream[]>(streams)
+
+    // ── Story viewer state ────────────────────────────────────────────────────
     const [activeStoryGroup, setActiveStoryGroup] = useState<StoryRailCreator | null>(null)
     const [storyIndex, setActiveStoryIndex]       = useState(0)
+    // Track viewed stories optimistically
+    const [viewedIds, setViewedIds] = useState<Set<string>>(
+        () => new Set(stories.flatMap(g => g.stories.filter(s => s.viewed).map(s => s.id)))
+    )
 
     const activeStory = activeStoryGroup?.stories[storyIndex]
 
-    const handleOpenStory = (group: StoryRailCreator) => {
-        setActiveStoryGroup(group)
-        setActiveStoryIndex(0)
-    }
+    // ── Pusher: listen for stream-ended on every live creator ─────────────────
+    useEffect(() => {
+        if (liveStreams.length === 0) return
 
-    const handleCloseStory = () => {
-        setActiveStoryGroup(null)
-        setActiveStoryIndex(0)
-    }
+        const pusher   = getPusherClient()
+        const channels = liveStreams.map((s) => {
+            const channelName = `creator-${s.creator.id}-live`
+            const ch = pusher.subscribe(channelName)
+            ch.bind("stream-ended", () => {
+                setLiveStreams((prev) => prev.filter((ls) => ls.creator.id !== s.creator.id))
+            })
+            return channelName
+        })
 
+        return () => {
+            channels.forEach((name) => {
+                const ch = pusher.channel(name)
+                ch?.unbind_all()
+                pusher.unsubscribe(name)
+            })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [streams]) // re-subscribe only when the initial SSR prop changes
+
+    // ── Story auto-advance timer ──────────────────────────────────────────────
     useEffect(() => {
         if (!activeStoryGroup || !activeStory) return
 
-        // Record story view
-        recordStoryViewAction(activeStory.id).catch(() => {})
+        recordStoryViewAction(activeStory.id)
+            .then(() => setViewedIds((prev) => new Set([...prev, activeStory.id])))
+            .catch(() => {})
 
-        // Timer for auto-advancing
         const timer = setTimeout(() => {
             if (storyIndex < activeStoryGroup.stories.length - 1) {
                 setActiveStoryIndex((prev) => prev + 1)
@@ -77,14 +101,39 @@ export const LiveRail = ({ streams = [], stories = [] }: Props) => {
         return () => clearTimeout(timer)
     }, [activeStoryGroup, activeStory?.id, storyIndex])
 
-    if (streams.length === 0 && stories.length === 0) return null
+    const handleOpenStory = (group: StoryRailCreator) => {
+        setActiveStoryGroup(group)
+        setActiveStoryIndex(0)
+    }
+
+    const handleCloseStory = () => {
+        setActiveStoryGroup(null)
+        setActiveStoryIndex(0)
+    }
+
+    const handlePrevStory = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (storyIndex > 0) setActiveStoryIndex((prev) => prev - 1)
+        else handleCloseStory()
+    }
+
+    const handleNextStory = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (activeStoryGroup && storyIndex < activeStoryGroup.stories.length - 1) {
+            setActiveStoryIndex((prev) => prev + 1)
+        } else {
+            handleCloseStory()
+        }
+    }
+
+    if (liveStreams.length === 0 && stories.length === 0) return null
 
     return (
         <>
             <div className="live-rail">
                 <div className="live-rail__track">
                     {/* ── 1. Live Stream Broadcasts ── */}
-                    {streams.map((s) => (
+                    {liveStreams.map((s) => (
                         <Link
                             key={`live-${s.id}`}
                             href={`/fan/live/${s.id}`}
@@ -117,9 +166,14 @@ export const LiveRail = ({ streams = [], stories = [] }: Props) => {
 
                     {/* ── 2. Creator Stories ── */}
                     {stories.map((group) => {
-                        const isUnwatched = group.hasUnwatched
-                        const firstStory  = group.stories[0]
-                        const imgUrl      = group.creator.image || firstStory?.thumbnailUrl || firstStory?.mediaUrl
+                        const hasActive   = group.stories.length > 0
+                        const isUnwatched = group.hasUnwatched ||
+                            group.stories.some((s) => !viewedIds.has(s.id))
+                        const imgUrl      = group.creator.image
+                            || group.stories[0]?.thumbnailUrl
+                            || group.stories[0]?.mediaUrl
+
+                        if (!hasActive) return null
 
                         return (
                             <button
@@ -127,10 +181,11 @@ export const LiveRail = ({ streams = [], stories = [] }: Props) => {
                                 type="button"
                                 className="story-bubble"
                                 onClick={() => handleOpenStory(group)}
+                                aria-label={`View ${group.creator.displayName}'s story`}
                             >
                                 <span
-                                    className={`story-bubble__ring ${
-                                        !isUnwatched ? "story-bubble__ring--viewed" : ""
+                                    className={`story-bubble__ring${
+                                        isUnwatched ? "" : " story-bubble__ring--viewed"
                                     }`}
                                 >
                                     <span className="story-bubble__avatar">
@@ -166,13 +221,37 @@ export const LiveRail = ({ streams = [], stories = [] }: Props) => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Media Display */}
-                        {activeStory.mediaUrl ? (
+                        {activeStory.mediaType === "VIDEO" && activeStory.mediaUrl ? (
+                            <video
+                                key={activeStory.id}
+                                src={activeStory.mediaUrl}
+                                className="story-viewer-modal__media"
+                                autoPlay
+                                muted
+                                playsInline
+                                loop={false}
+                            />
+                        ) : activeStory.mediaUrl ? (
                             <img
                                 src={activeStory.mediaUrl}
                                 alt="Story"
                                 className="story-viewer-modal__media"
                             />
                         ) : null}
+
+                        {/* Tap zones for prev/next */}
+                        <button
+                            type="button"
+                            className="story-viewer-modal__tap-prev"
+                            onClick={handlePrevStory}
+                            aria-label="Previous story"
+                        />
+                        <button
+                            type="button"
+                            className="story-viewer-modal__tap-next"
+                            onClick={handleNextStory}
+                            aria-label="Next story"
+                        />
 
                         {/* Top Bar */}
                         <div className="story-viewer-modal__top">
@@ -183,8 +262,13 @@ export const LiveRail = ({ streams = [], stories = [] }: Props) => {
                                         <div
                                             className="story-viewer-modal__bar-fill"
                                             style={{
-                                                width: i <= storyIndex ? "100%" : "0%",
-                                                transition: i === storyIndex ? "width 5s linear" : "none",
+                                                width: i < storyIndex ? "100%"
+                                                    : i === storyIndex ? undefined
+                                                    : "0%",
+                                                // Only animate the active bar
+                                                animation: i === storyIndex
+                                                    ? "story-progress 5s linear forwards"
+                                                    : "none",
                                             }}
                                         />
                                     </div>

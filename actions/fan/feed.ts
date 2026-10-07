@@ -23,7 +23,7 @@ function recencyScore(publishedAt: Date): number {
 }
 
 // Check whether the fan has the required access level for a post
-async function resolvePostAccess(params: {
+export async function resolvePostAccess(params: {
     userId:         string
     creatorId:      string
     accessLevel:    PostAccessLevel
@@ -90,7 +90,7 @@ async function resolvePostAccess(params: {
 }
 
 // Derive one-time unlock price for a locked post
-async function resolveUnlockPrice(params: {
+export async function resolveUnlockPrice(params: {
     creatorId:      string
     accessLevel:    PostAccessLevel
     allowedPlanIds: string[]

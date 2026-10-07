@@ -1,6 +1,6 @@
-// components/fan/layout/fan-nav-config.tsx
 import {
     Home,
+    Film,
     Clapperboard,
     Radio,
     MessageCircle,
@@ -21,7 +21,8 @@ export type FanNavItem = {
 // ── Desktop sidebar — the full navigation surface ─────────────────────────────
 
 export const FAN_SIDE_NAV: FanNavItem[] = [
-    { label: "Home",          href: "/fan/feed",          icon: <Home         size={22} /> },
+    { label: "Socials",       href: "/fan/feed",          icon: <Home         size={22} /> },
+    { label: "Films",         href: "/fan/films",         icon: <Film         size={22} /> },
     { label: "Shorts",        href: "/fan/shorts",        icon: <Clapperboard size={22} /> },
     { label: "Live",          href: "/fan/live",          icon: <Radio        size={22} />, badge: "live"   },
     { label: "Messages",      href: "/fan/messages",      icon: <MessageCircle size={22} />, badge: "unread" },

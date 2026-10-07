@@ -38,21 +38,26 @@
     padding: var(--space-2) var(--space-3);
     background-color: var(--color-bg);
     border-bottom: var(--border-width) solid var(--color-border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 
     @media (min-width: 1024px) { display: none } // sidebar covers this
 
     &__item {
         flex: 1;
+        min-width: fit-content;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: var(--space-2);
-        padding: var(--space-3) var(--space-2);
+        gap: 6px;
+        padding: 8px 6px;
         border-radius: var(--radius-md);
         font-size: var(--font-size-xs);
         font-weight: var(--font-weight-medium);
         color: var(--color-text-secondary);
         text-decoration: none;
+        white-space: nowrap;
         transition: background-color var(--transition-fast), color var(--transition-fast);
 
         &--active {
@@ -183,6 +188,11 @@
     }
 }
 
+@keyframes story-halo-spin {
+    0%   { --story-halo-angle: 0deg }
+    100% { --story-halo-angle: 360deg }
+}
+
 .story-bubble {
     flex-shrink: 0;
     width: 74px;
@@ -203,16 +213,23 @@
         justify-content: center;
         width: 70px;
         height: 70px;
-        border-radius: var(--radius-full);
-        background: conic-gradient(from 180deg, #EA580C, #F59E0B, #EA580C);
+        border-radius: 50%;
+        // Vibrant rotating gradient halo — active stories
+        background: linear-gradient(135deg, #f97316, #f59e0b, #ec4899, #8b5cf6, #f97316);
+        background-size: 300% 300%;
+        animation: story-halo-shift 3s linear infinite;
         transition: transform var(--transition-fast);
+        box-shadow: 0 0 0 2px transparent;
 
         &--viewed {
-            background: #CBD5E1;
+            background: none;
+            background-color: rgba(148, 163, 184, 0.4);
+            animation: none;
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.4);
         }
     }
 
-    &:hover &__ring { transform: scale(1.04) }
+    &:hover &__ring:not(&__ring--viewed) { transform: scale(1.06) }
 
     &__avatar {
         display: flex;
@@ -220,10 +237,10 @@
         justify-content: center;
         width: 62px;
         height: 62px;
-        border-radius: var(--radius-full);
+        border-radius: 50%;
         overflow: hidden;
         background-color: var(--color-bg-alt);
-        border: 2.5px solid var(--color-surface);
+        border: 3px solid var(--color-surface);
 
         img {
             width: 100%;
@@ -255,7 +272,18 @@
     }
 }
 
+@keyframes story-halo-shift {
+    0%   { background-position: 0%   50% }
+    50%  { background-position: 100% 50% }
+    100% { background-position: 0%   50% }
+}
+
 // ── Web Story Viewer Modal ──
+@keyframes story-progress {
+    from { width: 0% }
+    to   { width: 100% }
+}
+
 .story-viewer-modal {
     position: fixed;
     inset: 0;
@@ -265,6 +293,7 @@
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(8px);
+    animation: fadeIn 0.18s ease;
 
     &__content {
         position: relative;
@@ -278,6 +307,7 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        user-select: none;
     }
 
     &__media {
@@ -288,11 +318,29 @@
         object-fit: cover;
     }
 
+    // Tap zones for prev / next
+    &__tap-prev,
+    &__tap-next {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        z-index: 5;
+        width: 40%;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+    }
+    &__tap-prev { left: 0 }
+    &__tap-next { right: 0 }
+
     &__top {
         position: relative;
         z-index: 10;
         padding: 16px;
         background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+        pointer-events: none; // let taps pass through to tap zones, buttons below re-enable
+
+        button { pointer-events: auto }
     }
 
     &__progress {
@@ -312,6 +360,7 @@
     &__bar-fill {
         height: 100%;
         background-color: #fff;
+        width: 0%;
     }
 
     &__header {
@@ -365,6 +414,7 @@
         justify-content: center;
         cursor: pointer;
         transition: background-color 0.2s;
+        pointer-events: auto;
 
         &:hover {
             background-color: rgba(0, 0, 0, 0.7);
@@ -384,6 +434,7 @@
         font-size: 13.5px;
         text-align: center;
         line-height: 1.4;
+        pointer-events: none;
     }
 }
 

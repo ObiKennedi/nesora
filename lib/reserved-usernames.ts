@@ -1,5 +1,7 @@
 export const RESERVED_USERNAMES = new Set([
     "feed",
+    "socials",
+    "films",
     "shorts",
     "live",
     "messages",

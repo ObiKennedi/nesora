@@ -6,7 +6,6 @@ import {
     useCallback, useTransition,
 } from "react"
 import Link                   from "next/link"
-import { useRouter }          from "next/navigation"
 import {
     Heart, MessageCircle, Share2,
     Bookmark, Gift, Volume2, VolumeX,
@@ -359,8 +358,6 @@ const ShortItem = ({
 // ── ShortsPlayer ──────────────────────────────────────────────────────────────
 
 export const ShortsPlayer = ({ initialShorts, startIndex, currentUserId }: Props) => {
-    const router = useRouter()
-
     const [shorts,  setShorts]  = useState<Short[]>(initialShorts)
     const [index,   setIndex]   = useState(startIndex)
     const [isMuted, setIsMuted] = useState(true)
@@ -378,10 +375,14 @@ export const ShortsPlayer = ({ initialShorts, startIndex, currentUserId }: Props
     const current = shorts[index]
 
     // ── URL sync ──────────────────────────────────────────────────────────────
-    // Must match the real route: app/(fan)/fan/shorts/[id]/page.tsx
+    // Keep URL in sync with active short without triggering Next.js router
+    // navigation transitions / RSC refetches, which lock the router and freeze all other links.
     useEffect(() => {
-        if (!current) return
-        router.replace(`/fan/shorts/${current.id}`, { scroll: false })
+        if (!current?.id) return
+        const targetPath = `/fan/shorts/${current.id}`
+        if (typeof window !== "undefined" && window.location.pathname !== targetPath) {
+            window.history.replaceState(null, "", targetPath)
+        }
     }, [current?.id])
 
     // ── Load more when near end ───────────────────────────────────────────────
